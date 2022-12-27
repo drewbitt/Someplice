@@ -16,6 +16,7 @@ specifiers:
   postcss-load-config: ^4.0.1
   prettier: ^2.8.0
   prettier-plugin-svelte: ^2.8.1
+  radix-icons-svelte: ^1.2.1
   svelte: ^3.54.0
   svelte-check: ^2.9.2
   svelte-preprocess: ^4.10.7
@@ -41,6 +42,7 @@ devDependencies:
   postcss-load-config: 4.0.1_postcss@8.4.20
   prettier: 2.8.1
   prettier-plugin-svelte: 2.9.0_ajxj753sv7dbwexjherrch25ta
+  radix-icons-svelte: 1.2.1
   svelte: 3.55.0
   svelte-check: 2.10.3_7tgmgw23w4ankk7vtabgm5xtbu
   svelte-preprocess: 4.10.7_4pbnl6cqae4gmabfifuvcfaifu
@@ -1693,6 +1695,10 @@ packages:
   /quick-lru/5.1.1:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
+    dev: true
+
+  /radix-icons-svelte/1.2.1:
+    resolution: {integrity: sha512-svmiMd0ocpdTm9cvAz0klcZpnh639lVctj6psQiawd4pYalVzOG4cX+JizAgRckyTAsRVdzObP7D2EBrSfdghA==}
     dev: true
 
   /read-cache/1.0.0:
