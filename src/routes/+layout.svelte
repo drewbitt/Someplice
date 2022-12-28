@@ -12,6 +12,7 @@
 		ShellSection
 	} from '@svelteuidev/core';
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
+	import { getCssText } from '@svelteuidev/core';
 
 	let isDark = false;
 	let opened = false;
