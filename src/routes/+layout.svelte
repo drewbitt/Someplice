@@ -1,18 +1,12 @@
 <script>
-	// import '../app.postcss';
+	import '../app.postcss';
 	import {
 		fns,
 		AppShell,
-		Navbar,
 		Header,
-		Title,
-		Divider,
 		SvelteUIProvider,
-		Container,
-		ShellSection
 	} from '@svelteuidev/core';
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
-	import { getCssText } from '@svelteuidev/core';
 
 	let isDark = false;
 	let opened = false;
@@ -25,7 +19,7 @@
 	}
 </script>
 
-<SvelteUIProvider withNormalizeCSS withGlobalStyles>
+<SvelteUIProvider>
 	<AppShell
 		override={{
 			main: {
