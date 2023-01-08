@@ -1,11 +1,6 @@
 <script>
 	import '../app.postcss';
-	import {
-		fns,
-		AppShell,
-		Header,
-		SvelteUIProvider,
-	} from '@svelteuidev/core';
+	import { fns, AppShell, Header, SvelteUIProvider } from '@svelteuidev/core';
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
 
 	let isDark = false;
@@ -19,7 +14,7 @@
 	}
 </script>
 
-<SvelteUIProvider>
+<SvelteUIProvider withGlobalStyles>
 	<AppShell
 		override={{
 			main: {
@@ -34,7 +29,7 @@
 			height={60}
 			override={{ p: '$mdPX', bc: isDark ? fns.themeColor('dark', 7) : 'white' }}
 		>
-			<HeaderContent {isDark} {opened} toggle={toggleTheme} toggleOpen={toggleOpened} />
+			<HeaderContent {isDark} toggle={toggleTheme} />
 		</Header>
 
 		<slot />
