@@ -14,7 +14,7 @@
 	}
 </script>
 
-<SvelteUIProvider class="h-screen" themeObserver={isDark ? 'dark' : 'light'}>
+<SvelteUIProvider class="h-screen" themeObserver={isDark ? 'dark' : 'light'} withGlobalStyles>
 	<AppShell
 		override={{
 			main: {

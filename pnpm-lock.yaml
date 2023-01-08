@@ -27,12 +27,14 @@ specifiers:
   vite: ^4.0.4
   vitest: ^0.25.8
 
+dependencies:
+  '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
+  '@svelteuidev/core': file:../../svelteui/packages/svelteui-core/package_khnq6f6biuveqn4hvhjveiokue
+
 devDependencies:
   '@playwright/test': 1.29.2
   '@sveltejs/adapter-auto': 1.0.0_@sveltejs+kit@1.0.7
   '@sveltejs/kit': 1.0.7_svelte@3.55.0+vite@4.0.4
-  '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
-  '@svelteuidev/core': file:../../svelteui/packages/svelteui-core/package_khnq6f6biuveqn4hvhjveiokue
   '@typescript-eslint/eslint-plugin': 5.48.0_k73wpmdolxikpyqun3p36akaaq
   '@typescript-eslint/parser': 5.48.0_iukboom6ndih5an6iafl45j2fe
   autoprefixer: 10.4.13_postcss@8.4.21
@@ -273,13 +275,13 @@ packages:
 
   /@floating-ui/core/0.7.3:
     resolution: {integrity: sha512-buc8BXHmG9l82+OQXOFU3Kr2XQx9ys01U/Q9HMIrZ300iLc8HLMgh7dcCqgYzAzf4BkoQvDcXf5Y+CuEZ5JBYg==}
-    dev: true
+    dev: false
 
   /@floating-ui/dom/0.5.2:
     resolution: {integrity: sha512-z1DnEa7F3d8Fm/eXSbii8UEGpcjZGkQaYYUI0WpEVgD3vBfebDW8j/3ysusxonuMexoigA+A3b/fYH7sEqiwyg==}
     dependencies:
       '@floating-ui/core': 0.7.3
-    dev: true
+    dev: false
 
   /@humanwhocodes/config-array/0.11.8:
     resolution: {integrity: sha512-UybHIJzJnR5Qc/MsD9Kr+RpO2h+/P1GhOwdiLPXK5TWk5sgTdu88bTD9UP+CKbPPh5Rni1u0GjAdYQLemG8g+g==}
@@ -353,7 +355,7 @@ packages:
 
   /@stitches/core/1.2.8:
     resolution: {integrity: sha512-Gfkvwk9o9kE9r9XNBmJRfV8zONvXThnm1tcuojL04Uy5uRyqg93DC83lDebl0rocZCfKSjUv+fWYtMQmEDJldg==}
-    dev: true
+    dev: false
 
   /@sveltejs/adapter-auto/1.0.0_@sveltejs+kit@1.0.7:
     resolution: {integrity: sha512-yKyPvlLVua1bJ/42FrR3X041mFGdB4GzTZOAEoHUcNBRE5Mhx94+eqHpC3hNvAOiLEDcKfVO0ObyKSu7qldU+w==}
@@ -2018,7 +2020,6 @@ packages:
   /svelte/3.55.0:
     resolution: {integrity: sha512-uGu2FVMlOuey4JoKHKrpZFkoYyj0VLjJdz47zX5+gVK5odxHM40RVhar9/iK2YFRVxvfg9FkhfVlR0sjeIrOiA==}
     engines: {node: '>= 8'}
-    dev: true
 
   /tailwindcss/3.2.4_postcss@8.4.21:
     resolution: {integrity: sha512-AhwtHCKMtR71JgeYDaswmZXhPcW9iuI9Sp2LvZPo9upDZ7231ZJ7eA9RaURbhpXGVlrjX4cFNlB4ieTetEb7hQ==}
@@ -2328,7 +2329,7 @@ packages:
     resolution: {directory: ../../svelteui/packages/svelteui-composables/package, type: directory}
     name: '@svelteuidev/composables'
     version: 0.7.7
-    dev: true
+    dev: false
 
   file:../../svelteui/packages/svelteui-core/package_khnq6f6biuveqn4hvhjveiokue:
     resolution: {directory: ../../svelteui/packages/svelteui-core/package, type: directory}
@@ -2343,4 +2344,4 @@ packages:
       '@stitches/core': 1.2.8
       '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
       svelte: 3.55.0
-    dev: true
+    dev: false

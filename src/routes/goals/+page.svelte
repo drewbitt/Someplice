@@ -1,6 +1,6 @@
 <script lang="ts">
-	import GoalBoxComponent from '$src/lib/components/GoalBox.svelte';
-	import NewGoalBoxComponent from '$src/lib/components/NewGoalBox.svelte';
+	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
+	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
 	import type { GoalBox } from '$src/lib/types';
 	import { Button, Title } from '@svelteuidev/core';
 

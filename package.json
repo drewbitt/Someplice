@@ -13,12 +13,14 @@
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write ."
 	},
+	"dependencies": {
+		"@svelteuidev/composables": "file:..\\..\\svelteui\\packages\\svelteui-composables\\package",
+		"@svelteuidev/core": "file:..\\..\\svelteui\\packages\\svelteui-core\\package"
+	},
 	"devDependencies": {
 		"@playwright/test": "^1.29.2",
 		"@sveltejs/adapter-auto": "^1.0.0",
 		"@sveltejs/kit": "^1.0.7",
-		"@svelteuidev/composables": "file:..\\..\\svelteui\\packages\\svelteui-composables\\package",
-		"@svelteuidev/core": "file:..\\..\\svelteui\\packages\\svelteui-core\\package",
 		"@typescript-eslint/eslint-plugin": "^5.48.0",
 		"@typescript-eslint/parser": "^5.48.0",
 		"autoprefixer": "^10.4.13",
