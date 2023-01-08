@@ -1,10 +1,6 @@
 <script lang="ts">
 	import type { GoalBox } from '$lib/types';
 	import { Box, Text, Title } from '@svelteuidev/core';
-
-	export let id: GoalBox['id'];
-	export let name: GoalBox['name'];
-	export let description: GoalBox['description'];
 </script>
 
 <Box
@@ -16,17 +12,14 @@
 		'grid-auto-rows': '6rem',
 		'line-height': '1'
 	}}
-	className="goal-box"
+    className="goal-box-new"
 >
 	<Box root="span" class="font-mono" className="goal-box-number" css={{ 'font-size': '80px' }}>
-		{id}
+		#
 	</Box>
 	<Box className="goal-box-details">
 		<Box>
-			<Title>{name}</Title>
-		</Box>
-		<Box>
-			<Text color="dimmed">{description}</Text>
+			<Title>New Goal</Title>
 		</Box>
 	</Box>
 </Box>

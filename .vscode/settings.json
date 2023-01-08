@@ -12,4 +12,7 @@
 	"cSpell.words": [
 		"Someplice"
 	],
+	"conventionalCommits.scopes": [
+		"deps"
+	],
 }

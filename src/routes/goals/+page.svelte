@@ -1,7 +1,8 @@
 <script lang="ts">
 	import GoalBoxComponent from '$src/lib/components/GoalBox.svelte';
+	import NewGoalBoxComponent from '$src/lib/components/NewGoalBox.svelte';
 	import type { GoalBox } from '$src/lib/types';
-	import { Box, Button, Title } from '@svelteuidev/core';
+	import { Button, Title } from '@svelteuidev/core';
 
 	function edit() {
 		console.log('edit');
@@ -30,7 +31,7 @@
 </script>
 
 <form>
-    <Title order={1} className="flex-1">
+    <Title class="flex">
         Goals
 		<Button class="mx-2">Edit</Button>
 		<Button class="mx-2">Renumber Goals</Button>
@@ -38,4 +39,5 @@
 	{#each testGoals as goal}
 		<GoalBoxComponent {...goal} />
 	{/each}
+	<NewGoalBoxComponent />
 </form>
