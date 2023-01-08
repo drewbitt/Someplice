@@ -12,14 +12,12 @@
 		'grid-auto-rows': '6rem',
 		'line-height': '1'
 	}}
-    className="goal-box-new"
+	className="goal-box-new"
 >
-	<Box root="span" class="font-mono" className="goal-box-number" css={{ 'font-size': '80px' }}>
-		#
-	</Box>
+	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
 	<Box className="goal-box-details">
 		<Box>
-			<Title>New Goal</Title>
+			<Text class="text-3xl" color="white">New Goal</Text>
 		</Box>
 	</Box>
 </Box>

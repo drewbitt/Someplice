@@ -31,7 +31,7 @@
 </script>
 
 <form>
-    <Title class="flex">
+    <Title class="flex" color="white">
         Goals
 		<Button class="mx-2">Edit</Button>
 		<Button class="mx-2">Renumber Goals</Button>

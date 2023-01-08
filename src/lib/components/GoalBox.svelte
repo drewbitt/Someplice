@@ -18,12 +18,12 @@
 	}}
 	className="goal-box"
 >
-	<Box root="span" class="font-mono" className="goal-box-number" css={{ 'font-size': '80px' }}>
+	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
 		{id}
 	</Box>
 	<Box className="goal-box-details">
 		<Box>
-			<Title>{name}</Title>
+			<Text class="text-3xl" color="white">{name}</Text>
 		</Box>
 		<Box>
 			<Text color="dimmed">{description}</Text>

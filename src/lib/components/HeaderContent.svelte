@@ -5,13 +5,10 @@
 	import { Sun, Moon } from 'radix-icons-svelte';
 	const mod = os === 'macos' ? '⌘' : 'ctrl';
 	export let isDark: boolean;
-	export let opened: boolean;
 	export let toggle: () => void;
-	export let toggleOpen: () => void;
 </script>
 
 <Group override={{ height: '100%', px: 20 }} position="apart">
-	<Burger {opened} on:click={toggleOpen} override={{ d: 'block', '@sm': { d: 'none' } }} />
 	<a href="/" style="text-decoration: none;">
 		<Group>
 			<!-- <Logo size={35} /> -->
