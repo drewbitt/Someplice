@@ -1,11 +1,11 @@
 interface GoalBox {
-    id: number;
-    name: string;
-    description: string;
+	id: number;
+	name: string;
+	description: string;
 }
 
 interface Test {
-    id: number;
+	id: number;
 }
 
 export type { GoalBox, Test };

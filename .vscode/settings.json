@@ -1,7 +1,7 @@
 {
 	"cSpell.ignorePaths": [
 		"package-lock.json",
-        "pnpm-lock.yaml",
+		"pnpm-lock.yaml",
 		"node_modules",
 		"vscode-extension",
 		".git/objects",
@@ -9,10 +9,6 @@
 		".vscode-insiders",
 		"package.json"
 	],
-	"cSpell.words": [
-		"Someplice"
-	],
-	"conventionalCommits.scopes": [
-		"deps"
-	],
+	"cSpell.words": ["Someplice"],
+	"conventionalCommits.scopes": ["deps"]
 }
