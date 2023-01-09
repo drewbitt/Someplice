@@ -47,6 +47,10 @@
 	});
 </script>
 
+<!-- TODO: Since code-input is client only, it does not appear on first load. To be improved
+since current implementation flashes improperly -->
 {#if browser}
-	<Box root="code-input" class="bg-white border min-w-min max-w-xl" />
+	<Box root="code-input" class="bg-white border min-w-min max-w-xl font-mono text-lg text-black" />
+{:else}
+	<textarea class="bg-white border h-64 min-w-max" />
 {/if}
