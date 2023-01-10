@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@playwright/test": "^1.29.2",
 		"@sveltejs/adapter-auto": "^1.0.0",
-		"@sveltejs/kit": "^1.0.10",
+		"@sveltejs/kit": "^1.0.11",
 		"@types/better-sqlite3": "^7.6.3",
 		"@types/node": "^18.11.18",
 		"@typescript-eslint/eslint-plugin": "^5.48.1",
