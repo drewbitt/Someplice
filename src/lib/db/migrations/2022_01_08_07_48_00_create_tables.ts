@@ -3,7 +3,7 @@ import { sql, type Kysely } from 'kysely';
 export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable('goals')
-		.addColumn('id', 'integer', (col) => col.primaryKey())
+		.addColumn('id', 'integer', (col) => col.autoIncrement().primaryKey())
 		.addColumn('active', 'boolean')
 		.addColumn('orderNumber', 'integer')
 		.addColumn('title', 'text', (col) => col.notNull())
@@ -13,7 +13,7 @@ export async function up(db: Kysely<any>): Promise<void> {
 
 	await db.schema
 		.createTable('intentions')
-		.addColumn('id', 'integer', (col) => col.primaryKey())
+		.addColumn('id', 'integer', (col) => col.autoIncrement().primaryKey())
 		.addColumn('goalId', 'integer', (col) => col.references('goals.id'))
 		.addColumn('completed', 'boolean')
 		.addColumn('text', 'text', (col) => col.notNull())

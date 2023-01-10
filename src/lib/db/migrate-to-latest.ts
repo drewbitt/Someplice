@@ -1,9 +1,9 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
-import type { DB } from './db';
 import { db as mainDb } from './db';
 import { pathToFileURL } from 'url';
+import type { DB } from '../types/data';
 
 export async function migrateToLatest(db?: Kysely<DB>) {
 	if (!db) {

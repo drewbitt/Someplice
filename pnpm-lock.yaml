@@ -6,6 +6,8 @@ specifiers:
   '@sveltejs/kit': ^1.0.10
   '@svelteuidev/composables': file:..\..\svelteui\packages\svelteui-composables\package
   '@svelteuidev/core': file:..\..\svelteui\packages\svelteui-core\package
+  '@trpc/client': ^10.8.1
+  '@trpc/server': ^10.8.1
   '@types/better-sqlite3': ^7.6.3
   '@types/node': ^18.11.18
   '@typescript-eslint/eslint-plugin': ^5.48.1
@@ -28,17 +30,23 @@ specifiers:
   svelte-check: ^2.10.3
   svelte-preprocess: ^4.10.7
   tailwindcss: ^3.2.4
+  trpc-sveltekit: ^3.2.4
   tslib: ^2.4.1
   typescript: ^4.9.4
   vite: ^4.0.4
   vite-node: ^0.26.3
   vitest: ^0.25.8
+  zod: ^3.20.2
 
 dependencies:
   '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
   '@svelteuidev/core': file:../../svelteui/packages/svelteui-core/package_khnq6f6biuveqn4hvhjveiokue
+  '@trpc/client': 10.8.1_@trpc+server@10.8.1
+  '@trpc/server': 10.8.1
   better-sqlite3: 8.0.1
   kysely: 0.23.3
+  trpc-sveltekit: 3.2.4
+  zod: 3.20.2
 
 devDependencies:
   '@playwright/test': 1.29.2
@@ -426,6 +434,18 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /@trpc/client/10.8.1_@trpc+server@10.8.1:
+    resolution: {integrity: sha512-DQ+Y3ek/rjCYaI8ifeeVPVW/KIO6ryye32Xdm9VAkdhd1humYD/4rN2CQ7K1zPTeNpbIpuckEAMEadeB4ItcMQ==}
+    peerDependencies:
+      '@trpc/server': 10.8.1
+    dependencies:
+      '@trpc/server': 10.8.1
+    dev: false
+
+  /@trpc/server/10.8.1:
+    resolution: {integrity: sha512-oSNYgFNJbjki4jBByJ/SKHasB/X7kTsEbVGaONNH1DHMz638xlYXPQucV+2bWbhCm5HlXhQTaVN7Or0lsCuUUQ==}
+    dev: false
 
   /@types/better-sqlite3/7.6.3:
     resolution: {integrity: sha512-YS64N9SNDT/NAvou3QNdzAu3E2om/W/0dhORimtPGLef+zSK5l1vDzfsWb4xgXOgfhtOI5ZDTRxnvRPb22AIVQ==}
@@ -2357,6 +2377,13 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
+  /trpc-sveltekit/3.2.4:
+    resolution: {integrity: sha512-m7nU+pEfJNna/++yc6kuwe2GUbgRAuxl8PY8jTV9zKKbWhgOfpvjhRP0QgbbhnBXN9rKkQhTJZBDrBwZSszjqQ==}
+    dependencies:
+      '@trpc/client': 10.8.1_@trpc+server@10.8.1
+      '@trpc/server': 10.8.1
+    dev: false
+
   /tslib/1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
     dev: true
@@ -2583,6 +2610,10 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
+
+  /zod/3.20.2:
+    resolution: {integrity: sha512-1MzNQdAvO+54H+EaK5YpyEy0T+Ejo/7YLHS93G3RnYWh5gaotGHwGeN/ZO687qEDU2y4CdStQYXVHIgrUl5UVQ==}
+    dev: false
 
   file:../../svelteui/packages/svelteui-composables/package:
     resolution: {directory: ../../svelteui/packages/svelteui-composables/package, type: directory}

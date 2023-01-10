@@ -1,11 +1,6 @@
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
-import type { Goals, Intentions } from '../types/data';
-
-export interface DB {
-	goals: Goals;
-	intentions: Intentions;
-}
+import type { DB } from '../types/data';
 
 export const db = new Kysely<DB>({
 	dialect: new SqliteDialect({
