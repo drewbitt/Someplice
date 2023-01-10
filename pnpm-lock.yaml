@@ -20,7 +20,6 @@ specifiers:
   eslint-plugin-svelte3: ^4.0.0
   kysely: ^0.23.3
   kysely-codegen: ^0.9.0
-  kysely-migration-cli: ^0.1.1
   postcss: ^8.4.21
   postcss-load-config: ^4.0.1
   prettier: ^2.8.2
@@ -62,7 +61,6 @@ devDependencies:
   eslint-config-prettier: 8.6.0_eslint@8.31.0
   eslint-plugin-svelte3: 4.0.0_6go7qzsvzihesfwmyvq3tnl5qq
   kysely-codegen: 0.9.0_ee4mhlgmy2642vdaiimmujlg4i
-  kysely-migration-cli: 0.1.1
   postcss: 8.4.21
   postcss-load-config: 4.0.1_postcss@8.4.21
   prettier: 2.8.2
@@ -878,11 +876,6 @@ packages:
       color-string: 1.9.1
     dev: true
 
-  /commander/9.5.0:
-    resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
-    engines: {node: ^12.20.0 || >=14}
-    dev: true
-
   /concat-map/0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
     dev: true
@@ -1527,12 +1520,6 @@ packages:
       kysely: 0.23.3
       micromatch: 4.0.5
       minimist: 1.2.7
-    dev: true
-
-  /kysely-migration-cli/0.1.1:
-    resolution: {integrity: sha512-u/gmH1WEeJ3oI4ooBV3zJXAgYghC14rwkIFLu0xT0niDgDwUgVjZx9MsFDtYM2yhn0WrU0TRsAEglaU360xEJQ==}
-    dependencies:
-      commander: 9.5.0
     dev: true
 
   /kysely/0.23.3:

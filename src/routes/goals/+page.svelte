@@ -1,16 +1,12 @@
 <script lang="ts">
 	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
 	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
-	import { Button, Title } from '@svelteuidev/core';
+	import { Title, Button } from '@svelteuidev/core';
 	import type { PageData } from './$types';
+
 	export let data: PageData;
 
-	function edit() {
-		console.log('edit');
-	}
-	function renumber() {
-		console.log('renumber');
-	}
+	let errors: { message: string; path: string[] }[] | null = null;
 </script>
 
 <form>

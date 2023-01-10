@@ -5,12 +5,12 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 	: ColumnType<T, T | undefined, T>;
 
 export interface Goals {
-	id: Generated<number | null>;
-	active: number | null;
-	orderNumber: number | null;
+	id: Generated<number>;
+	active: number;
+	orderNumber: number;
 	title: string;
 	description: string | null;
-	color: string | null;
+	color: string;
 }
 
 export interface Intentions {

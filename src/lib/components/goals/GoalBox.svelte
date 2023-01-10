@@ -1,10 +1,13 @@
 <script lang="ts">
-	import type { GoalBox } from '$lib/types';
+	import type { Goals } from '$src/lib/types/data';
 	import { Box, Text, Title } from '@svelteuidev/core';
 
-	export let id: GoalBox['id'];
-	export let title: GoalBox['title'];
-	export let description: GoalBox['description'];
+	export let id: number;
+	export let active: Goals['active'];
+	export let orderNumber: Goals['orderNumber'];
+	export let title: Goals['title'];
+	export let description: Goals['description'];
+	export let color: Goals['color'];
 </script>
 
 <Box
@@ -19,7 +22,7 @@
 	className="goal-box"
 >
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
-		{id}
+		{orderNumber}
 	</Box>
 	<Box className="goal-box-details">
 		<Box>

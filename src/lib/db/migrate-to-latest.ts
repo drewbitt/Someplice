@@ -21,7 +21,6 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 						'file://',
 						''
 					);
-					// const filePath = pathToFileURL(new URL(`./migrations/${file}`, import.meta.url).pathname).pathname;
 					console.log('🚀 ~ file: migrate-to-latest.ts:22 ~ getMigrations ~ filePath', filePath);
 					const migration = await import(/* @vite-ignore */ filePath);
 					const migrationKey = file.substring(0, file.lastIndexOf('.'));

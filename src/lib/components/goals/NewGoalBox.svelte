@@ -1,6 +1,26 @@
 <script lang="ts">
-	import type { GoalBox } from '$lib/types';
-	import { Box, Text, Title } from '@svelteuidev/core';
+	import { Box, Text } from '@svelteuidev/core';
+	import { TRPCClientError } from '@trpc/client';
+	import { trpc } from '$src/lib/trpc/client';
+
+	const addGoal = async () => {
+		console.log('Adding goal');
+		try {
+			await trpc().goals.add.mutate({
+				title: 'Goal 1',
+				description: 'This is a goal',
+				color: 'blue',
+				active: 1,
+				orderNumber: 1
+			});
+		} catch (err) {
+			if (err instanceof TRPCClientError) {
+				// errors = JSON.parse(err.message);
+			} else {
+				throw err;
+			}
+		}
+	};
 </script>
 
 <Box
@@ -16,7 +36,7 @@
 >
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
 	<Box className="goal-box-details">
-		<Box>
+		<Box root="button" on:click={addGoal}>
 			<Text class="text-3xl" color="white">New Goal</Text>
 		</Box>
 	</Box>
