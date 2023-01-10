@@ -1,8 +1,9 @@
 <script lang="ts">
 	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
 	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
-	import type { GoalBox } from '$src/lib/types';
 	import { Button, Title } from '@svelteuidev/core';
+	import type { PageData } from './$types';
+	export let data: PageData;
 
 	function edit() {
 		console.log('edit');
@@ -10,24 +11,6 @@
 	function renumber() {
 		console.log('renumber');
 	}
-
-	const testGoals: GoalBox[] = [
-		{
-			id: 1,
-			name: 'Goal 1',
-			description: 'This is a goal'
-		},
-		{
-			id: 2,
-			name: 'Goal 2',
-			description: 'This is a goal'
-		},
-		{
-			id: 3,
-			name: 'Goal 3',
-			description: 'This is a goal'
-		}
-	];
 </script>
 
 <form>
@@ -36,7 +19,7 @@
 		<Button class="mx-2">Edit</Button>
 		<Button class="mx-2">Renumber Goals</Button>
 	</Title>
-	{#each testGoals as goal}
+	{#each data.goals as goal}
 		<GoalBoxComponent {...goal} />
 	{/each}
 	<NewGoalBoxComponent />

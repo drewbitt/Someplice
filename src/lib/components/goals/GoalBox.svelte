@@ -3,7 +3,7 @@
 	import { Box, Text, Title } from '@svelteuidev/core';
 
 	export let id: GoalBox['id'];
-	export let name: GoalBox['name'];
+	export let title: GoalBox['title'];
 	export let description: GoalBox['description'];
 </script>
 
@@ -23,7 +23,7 @@
 	</Box>
 	<Box className="goal-box-details">
 		<Box>
-			<Text class="text-3xl" color="white">{name}</Text>
+			<Text class="text-3xl" color="white">{title}</Text>
 		</Box>
 		<Box>
 			<Text color="dimmed">{description}</Text>

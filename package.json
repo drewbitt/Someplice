@@ -12,7 +12,8 @@
 		"test:unit": "vitest",
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
-		"codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts"
+		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts",
+		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts"
 	},
 	"dependencies": {
 		"@svelteuidev/composables": "file:..\\..\\svelteui\\packages\\svelteui-composables\\package",

@@ -1,9 +1,8 @@
-import * as path from 'path';
 import { promises as fs } from 'fs';
 import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
-import { db as mainDb } from './db';
 import { pathToFileURL } from 'url';
 import type { DB } from '../types/data';
+import { db as mainDb } from './db';
 
 export async function migrateToLatest(db?: Kysely<DB>) {
 	if (!db) {
@@ -17,6 +16,7 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 
 			for (const file of files) {
 				if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
+					// Hacky path conversion that works in Windows and probably only Windows
 					const filePath = pathToFileURL('./src/lib/db/migrations/' + file).href.replace(
 						'file://',
 						''
