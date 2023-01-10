@@ -3,6 +3,9 @@ import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 
 export const goals = t.router({
+	list: t.procedure.query(() =>
+		db.selectFrom('goals').select(['id', 'title', 'description']).execute()
+	),
 	add: t.procedure
 		.input(
 			z.object({
