@@ -1,25 +1,41 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import Database from 'better-sqlite3';
-import { FileMigrationProvider, Kysely, Migrator, SqliteDialect } from 'kysely';
-import type { DatabaseConfig } from './db';
+import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
+import type { DB } from './db';
+import { db as mainDb } from './db';
+import { pathToFileURL } from 'url';
 
-export async function migrateToLatest(db?: Kysely<DatabaseConfig>) {
+export async function migrateToLatest(db?: Kysely<DB>) {
 	if (!db) {
-		db = new Kysely<DatabaseConfig>({
-			dialect: new SqliteDialect({
-				database: new Database('db.sqlite')
-			})
-		});
+		db = mainDb;
 	}
+
+	const ViteMigrationProvider: MigrationProvider = {
+		async getMigrations() {
+			const migrations: Record<string, Migration> = {};
+			const files = await fs.readdir('./src/lib/db/migrations');
+
+			for (const file of files) {
+				if (file.endsWith('.ts') && !file.endsWith('.d.ts')) {
+					const filePath = pathToFileURL('./src/lib/db/migrations/' + file).href.replace(
+						'file://',
+						''
+					);
+					// const filePath = pathToFileURL(new URL(`./migrations/${file}`, import.meta.url).pathname).pathname;
+					console.log('🚀 ~ file: migrate-to-latest.ts:22 ~ getMigrations ~ filePath', filePath);
+					const migration = await import(/* @vite-ignore */ filePath);
+					const migrationKey = file.substring(0, file.lastIndexOf('.'));
+					migrations[migrationKey] = migration;
+				}
+			}
+
+			return migrations;
+		}
+	};
 
 	const migrator = new Migrator({
 		db,
-		provider: new FileMigrationProvider({
-			fs,
-			path,
-			migrationFolder: path.join(__dirname, 'migrations')
-		})
+		provider: ViteMigrationProvider
 	});
 
 	const { error, results } = await migrator.migrateToLatest();

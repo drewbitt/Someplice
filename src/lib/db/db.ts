@@ -1,17 +1,14 @@
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
-import type { GoalTable, IntentionTable } from '../types/data';
-import { migrateToLatest } from './migrate-to-latest';
+import type { Goals, Intentions } from '../types/data';
 
-export interface DatabaseConfig {
-	goals: GoalTable[];
-	intentions: IntentionTable[];
+export interface DB {
+	goals: Goals;
+	intentions: Intentions;
 }
 
-export const db = new Kysely<DatabaseConfig>({
+export const db = new Kysely<DB>({
 	dialect: new SqliteDialect({
-		database: new Database('db.sqlite')
+		database: new Database('./src/lib/db/db.sqlite')
 	})
 });
-
-await migrateToLatest(db);

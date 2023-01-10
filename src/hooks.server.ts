@@ -1,5 +1,7 @@
 import { getCssText } from '@svelteuidev/core';
 import type { Handle } from '@sveltejs/kit';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { migrateToLatest } from '$db/migrate-to-latest';
 
 export const handle = (async ({ event, resolve }) => {
 	return await resolve(event, {
