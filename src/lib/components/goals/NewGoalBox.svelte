@@ -2,17 +2,17 @@
 	import { Box, Text } from '@svelteuidev/core';
 	import { TRPCClientError } from '@trpc/client';
 	import { trpc } from '$src/lib/trpc/client';
+	import { invalidateAll } from '$app/navigation';
 
 	const addGoal = async () => {
-		console.log('Adding goal');
 		try {
 			await trpc().goals.add.mutate({
 				title: 'Goal 1',
 				description: 'This is a goal',
 				color: 'blue',
 				active: 1,
-				orderNumber: 1
 			});
+			await invalidateAll();
 		} catch (err) {
 			if (err instanceof TRPCClientError) {
 				// errors = JSON.parse(err.message);
