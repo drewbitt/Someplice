@@ -13,6 +13,7 @@
 	<Box class="flex">
 		<a href="/" style="text-decoration: none;" class="pr-5">
 			<Group>
+				<!-- TODO: Need logo if not going to display text at smallest screen size -->
 				<!-- <Logo size={35} /> -->
 				<Text color="blue" size="xl" override={{ d: 'none', '@sm': { d: 'block' } }}>Someplice</Text
 				>

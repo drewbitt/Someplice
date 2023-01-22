@@ -9,8 +9,8 @@
 			await trpc().goals.add.mutate({
 				title: 'Goal 1',
 				description: 'This is a goal',
-				color: 'blue',
-				active: 1,
+				color: 'hsluv(257.52, 98.91%, 27.5%)',
+				active: 1
 			});
 			await invalidateAll();
 		} catch (err) {

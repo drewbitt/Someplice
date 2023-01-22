@@ -27,7 +27,7 @@ export const goals = t.router({
 				.orderBy('orderNumber', 'desc')
 				.limit(1)
 				.execute();
-			const orderNumber = maxOrderNumber[0].orderNumber + 1;
+			const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
 
 			const insertion = await db
 				.insertInto('goals')
@@ -36,6 +36,23 @@ export const goals = t.router({
 
 			if (insertion) {
 				console.log('Inserted goal');
+			}
+		}),
+	edit: t.procedure
+		.input(
+			z.object({
+				id: z.number(),
+				active: z.number(),
+				title: z.string(),
+				description: z.string().optional(),
+				color: z.string()
+			})
+		)
+		.mutation(async ({ input }) => {
+			const update = await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
+
+			if (update) {
+				console.log('Updated goal');
 			}
 		})
 });
