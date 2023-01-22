@@ -2,7 +2,7 @@
 	import { Group, ActionIcon, Text, Burger, Tooltip, Box } from '@svelteuidev/core';
 	import { hotkey, useOs } from '@svelteuidev/composables';
 	import { page } from '$app/stores';
-	import logo from "$lib/assets/someplice-compressed-logo-2023-01-21.svg";
+	import logo from '$lib/assets/someplice-compressed-logo-2023-01-21.svg';
 	const os = useOs();
 	import { Sun, Moon } from 'radix-icons-svelte';
 	const mod = os === 'macos' ? '⌘' : 'ctrl';
@@ -14,19 +14,25 @@
 	<Box class="flex">
 		<a href="/" style="text-decoration: none;" class="pr-5">
 			<Group>
-				<img src={logo} alt="Someplice logo" width="35" height="35" style="border-radius: 8px;"/>
+				<img
+					src={logo}
+					alt="Someplice logo"
+					width="35"
+					height="35"
+					style="transform: scale(1.8); filter: invert(39%) sepia(96%) saturate(1162%) hue-rotate(187deg) brightness(96%) contrast(87%);"
+				/>
 				<Text color="blue" size="xl" override={{ d: 'none', '@sm': { d: 'block' } }}>Someplice</Text
 				>
 			</Group>
 		</a>
-		<Box css={{ 'line-height': '0' }}>
+		<Group class="leading-3">
 			<Box class="flex-none">
 				<Box root="ul" class="menu menu-horizontal px-2">
 					<li><a href="/today" class:active={$page.url.pathname === '/today'}>Today</a></li>
 					<li><a href="/goals" class:active={$page.url.pathname === '/goals'}>Goals</a></li>
 				</Box>
 			</Box>
-		</Box>
+		</Group>
 	</Box>
 	<Tooltip label={`${mod} + J`}>
 		<ActionIcon variant="default" on:click={toggle} size={30} use={[[hotkey, [['mod+J', toggle]]]]}>
