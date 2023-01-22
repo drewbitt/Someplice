@@ -2,6 +2,7 @@
 	import { Group, ActionIcon, Text, Burger, Tooltip, Box } from '@svelteuidev/core';
 	import { hotkey, useOs } from '@svelteuidev/composables';
 	import { page } from '$app/stores';
+	import logo from "$lib/assets/someplice-compressed-logo-2023-01-21.svg";
 	const os = useOs();
 	import { Sun, Moon } from 'radix-icons-svelte';
 	const mod = os === 'macos' ? '⌘' : 'ctrl';
@@ -13,8 +14,7 @@
 	<Box class="flex">
 		<a href="/" style="text-decoration: none;" class="pr-5">
 			<Group>
-				<!-- TODO: Need logo if not going to display text at smallest screen size -->
-				<!-- <Logo size={35} /> -->
+				<img src={logo} alt="Someplice logo" width="35" height="35" style="border-radius: 8px;"/>
 				<Text color="blue" size="xl" override={{ d: 'none', '@sm': { d: 'block' } }}>Someplice</Text
 				>
 			</Group>
