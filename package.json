@@ -16,8 +16,8 @@
 		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts"
 	},
 	"dependencies": {
-		"@svelteuidev/composables": "file:..\\..\\svelteui\\packages\\svelteui-composables\\package",
-		"@svelteuidev/core": "file:..\\..\\svelteui\\packages\\svelteui-core\\package",
+		"@svelteuidev/composables": "^0.8.0",
+		"@svelteuidev/core": "^0.8.0",
 		"@trpc/client": "^10.9.0",
 		"@trpc/server": "^10.9.0",
 		"better-sqlite3": "^8.0.1",

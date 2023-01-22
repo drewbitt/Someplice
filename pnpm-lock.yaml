@@ -4,8 +4,8 @@ specifiers:
   '@playwright/test': ^1.29.2
   '@sveltejs/adapter-auto': ^1.0.2
   '@sveltejs/kit': ^1.2.2
-  '@svelteuidev/composables': file:..\..\svelteui\packages\svelteui-composables\package
-  '@svelteuidev/core': file:..\..\svelteui\packages\svelteui-core\package
+  '@svelteuidev/composables': ^0.8.0
+  '@svelteuidev/core': ^0.8.0
   '@trpc/client': ^10.9.0
   '@trpc/server': ^10.9.0
   '@types/better-sqlite3': ^7.6.3
@@ -38,8 +38,8 @@ specifiers:
   zod: ^3.20.2
 
 dependencies:
-  '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
-  '@svelteuidev/core': file:../../svelteui/packages/svelteui-core/package_inhz54cl6j67o4tfwfrkhax5nm
+  '@svelteuidev/composables': 0.8.0
+  '@svelteuidev/core': 0.8.0_dacj2jvbdaiyd2od6is5xw34um
   '@trpc/client': 10.9.0_@trpc+server@10.9.0
   '@trpc/server': 10.9.0
   better-sqlite3: 8.0.1
@@ -432,6 +432,22 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /@svelteuidev/composables/0.8.0:
+    resolution: {integrity: sha512-ZIPu3zu6qEN9SUbtTTYEkfXaoeeUYd2pVU1IBRkvk80Tf4AXe8UPcEeRqf0TxA8znQKWpzFkGQetDJ8TUvYh4A==}
+    dev: false
+
+  /@svelteuidev/core/0.8.0_dacj2jvbdaiyd2od6is5xw34um:
+    resolution: {integrity: sha512-U6C7s+qo8mjmSPUcz2I0GmFB00aZ4KkxC040khVQ4j6HEVvpsWrlWjT9peYjISnXwiI4L/Vb6CBth0CiZbcA2A==}
+    peerDependencies:
+      '@svelteuidev/composables': 0.8.0
+      svelte: '>=3.47.0'
+    dependencies:
+      '@floating-ui/dom': 0.5.2
+      '@stitches/core': 1.2.8
+      '@svelteuidev/composables': 0.8.0
+      svelte: 3.55.1
+    dev: false
 
   /@trpc/client/10.9.0_@trpc+server@10.9.0:
     resolution: {integrity: sha512-id6318qpgqllNOuBp7nuciXFPXCe+zae5d4r1hze6Eyp5fFFNO58TqA+4Q44KIcHgpfWyW2egs6iPeql3PrdKA==}
@@ -2600,25 +2616,4 @@ packages:
 
   /zod/3.20.2:
     resolution: {integrity: sha512-1MzNQdAvO+54H+EaK5YpyEy0T+Ejo/7YLHS93G3RnYWh5gaotGHwGeN/ZO687qEDU2y4CdStQYXVHIgrUl5UVQ==}
-    dev: false
-
-  file:../../svelteui/packages/svelteui-composables/package:
-    resolution: {directory: ../../svelteui/packages/svelteui-composables/package, type: directory}
-    name: '@svelteuidev/composables'
-    version: 0.7.7
-    dev: false
-
-  file:../../svelteui/packages/svelteui-core/package_inhz54cl6j67o4tfwfrkhax5nm:
-    resolution: {directory: ../../svelteui/packages/svelteui-core/package, type: directory}
-    id: file:../../svelteui/packages/svelteui-core/package
-    name: '@svelteuidev/core'
-    version: 0.7.7
-    peerDependencies:
-      '@svelteuidev/composables': 0.7.7
-      svelte: '>=3.47.0'
-    dependencies:
-      '@floating-ui/dom': 0.5.2
-      '@stitches/core': 1.2.8
-      '@svelteuidev/composables': file:../../svelteui/packages/svelteui-composables/package
-      svelte: 3.55.1
     dev: false
