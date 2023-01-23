@@ -26,8 +26,13 @@
 	});
 </script>
 
-<div class="goal__editor">
+<div class="goal__editor form-control">
 	<pre class="goal__editor__pre" aria-hidden="true" />
-	<textarea class={className.concat(' border border-base-content ounded-btn')} bind:this={input} />
+	<textarea
+		class={className.concat(
+			' border border-base-content rounded-btn transition duration-200 ease-in-out'
+		)}
+		bind:this={input}
+	/>
 	<style bind:innerHTML={cssText} contenteditable="false"></style>
 </div>

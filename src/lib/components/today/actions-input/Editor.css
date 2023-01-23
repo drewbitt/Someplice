@@ -12,11 +12,14 @@
 	pointer-events: none;
 	border: transparent;
 	padding: 1rem 0.25rem;
+	left: auto;
+	display: block;
 	/* Be behind */
 	z-index: 0;
 }
 .goal__editor__textarea {
-	/* position: relative; */
+	/* Having problems with left padding, having to match pre but also not be on edge of border */
+	left: 2px;
 	position: relative;
 	height: 100%;
 	width: 100%;
@@ -30,19 +33,19 @@
 	/* Make transparent */
 	color: transparent;
 	background: transparent;
+	caret-color: #000;
 }
 /* Shared so text is on top of each other */
 .goal__editor__textarea,
 .goal__editor__pre {
 	top: 0;
-	left: 0;
 	margin: 0;
 	background: none;
 	box-sizing: inherit;
-	display: inherit;
 	font-size: inherit;
 	line-height: inherit;
 	word-break: keep-all;
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
+	font-family: sans-serif;
 }

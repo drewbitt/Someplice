@@ -19,6 +19,12 @@ const config = {
 			$src: './src',
 			$db: './src/lib/db',
 			tailwindConfig: 'tailwind.config.cjs'
+		},
+		paths: {
+			// assets: either `paths.assets`, if specified, or a relative path to `paths.base`
+			// has to be an absolute path
+			// path.resolve("./src/lib/assets") does not work
+			assets: ''
 		}
 	}
 };

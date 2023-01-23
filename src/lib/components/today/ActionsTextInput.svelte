@@ -6,7 +6,7 @@
 	export let goals: PageServerData['goals'];
 
 	const highlight = (value: string) => {
-		const regex = /^\d{1,2}\)/g;
+		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
 		const lines = value.split('\n');
 		const highlightedLines = lines.map((line) => {
 			const matches = line.match(regex);
