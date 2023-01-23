@@ -17,9 +17,10 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$src: './src',
-			$db: './src/lib/db'
+			$db: './src/lib/db',
+			tailwindConfig: 'tailwind.config.cjs',
 		}
-	}
+	},
 };
 
 export default config;

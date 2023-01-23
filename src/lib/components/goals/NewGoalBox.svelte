@@ -3,13 +3,19 @@
 	import { TRPCClientError } from '@trpc/client';
 	import { trpc } from '$src/lib/trpc/client';
 	import { invalidateAll } from '$app/navigation';
+	import { theme } from 'tailwindConfig';
 
 	const addGoal = async () => {
 		try {
+			const randomColorName = Object.keys(theme.extend.colors)[
+				Math.floor(Math.random() * Object.keys(theme.extend.colors).length)
+			] as keyof typeof theme.extend.colors;
+			const randomColorValue: string = theme.extend.colors[randomColorName]['500'];
+			// TODO: Make sure this color isn't already in use
 			await trpc().goals.add.mutate({
 				title: 'Goal 1',
 				description: 'This is a goal',
-				color: 'hsluv(257.52, 98.91%, 27.5%)',
+				color: randomColorValue,
 				active: 1
 			});
 			await invalidateAll();

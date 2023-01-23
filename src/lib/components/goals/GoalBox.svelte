@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PageServerData } from '.svelte-kit/types/src/routes/goals/$types';
+	import type { PageServerData } from './$types';
 	import { Box, Stack, Text, Title } from '@svelteuidev/core';
 
 	export let goal: PageServerData['goals'][0];
