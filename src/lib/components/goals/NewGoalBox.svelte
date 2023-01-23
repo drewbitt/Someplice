@@ -3,15 +3,17 @@
 	import { TRPCClientError } from '@trpc/client';
 	import { trpc } from '$src/lib/trpc/client';
 	import { invalidateAll } from '$app/navigation';
-	import { theme } from 'tailwindConfig';
+	import daisyUiThemes from 'daisyui/src/colors/themes';
 
 	const addGoal = async () => {
 		try {
-			const randomColorName = Object.keys(theme.extend.colors)[
-				Math.floor(Math.random() * Object.keys(theme.extend.colors).length)
-			] as keyof typeof theme.extend.colors;
-			const randomColorValue: string = theme.extend.colors[randomColorName]['500'];
-			// TODO: Make sure this color isn't already in use
+			// Get random color from daisyUI default themes
+			const themes = Object.values(daisyUiThemes);
+			const randomColorObject: Record<string, string> = themes[
+				Math.floor(Math.random() * themes.length)
+			] as unknown as Record<string, string>;
+			const randomColorValue = randomColorObject['base-100'];
+
 			await trpc().goals.add.mutate({
 				title: 'Goal 1',
 				description: 'This is a goal',

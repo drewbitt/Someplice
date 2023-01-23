@@ -18,9 +18,9 @@ const config = {
 		alias: {
 			$src: './src',
 			$db: './src/lib/db',
-			tailwindConfig: 'tailwind.config.cjs',
+			tailwindConfig: 'tailwind.config.cjs'
 		}
-	},
+	}
 };
 
 export default config;
