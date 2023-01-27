@@ -3,6 +3,15 @@ import { t } from '$lib/trpc/t';
 import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 
+const GoalSchema = z.object({
+	id: z.number(),
+	active: z.number(),
+	orderNumber: z.number(),
+	title: z.string(),
+	description: z.string().nullable(),
+	color: z.string()
+});
+
 export const goals = t.router({
 	list: t.procedure
 		.use(logger)
@@ -44,20 +53,31 @@ export const goals = t.router({
 		}),
 	edit: t.procedure
 		.use(logger)
-		.input(
-			z.object({
-				id: z.number(),
-				active: z.number(),
-				title: z.string(),
-				description: z.string().optional(),
-				color: z.string()
-			})
-		)
+		.input(GoalSchema)
 		.mutation(async ({ input }) => {
 			const update = await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
 
 			if (update) {
 				console.log('Updated goal');
 			}
+		}),
+	updateGoals: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				goals: z.array(GoalSchema)
+			})
+		)
+		.mutation(async ({ input }) => {
+			// Update order numbers
+			await Promise.all(
+				input.goals.map(async (goal) => {
+					await db
+						.updateTable('goals')
+						.set({ orderNumber: goal.orderNumber })
+						.where('id', '=', goal.id)
+						.execute();
+				})
+			);
 		})
 });
