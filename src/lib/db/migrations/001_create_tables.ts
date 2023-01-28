@@ -26,8 +26,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		// text like a, ab, abc, etc where it is the sub intention of a goal
 		// e.g. 2a), 2b), 2c), etc
 		.addColumn('subIntentionQualifier', 'text', (col) =>
-			col.check(sql`length("subIntentionQualifier") < 3`)
-			.check(sql`"subIntentionQualifier" GLOB '[0-9]*[a-z]'`)
+			col
+				.check(sql`length("subIntentionQualifier") < 3`)
+				.check(sql`"subIntentionQualifier" GLOB '[0-9]*[a-z]'`)
 		)
 		.addColumn('date', 'date')
 		.execute();
