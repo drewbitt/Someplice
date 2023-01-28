@@ -23,8 +23,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('text', 'text', (col) => col.notNull())
 		// optional column for sub intention of another intention
 		.addColumn('parentIntentionId', 'integer', (col) => col.references('intentions.id'))
-		// text like a, ab, abc, etc where it is the sub intention of a goal
-		// e.g. 2a), 2b), 2c), etc
+		// text like a, ab, abc, etc where it is the sub intention of a goal e.g. 2a), 2b), 2abc)
 		.addColumn('subIntentionQualifier', 'text', (col) =>
 			col
 				.check(sql`length("subIntentionQualifier") < 3`)

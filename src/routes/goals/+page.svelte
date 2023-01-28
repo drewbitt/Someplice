@@ -34,9 +34,12 @@
 	<Title class="flex" color="white">
 		Goals
 		<Button class="mx-2">Edit</Button>
-		<Button class="mx-2" on:click={handleRenumberButtonClick}>
-			{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
-		</Button>
+		<div class="indicator">
+			<span class={dragDisabled ? '' : 'indicator-item badge badge-secondary translate-x-1/4'} />
+			<Button class="mx-2" on:click={handleRenumberButtonClick}>
+				{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
+			</Button>
+		</div>
 	</Title>
 	<section
 		class="overflow-scroll"
