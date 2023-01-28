@@ -5,5 +5,8 @@ export const logger = t.middleware(async ({ path, type, next }) => {
 	const result = await next();
 	const ms = Date.now() - start;
 	console.log(`${result.ok ? 'OK' : 'ERR'} ${type} ${path} - ${ms}ms`);
+	if (!result.ok) {
+		console.error(result.error);
+	}
 	return result;
 });

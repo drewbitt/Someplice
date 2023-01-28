@@ -5,7 +5,7 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 	: ColumnType<T, T | undefined, T>;
 
 export interface Goals {
-	id: Generated<number>;
+	id: Generated<number | null>;
 	active: number;
 	orderNumber: number;
 	title: string;

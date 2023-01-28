@@ -2,6 +2,7 @@ import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { z } from 'zod';
 import { db } from '$src/lib/db/db';
+import { OnConflictUpdateBuilder, sql } from 'kysely';
 
 const GoalSchema = z.object({
 	id: z.number(),
@@ -36,14 +37,15 @@ export const goals = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			// get orderNumber by getting the max orderNumber of active goals and adding 1
+			// get orderNumber by getting the max orderNumber and adding 1
+			// Could make this a trigger in kysely with raw sql
 			const maxOrderNumber = await db
 				.selectFrom('goals')
 				.select('orderNumber')
-				.where('active', '=', 1)
 				.orderBy('orderNumber', 'desc')
 				.limit(1)
 				.execute();
+			// If no goals, set orderNumber to 1
 			const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
 
 			await db
@@ -69,15 +71,25 @@ export const goals = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			// Update order numbers
-			await Promise.all(
-				input.goals.map(async (goal) => {
-					await db
-						.updateTable('goals')
-						.set({ orderNumber: goal.orderNumber })
-						.where('id', '=', goal.id)
-						.execute();
-				})
-			);
+			/* 
+			Update order numbers
+
+			Use INSERT OR REPLACE to get around swaps of UNIQUE constraints throwing errors
+			in sequential updates
+			*/
+			const update = await db.transaction().execute(async (trx) => {
+				return await Promise.all(
+					input.goals.map(async (goal) => {
+						// Requires all input goals to have all fields set, else defaults will be used
+						return await sql`INSERT OR REPLACE INTO goals (id, active, orderNumber, title, description, color)
+										 VALUES (${goal.id}, ${goal.active}, ${goal.orderNumber}, ${goal.title},
+										${goal.description}, ${goal.color})`.execute(trx);
+					})
+				);
+			});
+
+			if (update) {
+				console.log('Updated goals orderNumbers');
+			}
 		})
 });

@@ -6,43 +6,49 @@
 	import { Title, Button } from '@svelteuidev/core';
 	import type { PageServerData } from './$types';
 	import { trpc } from '$src/lib/trpc/client';
+	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let data: PageServerData;
-	let { goals } = data;
-	type Goals = typeof goals[0];
+	console.log('🚀 ~ file: +page.svelte:13 ~ goals', data.goals);
+	type Goals = (typeof data.goals)[0];
+
+	function handleRenumberButtonClick() {
+		dragDisabled = !dragDisabled;
+	}
 
 	// DnD
 	let dragDisabled = true;
 
 	const handleDndConsider = (event: CustomEvent<DndEvent<Goals>>) => {
-		goals = event.detail.items;
+		data.goals = event.detail.items;
 	};
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
-		let items = event.detail.items;
-		items = items.map((item, index) => {
+		data.goals = event.detail.items;
+		const items = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index };
 		});
+		console.log('🚀 ~ file: +page.svelte:33 ~ handleDndFinalize ~ items', items);
 		await trpc($page).goals.updateGoals.mutate({ goals: items as Goals[] });
 	};
 </script>
 
-<form>
+<div>
 	<Title class="flex" color="white">
 		Goals
 		<Button class="mx-2">Edit</Button>
-		<Button class="mx-2" on:click={() => (dragDisabled = !dragDisabled)}
-			>{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}</Button
-		>
+		<Button class="mx-2" on:click={handleRenumberButtonClick}>
+			{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
+		</Button>
 	</Title>
 	<section
 		class="overflow-scroll"
-		use:dndzone={{ items: goals, dragDisabled }}
+		use:dndzone={{ items: data.goals, dragDisabled }}
 		on:consider={handleDndConsider}
 		on:finalize={handleDndFinalize}
 	>
-		{#each goals as goal (goal.orderNumber)}
+		{#each data.goals as goal (goal.orderNumber)}
 			<GoalBoxComponent {goal} />
 		{/each}
 	</section>
 	<NewGoalBoxComponent />
-</form>
+</div>
