@@ -57,11 +57,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(GoalSchema)
 		.mutation(async ({ input }) => {
-			const update = await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
-
-			if (update) {
-				console.log('Updated goal');
-			}
+			return await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
 		}),
 	updateGoals: t.procedure
 		.use(logger)
@@ -77,7 +73,7 @@ export const goals = t.router({
 			Use INSERT OR REPLACE to get around swaps of UNIQUE constraints throwing errors
 			in sequential updates
 			*/
-			const update = await db.transaction().execute(async (trx) => {
+			await db.transaction().execute(async (trx) => {
 				return await Promise.all(
 					input.goals.map(async (goal) => {
 						// Requires all input goals to have all fields set, else defaults will be used
@@ -87,9 +83,5 @@ export const goals = t.router({
 					})
 				);
 			});
-
-			if (update) {
-				console.log('Updated goals orderNumbers');
-			}
 		})
 });
