@@ -2,10 +2,10 @@ import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { z } from 'zod';
 import { db } from '$src/lib/db/db';
-import { OnConflictUpdateBuilder, sql } from 'kysely';
+import { sql } from 'kysely';
 
 const GoalSchema = z.object({
-	id: z.number(),
+	id: z.number().nullable(),
 	active: z.number(),
 	orderNumber: z.number(),
 	title: z.string(),
@@ -14,6 +14,9 @@ const GoalSchema = z.object({
 });
 
 export const goals = t.router({
+	/**
+	 * @param {number} input - 0 (false) or 1 (true) to return only active goals
+	 */
 	list: t.procedure
 		.use(logger)
 		// Input if want to return only active goals
@@ -59,6 +62,10 @@ export const goals = t.router({
 		.mutation(async ({ input }) => {
 			return await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
 		}),
+	/**
+	 * Update all goals in DB with input goals
+	 * @param {Goal[]} input - Array of goals to update
+	 */
 	updateGoals: t.procedure
 		.use(logger)
 		.input(
@@ -68,15 +75,14 @@ export const goals = t.router({
 		)
 		.mutation(async ({ input }) => {
 			/* 
-			Update order numbers
+			Update all goals with input goals (rolls back if any updates fail)
 
 			Use INSERT OR REPLACE to get around swaps of UNIQUE constraints throwing errors
 			in sequential updates
 			*/
-			await db.transaction().execute(async (trx) => {
+			return await db.transaction().execute(async (trx) => {
 				return await Promise.all(
 					input.goals.map(async (goal) => {
-						// Requires all input goals to have all fields set, else defaults will be used
 						return await sql`INSERT OR REPLACE INTO goals (id, active, orderNumber, title, description, color)
 										 VALUES (${goal.id}, ${goal.active}, ${goal.orderNumber}, ${goal.title},
 										${goal.description}, ${goal.color})`.execute(trx);

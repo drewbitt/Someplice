@@ -9,7 +9,6 @@
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let data: PageServerData;
-	console.log('🚀 ~ file: +page.svelte:13 ~ goals', data.goals);
 	type Goals = (typeof data.goals)[0];
 
 	function handleRenumberButtonClick() {
@@ -24,11 +23,10 @@
 	};
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
 		data.goals = event.detail.items;
-		const items = event.detail.items.map((item, index) => {
+		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index };
 		});
-		console.log('🚀 ~ file: +page.svelte:33 ~ handleDndFinalize ~ items', items);
-		await trpc($page).goals.updateGoals.mutate({ goals: items as Goals[] });
+		await trpc($page).goals.updateGoals.mutate({ goals: items });
 	};
 </script>
 
