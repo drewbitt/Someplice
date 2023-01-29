@@ -20,6 +20,10 @@
 
 	function handleEditButtonClick() {
 		editButtonActive = !editButtonActive;
+		// if active, save goals
+	}
+	function handleCancelButtonClick() {
+		editButtonActive = false;
 	}
 
 	// DnD
@@ -48,6 +52,9 @@
 			<span
 				class={editButtonActive ? 'indicator-item badge badge-secondary translate-x-1/4' : ''}
 			/>
+			{#if editButtonActive}
+				<Button class={'mx-2 btn-accent'} on:click={handleCancelButtonClick}>Cancel</Button>
+			{/if}
 			<Button
 				class={'mx-2' + (editButtonEnabled ? '' : ' btn-disabled')}
 				on:click={handleEditButtonClick}
@@ -72,7 +79,7 @@
 		on:finalize={handleDndFinalize}
 	>
 		{#each data.goals as goal (goal.orderNumber)}
-			<GoalBoxComponent {goal} />
+			<GoalBoxComponent {goal} currentlyEditing={editButtonActive} />
 		{/each}
 	</section>
 	<NewGoalBoxComponent />

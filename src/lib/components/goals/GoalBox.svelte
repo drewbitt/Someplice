@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type { PageServerData } from './$types';
 	import { Box, Stack, Text, Title } from '@svelteuidev/core';
+	import GoalTitleRow from './GoalTitleRow.svelte';
 
 	export let goal: PageServerData['goals'][0];
+
+	export let currentlyEditing: boolean;
 	// TODO: make a palette of colors
 </script>
 
@@ -27,12 +30,10 @@
 			color: goal.color
 		}}
 	>
-		{goal.orderNumber}
+		{goal.orderNumber + 1}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
-		<Box class="w-1/2">
-			<Text class="text-3xl" color="white">{goal.title}</Text>
-		</Box>
+		<GoalTitleRow title={goal.title} {currentlyEditing} />
 		<Box>
 			<Text color="dimmed">{goal.description}</Text>
 		</Box>
