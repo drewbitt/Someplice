@@ -19,8 +19,10 @@
 	$: dragButtonEnabled = !editButtonActive;
 
 	function handleEditButtonClick() {
+		if (editButtonActive) {
+			trpc($page).goals.updateGoals.mutate({ goals: data.goals });
+		}
 		editButtonActive = !editButtonActive;
-		// if active, save goals
 	}
 	function handleCancelButtonClick() {
 		editButtonActive = false;
@@ -38,8 +40,6 @@
 		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index };
 		});
-		// Return if no changes
-		if (JSON.stringify(items) === JSON.stringify(data.goals)) return;
 
 		await trpc($page).goals.updateGoals.mutate({ goals: items });
 	};
@@ -79,7 +79,7 @@
 		on:finalize={handleDndFinalize}
 	>
 		{#each data.goals as goal (goal.orderNumber)}
-			<GoalBoxComponent {goal} currentlyEditing={editButtonActive} />
+			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} />
 		{/each}
 	</section>
 	<NewGoalBoxComponent />

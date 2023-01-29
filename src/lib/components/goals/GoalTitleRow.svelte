@@ -7,7 +7,7 @@
 
 {#if currentlyEditing}
 	<div class="goal-box-title-editable w-1/2">
-		<Input bind:value={title} class={'text-3xl bg-transparent border-opacity-10 px-0'} />
+		<Input bind:value={title} class="text-3xl bg-transparent border-opacity-10 px-0 max-w-lg" />
 	</div>
 {:else}
 	<div class="goal-box-title w-1/2">

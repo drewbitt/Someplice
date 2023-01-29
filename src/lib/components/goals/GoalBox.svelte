@@ -2,10 +2,17 @@
 	import type { PageServerData } from './$types';
 	import { Box, Stack, Text, Title } from '@svelteuidev/core';
 	import GoalTitleRow from './GoalTitleRow.svelte';
+	import GoalDescription from './GoalDescription.svelte';
 
 	export let goal: PageServerData['goals'][0];
-
 	export let currentlyEditing: boolean;
+
+	// Bind goal properties to local variables
+	let description: string;
+	let title: string;
+	$: description = goal.description;
+	$: title = goal.title;
+
 	// TODO: make a palette of colors
 </script>
 
@@ -33,9 +40,7 @@
 		{goal.orderNumber + 1}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
-		<GoalTitleRow title={goal.title} {currentlyEditing} />
-		<Box>
-			<Text color="dimmed">{goal.description}</Text>
-		</Box>
+		<GoalTitleRow bind:title={goal.title} {currentlyEditing} />
+		<GoalDescription bind:description={goal.description} {currentlyEditing} />
 	</Stack>
 </Box>
