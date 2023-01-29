@@ -11,12 +11,23 @@
 	export let data: PageServerData;
 	type Goals = (typeof data.goals)[0];
 
-	function handleRenumberButtonClick() {
-		dragDisabled = !dragDisabled;
+	let dragDisabled = true;
+	let dragButtonEnabled = true;
+	let editButtonActive = false;
+	let editButtonEnabled = true;
+	// when dragDisabled is false, you cannot edit
+	$: editButtonEnabled = dragDisabled;
+	// when editButtonActive is true, you cannot drag
+	$: dragButtonEnabled = !editButtonActive;
+
+	function handleEditButtonClick() {
+		editButtonActive = !editButtonActive;
 	}
 
 	// DnD
-	let dragDisabled = true;
+	function handleRenumberButtonClick() {
+		dragDisabled = !dragDisabled;
+	}
 
 	const handleDndConsider = (event: CustomEvent<DndEvent<Goals>>) => {
 		data.goals = event.detail.items;
@@ -33,10 +44,23 @@
 <div>
 	<Title class="flex" color="white">
 		Goals
-		<Button class="mx-2">Edit</Button>
+		<div class="indicator">
+			<span
+				class={editButtonActive ? 'indicator-item badge badge-secondary translate-x-1/4' : ''}
+			/>
+			<Button
+				class={'mx-2' + (editButtonEnabled ? '' : ' btn-disabled')}
+				on:click={handleEditButtonClick}
+			>
+				{editButtonActive ? 'Save' : 'Edit'}
+			</Button>
+		</div>
 		<div class="indicator">
 			<span class={dragDisabled ? '' : 'indicator-item badge badge-secondary translate-x-1/4'} />
-			<Button class="mx-2" on:click={handleRenumberButtonClick}>
+			<Button
+				class={'mx-2' + (dragButtonEnabled ? '' : ' btn-disabled')}
+				on:click={handleRenumberButtonClick}
+			>
 				{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
 			</Button>
 		</div>
