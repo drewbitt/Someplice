@@ -11,13 +11,11 @@
 	export let data: PageServerData;
 	type Goals = (typeof data.goals)[0];
 
-	let dragDisabled = true;
-	let dragButtonEnabled = true;
-	let editButtonActive = false;
-	let editButtonEnabled = true;
-	// when dragDisabled is false, you cannot edit
+	let dragDisabled = true; // false when renumber button has been clicked
+	let dragButtonEnabled = true; // controls disabled state of renumber button
+	let editButtonActive = false; // true when edit button has been clicked
+	let editButtonEnabled = true; // controls disabled state of edit button
 	$: editButtonEnabled = dragDisabled;
-	// when editButtonActive is true, you cannot drag
 	$: dragButtonEnabled = !editButtonActive;
 
 	function handleEditButtonClick() {
@@ -28,7 +26,6 @@
 	function handleRenumberButtonClick() {
 		dragDisabled = !dragDisabled;
 	}
-
 	const handleDndConsider = (event: CustomEvent<DndEvent<Goals>>) => {
 		data.goals = event.detail.items;
 	};
@@ -37,6 +34,9 @@
 		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index };
 		});
+		// Return if no changes
+		if (JSON.stringify(items) === JSON.stringify(data.goals)) return;
+
 		await trpc($page).goals.updateGoals.mutate({ goals: items });
 	};
 </script>
