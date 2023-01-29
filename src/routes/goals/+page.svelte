@@ -2,10 +2,10 @@
 	import { page } from '$app/stores';
 	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
 	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
-	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
-	import { Title, Button } from '@svelteuidev/core';
-	import type { PageServerData } from './$types';
 	import { trpc } from '$src/lib/trpc/client';
+	import { Button, Title } from '@svelteuidev/core';
+	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
+	import type { PageServerData } from './$types';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let data: PageServerData;

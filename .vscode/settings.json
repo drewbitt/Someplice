@@ -9,6 +9,6 @@
 		".vscode-insiders",
 		"package.json"
 	],
-	"cSpell.words": ["Someplice"],
+	"cSpell.words": ["dndzone", "Someplice"],
 	"conventionalCommits.scopes": ["deps"]
 }
