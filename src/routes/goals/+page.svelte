@@ -36,10 +36,10 @@
 		data.goals = event.detail.items;
 	};
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
-		data.goals = event.detail.items;
 		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index };
 		});
+		data.goals = items;
 
 		await trpc($page).goals.updateGoals.mutate({ goals: items });
 	};
