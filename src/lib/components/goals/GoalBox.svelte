@@ -30,7 +30,7 @@
 	className="goal-box"
 >
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
-		{goal.orderNumber + 1}
+		{goal.orderNumber}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} />

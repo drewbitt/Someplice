@@ -37,7 +37,7 @@
 	};
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
 		const items: Goals[] = event.detail.items.map((item, index) => {
-			return { ...item, orderNumber: index };
+			return { ...item, orderNumber: index + 1 };
 		});
 		data.goals = items;
 
@@ -78,7 +78,7 @@
 		on:consider={handleDndConsider}
 		on:finalize={handleDndFinalize}
 	>
-		{#each data.goals as goal (goal.orderNumber)}
+		{#each data.goals as goal (goal)}
 			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} />
 		{/each}
 	</section>
