@@ -53,10 +53,12 @@
 				class={editButtonActive ? 'indicator-item badge badge-secondary translate-x-1/4' : ''}
 			/>
 			{#if editButtonActive}
-				<Button class={'mx-2 btn-accent'} on:click={handleCancelButtonClick}>Cancel</Button>
+				<Button color="teal" class={'mx-2'} on:click={handleCancelButtonClick}>Cancel</Button>
 			{/if}
 			<Button
-				class={'mx-2' + (editButtonEnabled ? '' : ' btn-disabled')}
+				class={'mx-2'}
+				disabled={!editButtonEnabled}
+				color={!editButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleEditButtonClick}
 			>
 				{editButtonActive ? 'Save' : 'Edit'}
@@ -65,7 +67,9 @@
 		<div class="indicator">
 			<span class={dragDisabled ? '' : 'indicator-item badge badge-secondary translate-x-1/4'} />
 			<Button
-				class={'mx-2' + (dragButtonEnabled ? '' : ' btn-disabled')}
+				class={'mx-2'}
+				disabled={!dragButtonEnabled}
+				color={!dragButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleRenumberButtonClick}
 			>
 				{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
@@ -73,7 +77,7 @@
 		</div>
 	</Title>
 	<section
-		class="overflow-scroll"
+		class="overflow-hidden"
 		use:dndzone={{ items: data.goals, dragDisabled }}
 		on:consider={handleDndConsider}
 		on:finalize={handleDndFinalize}
