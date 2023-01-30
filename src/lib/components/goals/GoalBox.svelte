@@ -29,14 +29,7 @@
 	}}
 	className="goal-box"
 >
-	<Box
-		root="span"
-		class="font-mono text-7xl"
-		className="goal-box-number"
-		css={{
-			color: goal.color
-		}}
-	>
+	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
 		{goal.orderNumber + 1}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">

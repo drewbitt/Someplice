@@ -56,6 +56,12 @@ export const goals = t.router({
 				.values({ ...input, orderNumber })
 				.execute();
 		}),
+	/**
+	 * Update a goal in DB with input goal by ID
+	 * @param {Goal} input - Goal to update
+	 * @param {number} input.id - ID of goal to update
+	 * @returns {UpdateResult[]}
+	 */
 	edit: t.procedure
 		.use(logger)
 		.input(GoalSchema)
@@ -80,7 +86,7 @@ export const goals = t.router({
 			Use INSERT OR REPLACE to get around swaps of UNIQUE constraints throwing errors
 			in sequential updates
 			*/
-			return await db.transaction().execute(async (trx) => {
+			await db.transaction().execute(async (trx) => {
 				return await Promise.all(
 					input.goals.map(async (goal) => {
 						return await sql`INSERT OR REPLACE INTO goals (id, active, orderNumber, title, description, color)
