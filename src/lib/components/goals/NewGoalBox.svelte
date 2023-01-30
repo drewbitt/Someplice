@@ -6,9 +6,13 @@
 	import daisyUiThemes from 'daisyui/src/colors/themes';
 
 	const addGoal = async () => {
+		// Get random color from daisyUI default themes
 		try {
-			// Get random color from daisyUI default themes
-			const themes = Object.values(daisyUiThemes);
+			let themes: { [key: string]: string }[] = Object.values(daisyUiThemes);
+			// Filter for only dark themes
+			themes = themes.filter((theme) => {
+				return theme['color-scheme'] === 'dark';
+			});
 			const randomColorObject: Record<string, string> = themes[
 				Math.floor(Math.random() * themes.length)
 			] as unknown as Record<string, string>;
