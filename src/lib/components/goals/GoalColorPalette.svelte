@@ -36,12 +36,20 @@
 		{:then availColors}
 			{#each availColors as color}
 				<Grid.Col span={3}>
-					<Box
-						class="w-10 h-10 rounded-full cursor-pointer"
-						css={{ background: color }}
+					<div
+						tabindex="0"
+						role="button"
+						style="background-color: {color}"
+						class="goal-box-color-picker-color w-10 h-10 rounded-full cursor-pointer"
 						on:click={() => {
 							goalColor = color;
 							closeModal();
+						}}
+						on:keydown={(event) => {
+							if (event.key === 'Enter') {
+								goalColor = color;
+								closeModal();
+							}
 						}}
 					/>
 				</Grid.Col>
@@ -51,6 +59,8 @@
 </Modal>
 
 <div
+	tabindex="0"
+	role="button"
 	use:cssvariable={{ 'lighter-goal-color': lighterGoalColor(goalColor) }}
 	class="goal-box-color-picker w-14 h-8 flex justify-center items-center cursor-pointer"
 	on:click={() => (opened = true)}
@@ -62,7 +72,7 @@
 >
 	<div
 		use:cssvariable={{ 'goal-color': goalColor }}
-		class="goal-box-color-picker-current-color w-6 h-6 border"
+		class="goal-box-color-picker-color-current w-6 h-6 border"
 		style="background-color: {goalColor}"
 	/>
 </div>
@@ -71,7 +81,7 @@
 	.goal-box-color-picker {
 		background-color: var(--lighter-goal-color);
 	}
-	.goal-box-color-picker-current-color {
+	.goal-box-color-picker-color-current {
 		background-color: var(--goal-color);
 	}
 </style>
