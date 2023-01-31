@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageServerData } from './$types';
-	import { Box, Stack } from '@svelteuidev/core';
+	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import { cssvariable } from '@svelteuidev/composables';
@@ -10,6 +10,15 @@
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;
+
+	const darkModeStyles = createStyles((theme) => ({
+		root: {
+			darkMode: {
+				color: 'white'
+			}
+		}
+	}));
+	$: ({ getStyles } = darkModeStyles());
 </script>
 
 <!-- Because of the equal size grid, the grid will break css with orderNumber >=10 -->
@@ -18,12 +27,12 @@
 	use:cssvariable={{ 'goal-color': goalColor }}
 	class="goal-box my-2.5 mx-5 grid"
 >
-	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
+	<Box root="span" class="font-mono text-7xl {getStyles()}" className="goal-box-number">
 		{goal.orderNumber}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
-		<GoalDescription bind:description={goal.description} {currentlyEditing} {goalColor} />
+		<GoalDescription bind:description={goal.description} {currentlyEditing} />
 	</Stack>
 </div>
 

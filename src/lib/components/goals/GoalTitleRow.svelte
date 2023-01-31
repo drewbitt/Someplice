@@ -1,24 +1,36 @@
 <script lang="ts">
-	import { Group, Input, Text } from '@svelteuidev/core';
+	import { createStyles, Group, Input, Text } from '@svelteuidev/core';
 	import GoalColorPalette from './GoalColorPalette.svelte';
 
 	export let goalColor: string;
 	export let currentlyEditing: boolean;
 	export let title: string;
+
+	const darkModeStyles = createStyles((theme) => ({
+		root: {
+			darkMode: {
+				color: 'white !important'
+			}
+		}
+	}));
+	$: ({ getStyles } = darkModeStyles());
 </script>
 
 {#if currentlyEditing}
 	<Group position="apart">
 		<div class="goal-box-title-editable w-1/2">
-			<Input bind:value={title} class="text-3xl bg-transparent border-opacity-10 px-0 max-w-lg" />
+			<Input
+				bind:value={title}
+				class="text-3xl bg-transparent border-opacity-10 px-0 max-w-lg {getStyles()}"
+			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
-			<Text color="white" class="pr-1">Color:</Text>
+			<Text class="pr-1">Color:</Text>
 			<GoalColorPalette bind:goalColor />
 		</div>
 	</Group>
 {:else}
 	<div class="goal-box-title w-1/2">
-		<Text class="text-3xl" color="white">{title}</Text>
+		<Text class="text-3xl {getStyles()}">{title}</Text>
 	</div>
 {/if}
