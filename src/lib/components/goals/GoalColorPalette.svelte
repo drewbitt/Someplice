@@ -3,6 +3,7 @@
 	import { Box, Grid, Modal } from '@svelteuidev/core';
 	import { colors } from './colors';
 	import { trpc } from '$src/lib/trpc/client';
+	import { cssvariable } from '@svelteuidev/composables';
 
 	export let goalColor: string;
 
@@ -13,6 +14,16 @@
 		const allGoals = await trpc($page).goals.list.query(1);
 		const usedColors = allGoals.map((goal) => goal.color);
 		return colors.filter((color) => !usedColors.includes(color));
+	};
+
+	// make a lighter version of goalColor via maniuplating the goalColor variable via hsl
+	const lighterGoalColor = (color: string) => {
+		const [hue, saturation, lightness] = color
+			.slice(4, -1)
+			.split(' ')
+			.map((x) => parseFloat(x));
+		const lighterLightness = lightness + (100 - lightness) * 0.2;
+		return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 	};
 </script>
 
@@ -39,13 +50,28 @@
 	</Grid>
 </Modal>
 
-<Box
-	class="w-14 h-8 flex justify-center items-center cursor-pointer"
-	css={{
-		// TODO: chosen color, but lighter via hsl manipulation
-		backgroundColor: 'black'
-	}}
+<div
+	use:cssvariable={{ 'lighter-goal-color': lighterGoalColor(goalColor) }}
+	class="goal-box-color-picker w-14 h-8 flex justify-center items-center cursor-pointer"
 	on:click={() => (opened = true)}
+	on:keydown={(event) => {
+		if (event.key === 'Enter') {
+			opened = true;
+		}
+	}}
 >
-	<Box class="w-6 h-6 border" css={{ background: goalColor }} />
-</Box>
+	<div
+		use:cssvariable={{ 'goal-color': goalColor }}
+		class="goal-box-color-picker-current-color w-6 h-6 border"
+		style="background-color: {goalColor}"
+	/>
+</div>
+
+<style>
+	.goal-box-color-picker {
+		background-color: var(--lighter-goal-color);
+	}
+	.goal-box-color-picker-current-color {
+		background-color: var(--goal-color);
+	}
+</style>
