@@ -18,13 +18,26 @@
 	$: editButtonEnabled = dragDisabled;
 	$: dragButtonEnabled = !editButtonActive;
 
+	// Store backup goal colors which will be restored if the user cancels
+	let backupGoalColors: string[] = [];
+
 	function handleEditButtonClick() {
 		if (editButtonActive) {
+			// Update colors on screen via reassignment
+			data.goals = data.goals.map((goal) => {
+				return { ...goal, color: goal.color };
+			});
+
 			trpc($page).goals.updateGoals.mutate({ goals: data.goals });
+		} else {
+			backupGoalColors = data.goals.map((goal) => goal.color);
 		}
 		editButtonActive = !editButtonActive;
 	}
 	function handleCancelButtonClick() {
+		data.goals = data.goals.map((goal, index) => {
+			return { ...goal, color: backupGoalColors[index] };
+		});
 		editButtonActive = false;
 	}
 
@@ -48,9 +61,11 @@
 <div>
 	<Title class="flex" color="white">
 		Goals
-		<div class="indicator">
+		<div class="daisy-indicator">
 			<span
-				class={editButtonActive ? 'indicator-item badge badge-secondary translate-x-1/4' : ''}
+				class={editButtonActive
+					? 'daisy-indicator-item daisy-badge daisy-badge-secondary translate-x-1/4'
+					: ''}
 			/>
 			{#if editButtonActive}
 				<Button color="teal" class={'mx-2'} on:click={handleCancelButtonClick}>Cancel</Button>
@@ -64,8 +79,12 @@
 				{editButtonActive ? 'Save' : 'Edit'}
 			</Button>
 		</div>
-		<div class="indicator">
-			<span class={dragDisabled ? '' : 'indicator-item badge badge-secondary translate-x-1/4'} />
+		<div class="daisy-indicator">
+			<span
+				class={dragDisabled
+					? ''
+					: 'daisy-indicator-item daisy-badge daisy-badge-secondary translate-x-1/4'}
+			/>
 			<Button
 				class={'mx-2'}
 				disabled={!dragButtonEnabled}

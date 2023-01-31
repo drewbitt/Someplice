@@ -7,7 +7,8 @@ const config = {
 	plugins: [require('daisyui')],
 	important: true,
 	daisyui: {
-		logs: false
+		logs: false,
+		prefix: 'daisy-'
 	}
 };
 

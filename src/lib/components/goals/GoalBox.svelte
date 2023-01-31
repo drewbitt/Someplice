@@ -10,8 +10,10 @@
 	// Bind goal properties to local variables
 	let description: string;
 	let title: string;
+	let goalColor: string;
 	$: description = goal.description;
 	$: title = goal.title;
+	$: goalColor = goal.color;
 
 	// TODO: make a palette of colors
 </script>
@@ -33,7 +35,11 @@
 		{goal.orderNumber}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
-		<GoalTitleRow bind:title={goal.title} {currentlyEditing} />
-		<GoalDescription bind:description={goal.description} {currentlyEditing} />
+		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor={goal.color} />
+		<GoalDescription
+			bind:description={goal.description}
+			{currentlyEditing}
+			goalColor={goal.color}
+		/>
 	</Stack>
 </Box>

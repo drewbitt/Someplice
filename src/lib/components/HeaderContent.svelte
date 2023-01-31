@@ -12,7 +12,7 @@
 
 <Group override={{ height: '100%', px: 20 }} position="apart">
 	<Box class="flex">
-		<a href="/" style="text-decoration: none;" class="pr-5">
+		<a href="/" class="pr-5 no-underline">
 			<Group>
 				<img
 					src={logo}
@@ -27,9 +27,17 @@
 		</a>
 		<Group class="leading-3">
 			<Box class="flex-none">
-				<Box root="ul" class="menu menu-horizontal px-2">
-					<li><a href="/today" class:active={$page.url.pathname === '/today'}>Today</a></li>
-					<li><a href="/goals" class:active={$page.url.pathname === '/goals'}>Goals</a></li>
+				<Box root="ul" class="daisy-menu daisy-menu-horizontal space-x-1">
+					<li>
+						<a href="/today" class:daisy-active={$page.url.pathname === '/today'} class="rounded-md"
+							>Today</a
+						>
+					</li>
+					<li>
+						<a href="/goals" class:daisy-active={$page.url.pathname === '/goals'} class="rounded-md"
+							>Goals</a
+						>
+					</li>
 				</Box>
 			</Box>
 		</Group>

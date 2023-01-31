@@ -3,6 +3,20 @@
 
 	export let currentlyEditing: boolean;
 	export let description: string;
+	// goalColor is HSL
+	export let goalColor: string;
+	let calculatedColor = () => {
+		if (goalColor) {
+			const [h, s, l] = goalColor.split(',').map((x) => parseInt(x));
+			if (l < 40) {
+				return 'dimmed';
+			} else {
+				return 'black';
+			}
+		} else {
+			return 'dimmed';
+		}
+	};
 </script>
 
 {#if currentlyEditing}
@@ -15,6 +29,6 @@
 	</div>
 {:else}
 	<div class="goal-box-description w-full">
-		<Text color="dimmed">{description}</Text>
+		<Text color={calculatedColor()}>{description}</Text>
 	</div>
 {/if}
