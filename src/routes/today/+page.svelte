@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ActionsTextInput from '$lib/components/today/ActionsTextInput.svelte';
-	import { Box, Button, Title } from '@svelteuidev/core';
+	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
+	import { Box, Button, Stack, Title } from '@svelteuidev/core';
 	import type { PageServerData } from './$types';
 
 	export let data: PageServerData;
@@ -20,12 +21,15 @@
 	};
 </script>
 
-<Title order={2} color="white">Actions you'll take towards your goals today</Title>
+<Stack>
+	<GoalBadges goals={data.goals} />
+	<Title order={2} color="white">Actions you'll take towards your goals today</Title>
 
-<ActionsTextInput goals={data.goals} />
+	<ActionsTextInput goals={data.goals} />
 
-<Box>
-	<Button>
-		Set {dayOfWeekFromDate(new Date())} intentions
-	</Button>
-</Box>
+	<Box>
+		<Button>
+			Set {dayOfWeekFromDate(new Date())} intentions
+		</Button>
+	</Box>
+</Stack>

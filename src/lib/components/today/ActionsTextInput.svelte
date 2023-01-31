@@ -15,7 +15,7 @@
 				const number = parseInt(matches[0].slice(0, -1));
 				// Check goal for color
 				const goal = goals.find((goal: Goals) => goal.orderNumber === number);
-				return `<span style="color: ${goal?.color}">${line}</span>`;
+				return `<span class="goal__editor__span" style="color: ${goal?.color}">${line}</span>`;
 			}
 			return line;
 		});

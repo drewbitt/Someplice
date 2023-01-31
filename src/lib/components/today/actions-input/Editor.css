@@ -48,4 +48,8 @@
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
 	font-family: sans-serif;
+	font-weight: bold;
+}
+.goal__editor__span {
+	font-weight: bold;
 }
