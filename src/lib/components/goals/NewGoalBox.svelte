@@ -1,40 +1,59 @@
 <script lang="ts">
-	import { Box, Text } from '@svelteuidev/core';
-	import { TRPCClientError } from '@trpc/client';
+	import { page } from '$app/stores';
+	import { Box, Notification, Text } from '@svelteuidev/core';
 	import { trpc } from '$src/lib/trpc/client';
 	import { invalidateAll } from '$app/navigation';
-	import daisyUiThemes from 'daisyui/src/colors/themes';
+	import { colors } from './colors';
+
+	let notificationVisible = false;
+	// only let notificationVisible show for 5 seconds
+	$: {
+		if (notificationVisible) {
+			setTimeout(() => {
+				notificationVisible = false;
+			}, 5000);
+		}
+	}
 
 	const addGoal = async () => {
-		// Get random color from daisyUI default themes
-		try {
-			let themes: { [key: string]: string }[] = Object.values(daisyUiThemes);
-			// Filter for only dark themes
-			themes = themes.filter((theme) => {
-				return theme['color-scheme'] === 'dark';
-			});
-			const randomColorObject: Record<string, string> = themes[
-				Math.floor(Math.random() * themes.length)
-			] as unknown as Record<string, string>;
-			const randomColorValue = randomColorObject['base-100'];
+		notificationVisible = false;
 
-			await trpc().goals.add.mutate({
-				title: 'Goal 1',
-				description: 'This is a goal',
-				color: randomColorValue,
-				active: 1
-			});
+		const allGoals = await trpc($page).goals.list.query(1);
+		if (allGoals.length > 9) {
+			// If size of list of active goals > 9, then don't add a new goal
+			notificationVisible = true;
+			return;
+		}
+		// get randomColor from colors.ts that is not in use
+		const allColors = colors;
+
+		const usedColors = allGoals.map((goal) => goal.color);
+		const availableColors = allColors.filter((color) => !usedColors.includes(color));
+		const randomColorIndex = Math.floor(Math.random() * availableColors.length);
+		const randomColorValue = availableColors[randomColorIndex];
+
+		const addResult = await trpc().goals.add.mutate({
+			title: 'Goal 1',
+			description: 'This is a goal',
+			color: randomColorValue,
+			active: 1
+		});
+		if (addResult) {
 			await invalidateAll();
-		} catch (err) {
-			if (err instanceof TRPCClientError) {
-				// errors = JSON.parse(err.message);
-			} else {
-				throw err;
-			}
 		}
 	};
 </script>
 
+{#if notificationVisible}
+	<Notification
+		closeButtonProps={{ 'aria-label': 'Hide notification' }}
+		on:close={() => {
+			notificationVisible = false;
+		}}
+	>
+		You have reached the maximum number of 9 goals. Please delete a goal to add a new one.
+	</Notification>
+{/if}
 <Box
 	class="pb-1 my-2.5 mx-5 grid"
 	css={{

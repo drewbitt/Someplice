@@ -51,7 +51,7 @@ export const goals = t.router({
 			// If no goals, set orderNumber to 1
 			const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
 
-			await db
+			return await db
 				.insertInto('goals')
 				.values({ ...input, orderNumber })
 				.execute();
