@@ -1,45 +1,39 @@
 <script lang="ts">
 	import type { PageServerData } from './$types';
-	import { Box, Stack, Text, Title } from '@svelteuidev/core';
+	import { Box, Stack } from '@svelteuidev/core';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import GoalDescription from './GoalDescription.svelte';
+	import { cssvariable } from '@svelteuidev/composables';
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
 
-	// Bind goal properties to local variables
-	let description: string;
-	let title: string;
-	let goalColor: string;
-	$: description = goal.description;
-	$: title = goal.title;
-	$: goalColor = goal.color;
-
-	// TODO: make a palette of colors
+	let goalColor = goal.color;
+	$: goal.color = goalColor;
 </script>
 
 <!-- Because of the equal size grid, the grid will break css with orderNumber >=10 -->
-<Box
-	class="my-2.5 mx-5 grid"
-	css={{
-		'grid-gap': '1rem',
-		/* minimum width of 0 */
-		'grid-template-columns': 'minmax(0, 3rem) 4fr',
-		'grid-auto-rows': '6rem',
-		'line-height': '1',
-		'background-color': goal.color
-	}}
-	className="goal-box"
+<div
+	style="background-color: {goalColor}"
+	use:cssvariable={{ 'goal-color': goalColor }}
+	class="goal-box my-2.5 mx-5 grid"
 >
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">
 		{goal.orderNumber}
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
-		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor={goal.color} />
-		<GoalDescription
-			bind:description={goal.description}
-			{currentlyEditing}
-			goalColor={goal.color}
-		/>
+		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
+		<GoalDescription bind:description={goal.description} {currentlyEditing} {goalColor} />
 	</Stack>
-</Box>
+</div>
+
+<style>
+	.goal-box {
+		gap: 1rem;
+		/* minimum width of 0 */
+		grid-template-columns: minmax(0, 3rem) 4fr;
+		grid-auto-rows: 6rem;
+		line-height: 1;
+		background-color: var(--goal-color);
+	}
+</style>
