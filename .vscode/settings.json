@@ -10,5 +10,6 @@
 		"package.json"
 	],
 	"cSpell.words": ["dndzone", "Someplice"],
-	"conventionalCommits.scopes": ["deps"]
+	"conventionalCommits.scopes": ["deps"],
+	"npm.packageManager": "pnpm"
 }
