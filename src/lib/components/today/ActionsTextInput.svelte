@@ -4,6 +4,34 @@
 	import type { Goals } from '$src/lib/types/data';
 
 	export let goals: PageServerData['goals'];
+	export let intentions: PageServerData['intentions'];
+	type Intentions = typeof intentions;
+
+	let intentionsString: string;
+	// $: intentionsString = intentions
+	// 	?.map((intention: Intentions) => {
+	// 		return `${intention.goalId}${intention.subIntentionQualifier}) ${intention.text}`;
+	// 	})
+	// 	.join('\n');
+
+	// $: intentions = intentionsString.split('\n').map((line: string) => {
+	// 	const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
+	// 	const matches = line.match(regex);
+	// 	if (matches) {
+	// 		const number = parseInt(matches[0].slice(0, -1));
+	// 		const goal = goals.find((goal: Goals) => goal.orderNumber === number);
+	// 		return {
+	// 			goalId: goal?.id,
+	// 			subIntentionQualifier: matches[0].slice(-2, -1),
+	// 			text: line.slice(matches[0].length + 1)
+	// 		};
+	// 	}
+	// 	return {
+	// 		goalId: goals[0].id,
+	// 		subIntentionQualifier: '',
+	// 		text: line
+	// 	};
+	// });
 
 	const highlight = (value: string) => {
 		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
@@ -23,4 +51,4 @@
 	};
 </script>
 
-<Editor {highlight} />
+<Editor {highlight} bind:value={intentions} />

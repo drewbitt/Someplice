@@ -17,19 +17,23 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.createTable('intentions')
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-		.addColumn('goalId', 'integer', (col) => col.references('goals.id'))
+		.addColumn('goalId', 'integer', (col) => col.references('goals.id').notNull())
 		// 0 (false) or 1 (true)
-		.addColumn('completed', 'integer')
+		.addColumn('completed', 'integer', (col) => col.notNull())
 		.addColumn('text', 'text', (col) => col.notNull())
 		// optional column for sub intention of another intention
-		.addColumn('parentIntentionId', 'integer', (col) => col.references('intentions.id'))
+		.addColumn('parentIntentionId', 'integer', (col) => col.references('intentions.id').notNull())
 		// text like a, ab, abc, etc where it is the sub intention of a goal e.g. 2a), 2b), 2abc)
 		.addColumn('subIntentionQualifier', 'text', (col) =>
 			col
+				.notNull()
 				.check(sql`length("subIntentionQualifier") < 3`)
 				.check(sql`"subIntentionQualifier" GLOB '[0-9]*[a-z]'`)
 		)
-		.addColumn('date', 'date')
+		// TEXT as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS")
+		.addColumn('date', 'text', (col) =>
+			col.notNull().check(sql`"date" GLOB '[0-9]{4}-[0-9]{2}-[0-9]{2}*'`)
+		)
 		.execute();
 }
 

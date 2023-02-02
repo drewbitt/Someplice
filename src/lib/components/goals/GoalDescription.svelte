@@ -16,6 +16,6 @@
 	</div>
 {:else}
 	<div class="goal-box-description w-full">
-		<Text>{description}</Text>
+		<Text>{description ?? ''}</Text>
 	</div>
 {/if}

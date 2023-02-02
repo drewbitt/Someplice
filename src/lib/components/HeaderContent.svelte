@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { Group, ActionIcon, Text, Burger, Tooltip, Box } from '@svelteuidev/core';
-	import { hotkey, useOs } from '@svelteuidev/composables';
 	import { page } from '$app/stores';
 	import logo from '$lib/assets/someplice-compressed-logo-2023-01-21.svg';
+	import { hotkey, useOs } from '@svelteuidev/composables';
+	import { ActionIcon, Box, Group, Text, Tooltip } from '@svelteuidev/core';
+	import Moon from '~icons/lucide/moon';
+	import Sun from '~icons/lucide/sun-medium';
+
 	const os = useOs();
-	import { Sun, Moon } from 'radix-icons-svelte';
 	const mod = os === 'macos' ? '⌘' : 'ctrl';
 	export let isDark: boolean;
 	export let toggle: () => void;

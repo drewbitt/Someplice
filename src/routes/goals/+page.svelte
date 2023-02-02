@@ -10,6 +10,10 @@
 
 	export let data: PageServerData;
 	type Goals = (typeof data.goals)[0];
+	$: noGoals = data.goals.length === 0;
+
+	// do not allow Save if goal does not have title
+	$: saveButtonEnabled = data.goals.every((goal) => goal.title.length > 0);
 
 	let dragDisabled = true; // false when renumber button has been clicked
 	let dragButtonEnabled = true; // controls disabled state of renumber button
@@ -18,11 +22,12 @@
 	$: editButtonEnabled = dragDisabled;
 	$: dragButtonEnabled = !editButtonActive;
 
-	// Store backup goal colors which will be restored if the user cancels
-	let backupGoalColors: string[] = [];
+	// Store backup goal values which will be restored if the user cancels
+	let backupGoals: Goals[] = [];
 
 	function handleEditButtonClick() {
 		if (editButtonActive) {
+			// Save button has been clicked
 			// Update colors on screen via reassignment
 			data.goals = data.goals.map((goal) => {
 				return { ...goal, color: goal.color };
@@ -30,14 +35,15 @@
 
 			trpc($page).goals.updateGoals.mutate({ goals: data.goals });
 		} else {
-			backupGoalColors = data.goals.map((goal) => goal.color);
+			// map forces reassignment
+			backupGoals = data.goals.map((goal) => {
+				return { ...goal };
+			});
 		}
 		editButtonActive = !editButtonActive;
 	}
 	function handleCancelButtonClick() {
-		data.goals = data.goals.map((goal, index) => {
-			return { ...goal, color: backupGoalColors[index] };
-		});
+		data.goals = backupGoals;
 		editButtonActive = false;
 	}
 
@@ -72,7 +78,7 @@
 			{/if}
 			<Button
 				class={'mx-2'}
-				disabled={!editButtonEnabled}
+				disabled={!editButtonEnabled || !saveButtonEnabled || noGoals}
 				color={!editButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleEditButtonClick}
 			>
@@ -87,7 +93,7 @@
 			/>
 			<Button
 				class={'mx-2'}
-				disabled={!dragButtonEnabled}
+				disabled={!dragButtonEnabled || noGoals}
 				color={!dragButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleRenumberButtonClick}
 			>

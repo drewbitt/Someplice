@@ -21,7 +21,6 @@
 	$: ({ getStyles } = darkModeStyles());
 </script>
 
-<!-- Because of the equal size grid, the grid will break css with orderNumber >=10 -->
 <div
 	style="background-color: {goalColor}"
 	use:cssvariable={{ 'goal-color': goalColor }}

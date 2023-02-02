@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	// Props
 	export let highlight: (value: string) => string;
+	export let value: string;
 
 	// State
 	let input: HTMLTextAreaElement;
@@ -31,6 +32,7 @@
 	<textarea
 		class="{className} border border-base-content rounded-btn transition duration-200 ease-in-out"
 		bind:this={input}
+		bind:value
 	/>
 	<style bind:innerHTML={cssText} contenteditable="false"></style>
 </div>

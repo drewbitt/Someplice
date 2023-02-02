@@ -14,6 +14,8 @@
 		}
 	}));
 	$: ({ getStyles } = darkModeStyles());
+	// TODO: Change Input to TextInput (allowing for easy erroring) when you can set input classnames directly
+	// Not currently possible in svelteui.
 </script>
 
 {#if currentlyEditing}
@@ -21,7 +23,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<Input
 				bind:value={title}
-				class="text-3xl bg-transparent border-opacity-10 px-0 max-w-lg {getStyles()}"
+				class="text-3xl bg-transparent border-opacity-20 px-0 max-w-lg {getStyles()}"
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">

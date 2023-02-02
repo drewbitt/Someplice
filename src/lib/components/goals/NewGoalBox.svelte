@@ -19,8 +19,8 @@
 		notificationVisible = false;
 
 		const allGoals = await trpc($page).goals.list.query(1);
-		if (allGoals.length > 9) {
-			// If size of list of active goals > 9, then don't add a new goal
+		if (allGoals.length >= 9) {
+			// Do not allow more than 9 goals due to layout limitations, color palette limitations
 			notificationVisible = true;
 			return;
 		}
@@ -34,7 +34,6 @@
 
 		const addResult = await trpc().goals.add.mutate({
 			title: 'Goal 1',
-			description: 'This is a goal',
 			color: randomColorValue,
 			active: 1
 		});
@@ -54,21 +53,21 @@
 		You have reached the maximum number of 9 goals. Please delete a goal to add a new one.
 	</Notification>
 {/if}
-<Box
-	class="pb-1 my-2.5 mx-5 grid"
-	css={{
-		'grid-gap': '1rem',
-		/* minimum width of 0 */
-		'grid-template-columns': 'minmax(0, 3rem) 4fr',
-		'grid-auto-rows': '6rem',
-		'line-height': '1'
-	}}
-	className="goal-box-new"
->
+<div class="goal-box-new my-2.5 mx-5 grid">
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
 	<Box className="goal-box-details">
 		<Box root="button" on:click={addGoal}>
-			<Text class="text-3xl" color="white">New Goal</Text>
+			<Text class="text-3xl">New Goal</Text>
 		</Box>
 	</Box>
-</Box>
+</div>
+
+<style>
+	.goal-box-new {
+		gap: 1rem;
+		/* minimum width of 0 */
+		grid-template-columns: minmax(0, 3rem) 4fr;
+		grid-auto-rows: 6rem;
+		line-height: 1;
+	}
+</style>
