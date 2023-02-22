@@ -7,15 +7,6 @@
 
 	// State
 	let input: HTMLTextAreaElement;
-	const className = 'goal__editor__textarea';
-	let cssText = /* CSS */ `
-	/**
-	 * Reset the text fill color so that placeholder is visible
-	 */
-	.${className}:empty {
-	-webkit-text-fill-color: inherit !important;
-	}
-	`;
 
 	onMount(() => {
 		input.addEventListener('input', () => {
@@ -30,10 +21,9 @@
 <div class="goal__editor form-control">
 	<pre class="goal__editor__pre" aria-hidden="true" />
 	<textarea
-		class="{className} border border-base-content rounded-btn transition duration-200 ease-in-out"
+		class="goal__editor__textarea border border-base-content rounded-btn transition duration-200 ease-in-out"
 		contenteditable="true"
 		bind:this={input}
 		bind:value
 	/>
-	<style bind:innerHTML={cssText} contenteditable="false"></style>
 </div>

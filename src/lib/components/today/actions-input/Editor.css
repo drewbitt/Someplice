@@ -27,13 +27,9 @@
 	overflow: hidden;
 	-moz-osx-font-smoothing: grayscale;
 	-webkit-font-smoothing: antialiased;
-	-webkit-text-fill-color: transparent;
+	-webkit-text-fill-color: transparent; /* sets just the text color, not caret */
 	/* Be in front */
 	z-index: 1;
-	/* Make text layer transparent */
-	color: transparent;
-	/* Add back caret; white for dark mode, black for light mode */
-	caret-color: black;
 }
 /* Shared so text is on top of each other */
 .goal__editor__textarea,
@@ -52,7 +48,4 @@
 }
 .goal__editor__span {
 	font-weight: bold;
-}
-.dark-theme .goal__editor__textarea {
-	caret-color: white;
 }
