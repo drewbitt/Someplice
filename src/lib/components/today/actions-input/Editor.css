@@ -30,10 +30,10 @@
 	-webkit-text-fill-color: transparent;
 	/* Be in front */
 	z-index: 1;
-	/* Make transparent */
+	/* Make text layer transparent */
 	color: transparent;
-	background: transparent;
-	caret-color: #000;
+	/* Add back caret; white for dark mode, black for light mode */
+	caret-color: black;
 }
 /* Shared so text is on top of each other */
 .goal__editor__textarea,
@@ -52,4 +52,7 @@
 }
 .goal__editor__span {
 	font-weight: bold;
+}
+.dark-theme .goal__editor__textarea {
+	caret-color: white;
 }

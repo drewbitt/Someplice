@@ -31,6 +31,7 @@
 	<pre class="goal__editor__pre" aria-hidden="true" />
 	<textarea
 		class="{className} border border-base-content rounded-btn transition duration-200 ease-in-out"
+		contenteditable="true"
 		bind:this={input}
 		bind:value
 	/>
