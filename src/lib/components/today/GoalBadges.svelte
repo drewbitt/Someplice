@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Badge, Group } from '@svelteuidev/core';
-	import type { PageServerData } from './$types';
+	import type { PageServerData } from '../../../routes/today/$types';
 
 	export let goals: PageServerData['goals'];
 </script>

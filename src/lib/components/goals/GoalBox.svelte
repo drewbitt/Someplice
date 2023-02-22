@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PageServerData } from './$types';
+	import type { PageServerData } from '../../../routes/goals/$types';
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import GoalDescription from './GoalDescription.svelte';

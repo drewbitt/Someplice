@@ -2,7 +2,7 @@
 	import { Text } from '@svelteuidev/core';
 
 	export let currentlyEditing: boolean;
-	export let description: string;
+	export let description: string | null;
 	// goalColor is HSL
 </script>
 
