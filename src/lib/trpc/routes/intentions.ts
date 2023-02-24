@@ -6,10 +6,10 @@ import { db } from '$src/lib/db/db';
 const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
+	orderNumber: z.number(),
 	completed: z.number(),
 	text: z.string(),
-	parentIntentionId: z.number(),
-	subIntentionQualifier: z.string(),
+	subIntentionQualifier: z.string().nullable(),
 	date: z.string()
 });
 
@@ -31,9 +31,9 @@ export const intentions = t.router({
 					.select([
 						'id',
 						'goalId',
+						'orderNumber',
 						'completed',
 						'text',
-						'parentIntentionId',
 						'subIntentionQualifier',
 						'date'
 					])
@@ -46,9 +46,9 @@ export const intentions = t.router({
 					.select([
 						'id',
 						'goalId',
+						'orderNumber',
 						'completed',
 						'text',
-						'parentIntentionId',
 						'subIntentionQualifier',
 						'date'
 					])

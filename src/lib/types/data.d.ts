@@ -16,10 +16,10 @@ export interface Goals {
 export interface Intentions {
 	id: Generated<number | null>;
 	goalId: number;
+	orderNumber: number;
 	completed: number;
 	text: string;
-	parentIntentionId: number;
-	subIntentionQualifier: string;
+	subIntentionQualifier: string | null;
 	date: string;
 }
 

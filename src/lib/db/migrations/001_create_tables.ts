@@ -18,21 +18,17 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		.addColumn('goalId', 'integer', (col) => col.references('goals.id').notNull())
+		.addColumn('orderNumber', 'integer', (col) => col.notNull().unique())
 		// 0 (false) or 1 (true)
 		.addColumn('completed', 'integer', (col) => col.notNull())
 		.addColumn('text', 'text', (col) => col.notNull())
-		// optional column for sub intention of another intention
-		.addColumn('parentIntentionId', 'integer', (col) => col.references('intentions.id').notNull())
-		// text like a, ab, abc, etc where it is the sub intention of a goal e.g. 2a), 2b), 2abc)
+		// text like a, A, ab, abc, etc where it is the sub intention of a goal e.g. 2a), 2b), 2abc)
 		.addColumn('subIntentionQualifier', 'text', (col) =>
-			col
-				.notNull()
-				.check(sql`length("subIntentionQualifier") < 3`)
-				.check(sql`"subIntentionQualifier" GLOB '[0-9]*[a-z]'`)
+			col.check(sql`"subIntentionQualifier" GLOB '[a-zA-Z]{0,3}'`)
 		)
-		// TEXT as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS")
+		// ISO 8601 date string
 		.addColumn('date', 'text', (col) =>
-			col.notNull().check(sql`"date" GLOB '[0-9]{4}-[0-9]{2}-[0-9]{2}*'`)
+			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)
 		)
 		.execute();
 }

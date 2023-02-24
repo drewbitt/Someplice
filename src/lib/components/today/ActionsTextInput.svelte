@@ -8,29 +8,50 @@
 	type Goal = (typeof goals)[0];
 
 	let intentionsString = intentions
-		?.map((intention: Intention) => {
+		.map((intention: Intention) => {
 			return `${intention.goalId}${intention.subIntentionQualifier}) ${intention.text}`;
 		})
 		.join('\n');
 
-	// $: intentions = intentionsString.split('\n').map((line: string) => {
-	// 	const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
-	// 	const matches = line.match(regex);
-	// 	if (matches) {
-	// 		const number = parseInt(matches[0].slice(0, -1));
-	// 		const goal = goals.find((goal: Goals) => goal.orderNumber === number);
-	// 		return {
-	// 			goalId: goal?.id,
-	// 			subIntentionQualifier: matches[0].slice(-2, -1),
-	// 			text: line.slice(matches[0].length + 1)
-	// 		};
-	// 	}
-	// 	return {
-	// 		goalId: goals[0].id,
-	// 		subIntentionQualifier: '',
-	// 		text: line
-	// 	};
-	// });
+	$: intentions = intentionsString
+		.split('\n')
+		.map((line: string, index) => {
+			const regex = /^([1-9])([a-z]{0,3})?\)\s*(.*)/;
+			const match = line.match(regex);
+			if (match) {
+				const [_, number, subintention, text] = match;
+
+				const goal = goals.find((goal: Goal) => goal.orderNumber === parseInt(number));
+				if (goal) {
+					const newIntention: Intention = {
+						id: null,
+						goalId: goal.orderNumber,
+						orderNumber: index,
+						completed: 0,
+						subIntentionQualifier: subintention || null,
+						text: text,
+						date: new Date().toISOString()
+					};
+					return newIntention;
+				} else {
+					// Goal not found
+					// TODO: Don't let save happen
+				}
+			}
+			return {
+				id: null,
+				goalId: -1,
+				orderNumber: -1,
+				completed: -1,
+				subIntentionQualifier: '',
+				text: line,
+				date: new Date().toISOString()
+			};
+		})
+		.filter((intention: Intention) => intention.goalId !== -1 && intention !== undefined);
+
+	// print every intentions change
+	$: console.log('🚀 ~ file: ActionsTextInput.svelte:56 ~ $:intentions', intentions);
 
 	const highlight = (value: string) => {
 		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
@@ -42,7 +63,10 @@
 				const number = parseInt(matches[0].slice(0, -1));
 				// Check goal for color
 				const goal = goals.find((goal: Goal) => goal.orderNumber === number);
-				return `<span class="goal__editor__span" style="color: ${goal?.color}">${line}</span>`;
+				if (goal) {
+					return `<span class="goal__editor__span" style="color: ${goal.color}">${line}</span>`;
+				}
+				return line;
 			}
 			return line;
 		});
