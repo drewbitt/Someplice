@@ -7,9 +7,11 @@
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
 
+	export let valid = true;
+
 	let intentionsString = intentions
 		.map((intention: Intention) => {
-			return `${intention.goalId}${intention.subIntentionQualifier}) ${intention.text}`;
+			return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${intention.text}`;
 		})
 		.join('\n');
 
@@ -23,6 +25,7 @@
 
 				const goal = goals.find((goal: Goal) => goal.orderNumber === parseInt(number));
 				if (goal) {
+					valid = true;
 					const newIntention: Intention = {
 						id: null,
 						goalId: goal.orderNumber,
@@ -35,7 +38,7 @@
 					return newIntention;
 				} else {
 					// Goal not found
-					// TODO: Don't let save happen
+					valid = false;
 				}
 			}
 			return {
@@ -49,9 +52,6 @@
 			};
 		})
 		.filter((intention: Intention) => intention.goalId !== -1 && intention !== undefined);
-
-	// print every intentions change
-	$: console.log('🚀 ~ file: ActionsTextInput.svelte:56 ~ $:intentions', intentions);
 
 	const highlight = (value: string) => {
 		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;

@@ -4,6 +4,7 @@
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
+	import { onMount } from 'svelte';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 
@@ -15,7 +16,19 @@
 	let intentions: Intentions[] = data.intentions;
 	let backupIntentions: Intentions[] = [];
 
+	let validIntentions: boolean;
+	let showValidIntentionsNotification = false;
+
 	const handleSaveIntentions = () => {
+		showValidIntentionsNotification = !validIntentions;
+		console.log(
+			'🚀 ~ file: +page.svelte:24 ~ handleSaveIntentions ~ showValidIntentionsNotification:',
+			showValidIntentionsNotification
+		);
+		if (!validIntentions) {
+			return;
+		}
+
 		if (noIntentions) {
 			console.log('🚀 ~ file: +page.svelte:16 ~ intentions', intentions);
 			trpc($page).intentions.add.mutate(intentions);
@@ -47,7 +60,13 @@
 			You have no goals. Please add some goals first.
 		</Notification>
 	{:else}
-		<ActionsTextInput goals={data.goals} bind:intentions />
+		{#if showValidIntentionsNotification}
+			<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
+				Error in intentions. Please check that your intentions are formatted correctly and have
+				valid goal numbers.
+			</Notification>
+		{/if}
+		<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
 
 		<Box>
 			<Button on:click={handleSaveIntentions}>
