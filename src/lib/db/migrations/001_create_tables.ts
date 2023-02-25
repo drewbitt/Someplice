@@ -18,7 +18,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		.addColumn('goalId', 'integer', (col) => col.references('goals.id').notNull())
-		.addColumn('orderNumber', 'integer', (col) => col.notNull().unique())
+		.addColumn('orderNumber', 'integer', (col) => col.notNull())
 		// 0 (false) or 1 (true)
 		.addColumn('completed', 'integer', (col) => col.notNull())
 		.addColumn('text', 'text', (col) => col.notNull())

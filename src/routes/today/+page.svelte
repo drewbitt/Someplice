@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import ActionsTextInput from '$lib/components/today/ActionsTextInput.svelte';
+	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
-	import { onMount } from 'svelte';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 
@@ -14,26 +15,36 @@
 	$: noIntentions = data.intentions.length === 0;
 
 	let intentions: Intentions[] = data.intentions;
-	let backupIntentions: Intentions[] = [];
+	let intentionsFromServer: Intentions[] = data.intentions;
+	// let backupIntentions: Intentions[] = [];
 
 	let validIntentions: boolean;
 	let showValidIntentionsNotification = false;
 
-	const handleSaveIntentions = () => {
+	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
-		console.log(
-			'🚀 ~ file: +page.svelte:24 ~ handleSaveIntentions ~ showValidIntentionsNotification:',
-			showValidIntentionsNotification
-		);
 		if (!validIntentions) {
 			return;
 		}
 
 		if (noIntentions) {
-			console.log('🚀 ~ file: +page.svelte:16 ~ intentions', intentions);
-			trpc($page).intentions.add.mutate(intentions);
+			// If no intentions, use add function
+			const addResult = await trpc($page).intentions.add.mutate(intentions);
+			if (addResult.length > 0) {
+				await invalidateAll();
+				intentionsFromServer = intentions;
+			}
 		} else {
+			// If intentions exist, use update function
+			await handleUpdateIntentions();
 		}
+	};
+
+	const handleUpdateIntentions = async () => {
+		console.log('🚀 ~ file: +page.svelte:48 ~ awaittrpc ~ intentions:', intentions);
+		await trpc($page).intentions.updateIntentions.mutate({
+			intentions: intentions
+		});
 	};
 
 	const dayOfWeekFromDate = (date: Date) => {
@@ -59,6 +70,13 @@
 		<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
 			You have no goals. Please add some goals first.
 		</Notification>
+	{:else if intentionsFromServer.length > 0}
+		<ActionsDisplay bind:intentions {handleUpdateIntentions} />
+		<Box>
+			<Button on:click={handleSaveIntentions}>
+				Add more {dayOfWeekFromDate(new Date())} intentions
+			</Button>
+		</Box>
 	{:else}
 		{#if showValidIntentionsNotification}
 			<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">

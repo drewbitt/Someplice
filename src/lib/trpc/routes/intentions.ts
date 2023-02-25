@@ -60,5 +60,32 @@ export const intentions = t.router({
 		.input(z.array(IntentionsSchema))
 		.mutation(({ input }) => {
 			return db.insertInto('intentions').values(input).execute();
+		}),
+	updateIntentions: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				intentions: z.array(IntentionsSchema)
+			})
+		)
+		.mutation(async ({ input }) => {
+			await db.transaction().execute(async (tx) => {
+				return await Promise.all(
+					input.intentions.map((intention) => {
+						return tx
+							.updateTable('intentions')
+							.set({
+								goalId: intention.goalId,
+								orderNumber: intention.orderNumber,
+								completed: intention.completed,
+								text: intention.text,
+								subIntentionQualifier: intention.subIntentionQualifier,
+								date: intention.date
+							})
+							.where('id', '=', intention.id)
+							.execute();
+					})
+				);
+			});
 		})
 });
