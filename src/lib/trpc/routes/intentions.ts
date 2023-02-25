@@ -57,6 +57,23 @@ export const intentions = t.router({
 					.execute();
 			}
 		}),
+	/** Edit single intention */
+	edit: t.procedure
+		.use(logger)
+		.input(IntentionsSchema)
+		.mutation(async ({ input }) => {
+			return await db
+				.updateTable('intentions')
+				.set({
+					goalId: input.goalId,
+					orderNumber: input.orderNumber,
+					completed: input.completed,
+					text: input.text,
+					subIntentionQualifier: input.subIntentionQualifier
+				})
+				.where('id', '=', input.id)
+				.execute();
+		}),
 	updateIntentions: t.procedure
 		.use(logger)
 		.input(

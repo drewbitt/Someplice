@@ -65,6 +65,13 @@
 			}
 		}
 	};
+	const handleUpdateSingleIntention = async (intention: Intentions) => {
+		const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
+		if (updatedIntention.length <= 0) {
+			showDBErrorNotification = true;
+		}
+		return updatedIntention;
+	};
 	const handleUpdateIntentions = async () => {
 		console.log('🚀 ~ file: +page.svelte:62 ~ handleUpdateIntentions ~ intentions:', intentions);
 		return await trpc($page).intentions.updateIntentions.mutate({
@@ -103,7 +110,7 @@
 			You have no goals. Please add some goals first.
 		</Notification>
 	{:else if intentionsFromServer.length > 0}
-		<ActionsDisplay bind:intentions {handleUpdateIntentions} goals={data.goals} />
+		<ActionsDisplay bind:intentions {handleUpdateSingleIntention} goals={data.goals} />
 		{#if showAdditionalIntentionsTextArea}
 			<Box class="flex items-center">
 				<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>

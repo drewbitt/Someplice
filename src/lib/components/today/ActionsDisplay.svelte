@@ -5,7 +5,8 @@
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
-	export let handleUpdateIntentions: (intentions: Intention[]) => Promise<any[]>;
+	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<any>;
+
 	// filter intentions to make sure no errors are present (e.g. no goal id)
 	$: intentions = intentions.filter(
 		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
@@ -16,20 +17,24 @@
 		const target = event.target as HTMLInputElement;
 		const intentionId = target.dataset.id;
 		if (intentionId) {
-			const intention = intentions.find((intention) => {
+			let intention = intentions.find((intention) => {
 				return intention.id === parseInt(intentionId);
 			});
 			if (intention) {
-				intentions = intentions.map((intention) => {
-					if (intention.id === parseInt(intentionId)) {
-						intention.completed = target.checked ? 1 : 0;
-					}
-					return intention;
-				});
-				await handleUpdateIntentions(intentions);
+				intention = { ...intention, completed: target.checked ? 1 : 0 };
+				const updatedIntention = await handleUpdateSingleIntention(intention);
+				if (updateIntention.length > 0) {
+					intentions = intentions.map((intention) => {
+						if (intention.id === parseInt(intentionId)) {
+							intention.completed = target.checked ? 1 : 0;
+						}
+						return intention;
+					});
+				}
 			}
 		}
 	};
+
 	const goalColorForIntention = (intention: Intention) => {
 		const goal = goals.find((goal) => goal.orderNumber === intention.goalId);
 		if (goal) {
