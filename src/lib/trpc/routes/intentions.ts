@@ -3,6 +3,7 @@ import { t } from '$lib/trpc/t';
 import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
+import { localeCurrentDate } from '$src/lib/utils';
 
 const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -74,7 +75,11 @@ export const intentions = t.router({
 				.selectFrom('intentions')
 				.select(['orderNumber'])
 				// where date is today
-				.where(sql`strftime ('%Y-%m-%d', date)`, '=', sql`strftime ('%Y-%m-%d', 'now')`)
+				.where(
+					sql`strftime ('%Y-%m-%d', date)`,
+					'=',
+					localeCurrentDate().toISOString().slice(0, 10)
+				)
 				.execute();
 			const existingOrderNumbers = intentions.map((intention) => intention.orderNumber);
 			const brandNewIntentions = input.intentions.filter(
