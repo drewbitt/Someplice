@@ -13,7 +13,6 @@
 	);
 
 	const updateIntention = async (event: Event) => {
-		console.log('Updating intention...');
 		const target = event.target as HTMLInputElement;
 		const intentionId = target.dataset.id;
 		if (intentionId) {
@@ -23,7 +22,7 @@
 			if (intention) {
 				intention = { ...intention, completed: target.checked ? 1 : 0 };
 				const updatedIntention = await handleUpdateSingleIntention(intention);
-				if (updateIntention.length > 0) {
+				if (updatedIntention.length > 0) {
 					intentions = intentions.map((intention) => {
 						if (intention.id === parseInt(intentionId)) {
 							intention.completed = target.checked ? 1 : 0;

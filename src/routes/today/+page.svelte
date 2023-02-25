@@ -15,8 +15,9 @@
 	$: noGoals = data.goals.length === 0;
 	$: noIntentions = data.intentions.length === 0;
 
-	let intentions: Intentions[] = data.intentions;
-	let intentionsFromServer: Intentions[] = data.intentions;
+	$: intentions = data.intentions;
+	$: intentionsFromServer = data.intentions;
+
 	let additionalIntentions: Intentions[] = [];
 	// let backupIntentions: Intentions[] = [];
 
@@ -50,7 +51,6 @@
 			});
 			if (addResult?.length > 0) {
 				await invalidateAll();
-				intentionsFromServer = intentions;
 			} else {
 				showDBErrorNotification = true;
 			}
@@ -59,7 +59,6 @@
 			if (updateResult?.length > 0) {
 				handleHideAdditionalIntentionsTextArea();
 				await invalidateAll();
-				intentionsFromServer = intentions;
 			} else {
 				showDBErrorNotification = true;
 			}
@@ -87,7 +86,7 @@
 	};
 
 	const dayOfWeekFromDate = (date: Date) => {
-		const dayOfWeek = date.getDay() + 1;
+		const dayOfWeek = date.getDay();
 		const daysOfWeek = [
 			'Sunday',
 			'Monday',
