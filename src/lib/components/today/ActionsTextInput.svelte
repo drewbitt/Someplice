@@ -4,6 +4,8 @@
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
+	export let existingIntentions: PageServerData['intentions'] | undefined = undefined;
+
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
 
@@ -11,7 +13,9 @@
 
 	let intentionsString = intentions
 		.map((intention: Intention) => {
-			return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${intention.text}`;
+			return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${
+				intention.text
+			}`.trim();
 		})
 		.join('\n');
 
@@ -29,7 +33,7 @@
 					const newIntention: Intention = {
 						id: null,
 						goalId: goal.orderNumber,
-						orderNumber: index,
+						orderNumber: index + maxOrderNumber + 1,
 						completed: 0,
 						subIntentionQualifier: subintention || null,
 						text: text,
@@ -41,6 +45,7 @@
 					valid = false;
 				}
 			}
+			valid = false;
 			return {
 				id: null,
 				goalId: -1,
@@ -52,6 +57,13 @@
 			};
 		})
 		.filter((intention: Intention) => intention.goalId !== -1 && intention !== undefined);
+
+	$: intentions = [...(existingIntentions || []), ...intentions];
+
+	let maxOrderNumber = 0;
+	if (existingIntentions) {
+		maxOrderNumber = Math.max(...existingIntentions.map((intention) => intention.orderNumber));
+	}
 
 	const highlight = (value: string) => {
 		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;

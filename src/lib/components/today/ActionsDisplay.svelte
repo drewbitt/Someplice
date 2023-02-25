@@ -2,10 +2,17 @@
 	import { Paper } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 
+	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
-	export let handleUpdateIntentions: (intentions: PageServerData['intentions']) => void;
+	type Intention = (typeof intentions)[0];
+	export let handleUpdateIntentions: (intentions: Intention[]) => Promise<any[]>;
+	// filter intentions to make sure no errors are present (e.g. no goal id)
+	$: intentions = intentions.filter(
+		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
+	);
 
-	const updateIntention = (event: Event) => {
+	const updateIntention = async (event: Event) => {
+		console.log('Updating intention...');
 		const target = event.target as HTMLInputElement;
 		const intentionId = target.dataset.id;
 		if (intentionId) {
@@ -13,16 +20,22 @@
 				return intention.id === parseInt(intentionId);
 			});
 			if (intention) {
-				// Slightly inefficient, but updating in-place doesn't work in Svelte to re-render
 				intentions = intentions.map((intention) => {
 					if (intention.id === parseInt(intentionId)) {
 						intention.completed = target.checked ? 1 : 0;
 					}
 					return intention;
 				});
-				handleUpdateIntentions(intentions);
+				await handleUpdateIntentions(intentions);
 			}
 		}
+	};
+	const goalColorForIntention = (intention: Intention) => {
+		const goal = goals.find((goal) => goal.orderNumber === intention.goalId);
+		if (goal) {
+			return goal.color;
+		}
+		return 'black';
 	};
 </script>
 
@@ -32,11 +45,13 @@
 			<input
 				data-id={intention.id}
 				type="checkbox"
-				class="form-checkbox"
+				class="daisy-checkbox-xs"
 				checked={Boolean(intention.completed)}
 				on:change={updateIntention}
 			/>
-			<span class="ml-2">{intention.text}</span>
+			<span class="ml-2 font-bold" style="color: {goalColorForIntention(intention)}"
+				>{intention.goalId}) {intention.text}</span
+			>
 		</div>
 	{/each}
 </Paper>

@@ -89,8 +89,8 @@ export const goals = t.router({
 			*/
 			const results = await db.transaction().execute(async (trx) => {
 				return await Promise.all(
-					input.goals.map(async (goal) => {
-						return await sql<
+					input.goals.map((goal) => {
+						return sql<
 							typeof goal
 						>`INSERT OR REPLACE INTO goals (id, active, orderNumber, title, description, color)
 										 VALUES (${goal.id}, ${goal.active}, ${goal.orderNumber}, ${goal.title},

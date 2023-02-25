@@ -16,10 +16,18 @@
 
 	let intentions: Intentions[] = data.intentions;
 	let intentionsFromServer: Intentions[] = data.intentions;
+	let additionalIntentions: Intentions[] = [];
 	// let backupIntentions: Intentions[] = [];
 
 	let validIntentions: boolean;
 	let showValidIntentionsNotification = false;
+	let showAdditionalIntentionsTextArea = false;
+	let showDBErrorNotification = false;
+	$: if (showDBErrorNotification) {
+		setTimeout(() => {
+			showDBErrorNotification = false;
+		}, 5000);
+	}
 
 	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
@@ -27,24 +35,47 @@
 			return;
 		}
 
+		// Hack: Combine additionalIntentions with intentions while removing duplicate orderNumbers
+		const orderNumbers = intentions.map((intention) => intention.orderNumber);
+		const additionalIntentionsWithoutDuplicates = additionalIntentions.filter(
+			(intention) => !orderNumbers.includes(intention.orderNumber)
+		);
+		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
+		console.log('🚀 ~ file: +page.svelte:39 ~ handleSaveIntentions ~ intentions:', intentions);
+
 		if (noIntentions) {
-			// If no intentions, use add function
-			const addResult = await trpc($page).intentions.add.mutate(intentions);
-			if (addResult.length > 0) {
+			const addResult = await trpc($page).intentions.updateIntentions.mutate({
+				intentions: intentions
+			});
+			if (addResult?.length > 0) {
 				await invalidateAll();
 				intentionsFromServer = intentions;
+			} else {
+				showDBErrorNotification = true;
 			}
 		} else {
-			// If intentions exist, use update function
-			await handleUpdateIntentions();
+			const updateResult = await handleUpdateIntentions();
+			if (updateResult?.length > 0) {
+				handleHideAdditionalIntentionsTextArea();
+				await invalidateAll();
+				intentionsFromServer = intentions;
+			} else {
+				showDBErrorNotification = true;
+			}
 		}
 	};
-
 	const handleUpdateIntentions = async () => {
-		console.log('🚀 ~ file: +page.svelte:48 ~ awaittrpc ~ intentions:', intentions);
-		await trpc($page).intentions.updateIntentions.mutate({
+		console.log('🚀 ~ file: +page.svelte:62 ~ handleUpdateIntentions ~ intentions:', intentions);
+		return await trpc($page).intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
+	};
+	const handleShowAdditionalIntentionsTextArea = () => {
+		showAdditionalIntentionsTextArea = true;
+	};
+	const handleHideAdditionalIntentionsTextArea = () => {
+		additionalIntentions = [];
+		showAdditionalIntentionsTextArea = false;
 	};
 
 	const dayOfWeekFromDate = (date: Date) => {
@@ -71,12 +102,36 @@
 			You have no goals. Please add some goals first.
 		</Notification>
 	{:else if intentionsFromServer.length > 0}
-		<ActionsDisplay bind:intentions {handleUpdateIntentions} />
-		<Box>
-			<Button on:click={handleSaveIntentions}>
-				Add more {dayOfWeekFromDate(new Date())} intentions
-			</Button>
-		</Box>
+		<ActionsDisplay bind:intentions {handleUpdateIntentions} goals={data.goals} />
+		{#if showAdditionalIntentionsTextArea}
+			<Box class="flex items-center">
+				<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>
+				<Title order={3} color="white">What else are you doing towards your goals today?</Title>
+			</Box>
+			{#if showValidIntentionsNotification}
+				<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
+					Error in intentions. Please check that your intentions are formatted correctly and have
+					valid goal numbers.
+				</Notification>
+			{/if}
+			<ActionsTextInput
+				goals={data.goals}
+				bind:intentions={additionalIntentions}
+				bind:valid={validIntentions}
+				existingIntentions={intentionsFromServer}
+			/>
+			<Box>
+				<Button on:click={handleSaveIntentions}>
+					Set {dayOfWeekFromDate(new Date())} intentions
+				</Button>
+			</Box>
+		{:else}
+			<Box>
+				<Button on:click={handleShowAdditionalIntentionsTextArea}>
+					Add more {dayOfWeekFromDate(new Date())} intentions
+				</Button>
+			</Box>
+		{/if}
 	{:else}
 		{#if showValidIntentionsNotification}
 			<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
@@ -91,5 +146,15 @@
 				Set {dayOfWeekFromDate(new Date())} intentions
 			</Button>
 		</Box>
+	{/if}
+
+	{#if showDBErrorNotification}
+		<div class="daisy-toast">
+			<div class="daisy-alert daisy-alert-error">
+				<div>
+					<span>Error saving intentions</span>
+				</div>
+			</div>
+		</div>
 	{/if}
 </Stack>
