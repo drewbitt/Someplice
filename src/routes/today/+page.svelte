@@ -5,6 +5,7 @@
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
 	import { trpc } from '$src/lib/trpc/client';
+	import { localeCurrentDate } from '$src/lib/utils';
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -79,7 +80,7 @@
 	};
 
 	const dayOfWeekFromDate = (date: Date) => {
-		const dayOfWeek = date.getDay();
+		const dayOfWeek = date.getDay() + 1;
 		const daysOfWeek = [
 			'Sunday',
 			'Monday',
@@ -122,13 +123,13 @@
 			/>
 			<Box>
 				<Button on:click={handleSaveIntentions}>
-					Set {dayOfWeekFromDate(new Date())} intentions
+					Set {dayOfWeekFromDate(localeCurrentDate())} intentions
 				</Button>
 			</Box>
 		{:else}
 			<Box>
 				<Button on:click={handleShowAdditionalIntentionsTextArea}>
-					Add more {dayOfWeekFromDate(new Date())} intentions
+					Add more {dayOfWeekFromDate(localeCurrentDate())} intentions
 				</Button>
 			</Box>
 		{/if}
@@ -143,7 +144,7 @@
 
 		<Box>
 			<Button on:click={handleSaveIntentions}>
-				Set {dayOfWeekFromDate(new Date())} intentions
+				Set {dayOfWeekFromDate(localeCurrentDate())} intentions
 			</Button>
 		</Box>
 	{/if}

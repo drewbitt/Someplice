@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Editor from './actions-input/Editor.svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
+	import { localeCurrentDate } from '$src/lib/utils';
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
@@ -37,7 +38,7 @@
 						completed: 0,
 						subIntentionQualifier: subintention || null,
 						text: text,
-						date: new Date().toISOString()
+						date: localeCurrentDate().toISOString()
 					};
 					return newIntention;
 				} else {
@@ -53,7 +54,7 @@
 				completed: -1,
 				subIntentionQualifier: '',
 				text: line,
-				date: new Date().toISOString()
+				date: localeCurrentDate().toISOString()
 			};
 		})
 		.filter((intention: Intention) => intention.goalId !== -1 && intention !== undefined);
