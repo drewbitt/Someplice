@@ -9,6 +9,7 @@
 	let input: HTMLTextAreaElement;
 
 	onMount(() => {
+		input.focus();
 		input.addEventListener('input', () => {
 			const highlighted = highlight(input.value);
 			if (input.previousElementSibling) {
@@ -25,5 +26,6 @@
 		contenteditable="true"
 		bind:this={input}
 		bind:value
+		tabindex="0"
 	/>
 </div>

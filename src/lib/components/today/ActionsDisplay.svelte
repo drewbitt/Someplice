@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Paper } from '@svelteuidev/core';
+	import { Paper, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 
 	export let goals: PageServerData['goals'];
@@ -44,18 +44,20 @@
 </script>
 
 <Paper shadow="sm">
-	{#each intentions as intention}
-		<div class={'flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}>
-			<input
-				data-id={intention.id}
-				type="checkbox"
-				class="daisy-checkbox-xs"
-				checked={Boolean(intention.completed)}
-				on:change={updateIntention}
-			/>
-			<span class="ml-2 font-bold" style="color: {goalColorForIntention(intention)}"
-				>{intention.goalId}) {intention.text}</span
-			>
-		</div>
-	{/each}
+	<Stack class="gap-1.5">
+		{#each intentions as intention}
+			<div class={'flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}>
+				<input
+					data-id={intention.id}
+					type="checkbox"
+					class="daisy-checkbox-xs"
+					checked={Boolean(intention.completed)}
+					on:change={updateIntention}
+				/>
+				<span class="ml-2 font-bold" style="color: {goalColorForIntention(intention)}"
+					>{intention.goalId}) {intention.text}</span
+				>
+			</div>
+		{/each}
+	</Stack>
 </Paper>

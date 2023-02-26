@@ -37,7 +37,7 @@
 		"@typescript-eslint/parser": "^5.53.0",
 		"autoprefixer": "^10.4.13",
 		"daisyui": "^2.51.1",
-		"eslint": "^8.34.0",
+		"eslint": "^8.35.0",
 		"eslint-config-prettier": "^8.6.0",
 		"eslint-plugin-svelte3": "^4.0.0",
 		"kysely-codegen": "^0.9.0",

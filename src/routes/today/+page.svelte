@@ -12,14 +12,13 @@
 
 	export let data: PageServerData;
 	type Intentions = (typeof data.intentions)[0];
+
 	$: noGoals = data.goals.length === 0;
 	$: noIntentions = data.intentions.length === 0;
-
 	$: intentions = data.intentions;
 	$: intentionsFromServer = data.intentions;
 
 	let additionalIntentions: Intentions[] = [];
-	// let backupIntentions: Intentions[] = [];
 
 	let validIntentions: boolean;
 	let showValidIntentionsNotification = false;
@@ -43,7 +42,6 @@
 			(intention) => !orderNumbers.includes(intention.orderNumber)
 		);
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
-		console.log('🚀 ~ file: +page.svelte:39 ~ handleSaveIntentions ~ intentions:', intentions);
 
 		if (noIntentions) {
 			const addResult = await trpc($page).intentions.updateIntentions.mutate({
@@ -72,7 +70,6 @@
 		return updatedIntention;
 	};
 	const handleUpdateIntentions = async () => {
-		console.log('🚀 ~ file: +page.svelte:62 ~ handleUpdateIntentions ~ intentions:', intentions);
 		return await trpc($page).intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
@@ -81,6 +78,7 @@
 		showAdditionalIntentionsTextArea = true;
 	};
 	const handleHideAdditionalIntentionsTextArea = () => {
+		showValidIntentionsNotification = false;
 		additionalIntentions = [];
 		showAdditionalIntentionsTextArea = false;
 	};
