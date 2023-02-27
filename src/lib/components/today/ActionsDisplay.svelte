@@ -7,6 +7,14 @@
 	type Intention = (typeof intentions)[0];
 	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<any>;
 
+	const goalOrderNumberForId = (goalId: number) => {
+		const goal = goals.find((goal) => goal.id === goalId);
+		if (goal) {
+			return goal.orderNumber;
+		}
+		return -1;
+	};
+
 	// filter intentions to make sure no errors are present (e.g. no goal id)
 	$: intentions = intentions.filter(
 		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
@@ -35,7 +43,7 @@
 	};
 
 	const goalColorForIntention = (intention: Intention) => {
-		const goal = goals.find((goal) => goal.orderNumber === intention.goalId);
+		const goal = goals.find((goal) => goal.orderNumber === intention.orderNumber);
 		if (goal) {
 			return goal.color;
 		}
@@ -55,7 +63,7 @@
 					on:change={updateIntention}
 				/>
 				<span class="ml-2 font-bold" style="color: {goalColorForIntention(intention)}"
-					>{intention.goalId}) {intention.text}</span
+					>{goalOrderNumberForId(intention.goalId)}) {intention.text}</span
 				>
 			</div>
 		{/each}

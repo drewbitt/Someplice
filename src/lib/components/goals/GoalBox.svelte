@@ -1,15 +1,28 @@
 <script lang="ts">
-	import type { PageServerData } from '../../../routes/goals/$types';
-	import { Box, createStyles, Stack } from '@svelteuidev/core';
-	import GoalTitleRow from './GoalTitleRow.svelte';
-	import GoalDescription from './GoalDescription.svelte';
+	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { trpc } from '$src/lib/trpc/client';
 	import { cssvariable } from '@svelteuidev/composables';
+	import { Box, createStyles, Stack } from '@svelteuidev/core';
+	import type { PageServerData } from '../../../routes/goals/$types';
+	import GoalDescription from './GoalDescription.svelte';
+	import GoalTitleRow from './GoalTitleRow.svelte';
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;
+
+	// call trpc delete function
+	const handleDeleteGoal = async () => {
+		if (goal.id) {
+			const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
+			if (deleteResult.length > 0) {
+				await invalidateAll();
+			}
+		}
+	};
 
 	const darkModeStyles = createStyles((theme) => ({
 		root: {
@@ -31,7 +44,7 @@
 	</Box>
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
-		<GoalDescription bind:description={goal.description} {currentlyEditing} />
+		<GoalDescription bind:description={goal.description} {currentlyEditing} {handleDeleteGoal} />
 	</Stack>
 </div>
 

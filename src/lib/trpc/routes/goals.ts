@@ -99,5 +99,30 @@ export const goals = t.router({
 				);
 			});
 			return results;
+		}),
+	delete: t.procedure
+		.use(logger)
+		.input(z.number())
+		.mutation(async ({ input }) => {
+			// check if goal has any intentions
+			const intentions = await db
+				.selectFrom('intentions')
+				.select('id')
+				.where('goalId', '=', input)
+				.execute();
+			// if no intentions, delete goal
+			if (!intentions.length) {
+				return await db.deleteFrom('goals').where('id', '=', input).execute();
+			}
+			// if intentions, first delete intentions
+			await db.deleteFrom('intentions').where('goalId', '=', input).execute();
+			// then delete goal
+			return await db.deleteFrom('goals').where('id', '=', input).execute();
+		}),
+	archive: t.procedure
+		.use(logger)
+		.input(z.number())
+		.mutation(async ({ input }) => {
+			return await db.updateTable('goals').set({ active: 0 }).where('id', '=', input).execute();
 		})
 });

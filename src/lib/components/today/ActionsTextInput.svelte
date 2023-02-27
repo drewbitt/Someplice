@@ -29,11 +29,11 @@
 				const [_, number, subintention, text] = match;
 
 				const goal = goals.find((goal: Goal) => goal.orderNumber === parseInt(number));
-				if (goal) {
+				if (goal && goal?.id) {
 					valid = true;
 					const newIntention: Intention = {
 						id: null,
-						goalId: goal.orderNumber,
+						goalId: goal.id,
 						orderNumber: index + maxOrderNumber + 1,
 						completed: 0,
 						subIntentionQualifier: subintention || null,

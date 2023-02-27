@@ -110,9 +110,9 @@ export const intentions = t.router({
 				);
 				return await db.insertInto('intentions').values(brandNewIntentions).execute();
 			}
-			const existingIntentions = input.intentions.filter((intention) =>
-				existingOrderNumbers.includes(intention.orderNumber)
-			);
+			// const existingIntentions = input.intentions.filter((intention) =>
+			// 	existingOrderNumbers.includes(intention.orderNumber)
+			// );
 			// Update existing intentions
 			// return existingIntentions.map((intention) => {
 			// 	return db

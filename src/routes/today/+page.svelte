@@ -132,13 +132,13 @@
 			/>
 			<Box>
 				<Button on:click={handleSaveIntentions}>
-					Set {dayOfWeekFromDate(localeCurrentDate())} intentions
+					Set {dayOfWeekFromDate(new Date())} intentions
 				</Button>
 			</Box>
 		{:else}
 			<Box>
 				<Button on:click={handleShowAdditionalIntentionsTextArea}>
-					Add more {dayOfWeekFromDate(localeCurrentDate())} intentions
+					Add more {dayOfWeekFromDate(new Date())} intentions
 				</Button>
 			</Box>
 		{/if}
@@ -153,7 +153,7 @@
 
 		<Box>
 			<Button on:click={handleSaveIntentions}>
-				Set {dayOfWeekFromDate(localeCurrentDate())} intentions
+				Set {dayOfWeekFromDate(new Date())} intentions
 			</Button>
 		</Box>
 	{/if}
