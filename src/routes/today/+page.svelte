@@ -13,10 +13,11 @@
 	export let data: PageServerData;
 	type Intentions = (typeof data.intentions)[0];
 
+	let intentions = data.intentions;
+	// $: intentions = data.intentions; // This is crashing the app
 	$: noGoals = data.goals.length === 0;
 	$: noIntentions = data.intentions.length === 0;
-	$: intentions = data.intentions;
-	$: intentionsFromServer = data.intentions;
+	let intentionsFromServer: Intentions[] = data.intentions;
 
 	let additionalIntentions: Intentions[] = [];
 
@@ -49,6 +50,8 @@
 			});
 			if (addResult?.length > 0) {
 				await invalidateAll();
+				intentions = data.intentions;
+				intentionsFromServer = data.intentions;
 			} else {
 				showDBErrorNotification = true;
 			}
@@ -57,6 +60,8 @@
 			if (updateResult?.length > 0) {
 				handleHideAdditionalIntentionsTextArea();
 				await invalidateAll();
+				intentions = data.intentions;
+				intentionsFromServer = data.intentions;
 			} else {
 				showDBErrorNotification = true;
 			}
