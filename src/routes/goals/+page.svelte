@@ -35,6 +35,7 @@
 
 			trpc($page).goals.updateGoals.mutate({ goals: data.goals });
 		} else {
+			// Edit button has been clicked
 			// map forces reassignment
 			backupGoals = data.goals.map((goal) => {
 				return { ...goal };
@@ -43,7 +44,20 @@
 		editButtonActive = !editButtonActive;
 	}
 	function handleCancelButtonClick() {
-		data.goals = backupGoals;
+		/*
+		Check if any have goals have been deleted since the edit button was clicked;
+		if so, remove them from backupGoals as well
+		*/
+		const deletedGoals = backupGoals.filter((goal) => {
+			return !data.goals.some((goal2) => goal2.id === goal.id);
+		});
+		if (deletedGoals.length > 0) {
+			backupGoals = backupGoals.filter((goal) => {
+				return !deletedGoals.some((goal2) => goal2.id === goal.id);
+			});
+		} else {
+			data.goals = backupGoals;
+		}
 		editButtonActive = false;
 	}
 

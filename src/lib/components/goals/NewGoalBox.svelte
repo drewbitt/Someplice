@@ -15,6 +15,12 @@
 		}
 	}
 
+	// Get default new goal title from number of active goals + 1
+	const getGoalTitle = async () => {
+		const allGoals = await trpc($page).goals.list.query(1);
+		return `Goal ${allGoals.length + 1}`;
+	};
+
 	const addGoal = async () => {
 		notificationVisible = false;
 
@@ -32,8 +38,9 @@
 		const randomColorIndex = Math.floor(Math.random() * availableColors.length);
 		const randomColorValue = availableColors[randomColorIndex];
 
+		// Safety/order of an await as part of an object, inside an await?
 		const addResult = await trpc().goals.add.mutate({
-			title: 'Goal 1',
+			title: await getGoalTitle(),
 			color: randomColorValue,
 			active: 1
 		});

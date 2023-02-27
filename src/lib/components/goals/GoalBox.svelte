@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { cssvariable } from '@svelteuidev/composables';
-	import { Box, createStyles, Stack } from '@svelteuidev/core';
+	import { Box, createStyles, Group, Modal, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
@@ -13,9 +13,19 @@
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;
+	let showDeletionPrompt = false;
+	let deletionConfirmed = false;
+	$: if (deletionConfirmed) {
+		deleteGoal();
+	}
 
-	// call trpc delete function
 	const handleDeleteGoal = async () => {
+		if (goal.id) {
+			// Prompt user to confirm deletion
+			showDeletionPrompt = true;
+		}
+	};
+	const deleteGoal = async () => {
 		if (goal.id) {
 			const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
 			if (deleteResult.length > 0) {
@@ -42,6 +52,36 @@
 	<Box root="span" class="font-mono text-7xl {getStyles()}" className="goal-box-number">
 		{goal.orderNumber}
 	</Box>
+	{#if showDeletionPrompt}
+		<Modal
+			opened={showDeletionPrompt}
+			on:close={() => (showDeletionPrompt = false)}
+			title="Delete Goal"
+			withCloseButton={false}
+		>
+			<Stack spacing="xs">
+				<p>Are you sure you want to delete this goal? This action is irreversible.</p>
+				<Group position="right">
+					<button
+						class="daisy-btn daisy-btn-warning"
+						on:click={() => {
+							showDeletionPrompt = false;
+						}}
+					>
+						Cancel
+					</button>
+					<button
+						class="daisy-btn daisy-btn-error"
+						on:click={() => {
+							deletionConfirmed = true;
+						}}
+					>
+						Delete
+					</button>
+				</Group>
+			</Stack>
+		</Modal>
+	{/if}
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
 		<GoalDescription bind:description={goal.description} {currentlyEditing} {handleDeleteGoal} />
@@ -56,5 +96,9 @@
 		grid-auto-rows: 6rem;
 		line-height: 1;
 		background-color: var(--goal-color);
+	}
+	:global(.svelteui-Modal-header > div) {
+		font-size: 1.25rem;
+		line-height: 1.75rem;
 	}
 </style>
