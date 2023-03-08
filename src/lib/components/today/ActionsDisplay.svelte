@@ -43,7 +43,7 @@
 	};
 
 	const goalColorForIntention = (intention: Intention) => {
-		const goal = goals.find((goal) => goal.orderNumber === intention.orderNumber);
+		const goal = goals.find((goal) => goal.id === intention.goalId);
 		if (goal) {
 			return goal.color;
 		}
