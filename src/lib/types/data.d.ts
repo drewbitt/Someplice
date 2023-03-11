@@ -15,12 +15,12 @@ export interface Goals {
 
 export interface Intentions {
 	id: Generated<number | null>;
-	goalId: number;
 	orderNumber: number;
 	completed: number;
 	text: string;
 	subIntentionQualifier: string | null;
 	date: string;
+	goalId: number | null;
 }
 
 export interface DB {

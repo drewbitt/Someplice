@@ -17,7 +17,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.createTable('intentions')
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
-		.addColumn('goalId', 'integer', (col) => col.references('goals.id').notNull())
+		// .addColumn('goalId', 'integer', (col) => col.notNull())
 		.addColumn('orderNumber', 'integer', (col) => col.notNull())
 		// 0 (false) or 1 (true)
 		.addColumn('completed', 'integer', (col) => col.notNull())
@@ -31,6 +31,11 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)
 		)
 		.execute();
+
+	// Kysely doesn't support deferrable foreign keys yet so we have to use raw sql
+	await sql`ALTER TABLE intentions ADD COLUMN goalId INTEGER REFERENCES goals(id) DEFERRABLE INITIALLY DEFERRED;`.execute(
+		db
+	);
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {

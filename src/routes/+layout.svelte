@@ -4,13 +4,9 @@
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
 
 	let isDark = false;
-	let opened = false;
 
 	function toggleTheme() {
 		isDark = !isDark;
-	}
-	function toggleOpened() {
-		opened = !opened;
 	}
 </script>
 
