@@ -1,38 +1,47 @@
-# create-svelte
+# Someplice
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+🎯📈 Someplice is a self-hosted application built with SvelteKit and a SQLite backend for achieving your goals by setting daily intentions and tracking your progress.
 
-## Creating a project
+## Table of Contents
 
-If you're seeing this, you've probably already done this step. Congrats!
+- [Features](#features)
+- [Installation](#installation)
+- [Contributing](#contributing)
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+## Features
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+- 🎯 Set and manage multiple goals
+- 📅 Set daily intentions for each goal
+- ✅ Mark intentions as complete
 
-## Developing
+## Installation
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+🚀 To install Someplice, please follow these steps:
 
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
+1. Clone the repository
+2. Install dependencies
 
 ```bash
-npm run build
+cd Someplice
+pnpm install
 ```
 
-You can preview the production build with `npm run preview`.
+3. Run database migrations
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+```bash
+pnpm run db:migrate
+```
+
+4. Start the application
+
+```bash
+pnpm run dev
+```
+
+## Contributing
+
+🙌 Contributions are always welcome! If you'd like to contribute to Someplice, please follow these steps:
+
+1. Fork the repository
+2. Create a new branch for your feature or bug fix
+3. Make your changes and commit them with a descriptive message. Use [Lefthook](https://github.com/evilmartians/lefthook) pre-commit formatting (`lefthook install`) with Prettier to ensure consistency, or run `pnpm run format` to format all files.

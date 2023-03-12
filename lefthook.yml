@@ -2,4 +2,4 @@ pre-commit:
   parallel: true
   commands:
     format:
-      run: pnpm exec prettier --write {staged_files} --ignore-path .gitignore && git add {staged_files}
+      run: pnpm exec prettier --write {staged_files} && git add {staged_files}
