@@ -14,6 +14,7 @@
 			}, 5000);
 		}
 	}
+	export let addedGoal: boolean;
 
 	// Get default new goal title from number of active goals + 1
 	const getGoalTitle = async () => {
@@ -22,6 +23,7 @@
 	};
 
 	const addGoal = async () => {
+		addedGoal = false;
 		notificationVisible = false;
 
 		const allGoals = await trpc($page).goals.list.query(1);
@@ -46,6 +48,7 @@
 		});
 		if (addResult) {
 			await invalidateAll();
+			addedGoal = true;
 		}
 	};
 </script>

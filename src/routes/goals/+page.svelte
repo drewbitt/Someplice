@@ -24,6 +24,18 @@
 
 	// Store backup goal values which will be restored if the user cancels
 	let backupGoals: Goals[] = [];
+	let addedGoal = false;
+	$: {
+		// If a new goal has been added, set edit mode
+		// This may be against the user's expectations as the goal will stay even when they cancel
+		if (addedGoal) {
+			addedGoal = false;
+			backupGoals = data.goals.map((goal) => {
+				return { ...goal };
+			});
+			editButtonActive = true;
+		}
+	}
 
 	function handleEditButtonClick() {
 		if (editButtonActive) {
@@ -125,5 +137,5 @@
 			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} />
 		{/each}
 	</section>
-	<NewGoalBoxComponent />
+	<NewGoalBoxComponent bind:addedGoal />
 </div>
