@@ -9,6 +9,10 @@ node_modules
 LICENSE
 *.md
 .prettierignore
+.DS_Store
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+*.sqlite
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
