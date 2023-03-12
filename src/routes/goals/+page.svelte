@@ -90,6 +90,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Someplice - Goals</title>
+</svelte:head>
+
 <div>
 	<Title class="flex" color="white">
 		Goals

@@ -5,7 +5,6 @@
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
 	import { trpc } from '$src/lib/trpc/client';
-	import { localeCurrentDate } from '$src/lib/utils';
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -102,6 +101,10 @@
 		return daysOfWeek[dayOfWeek];
 	};
 </script>
+
+<svelte:head>
+	<title>Today's Intentions</title>
+</svelte:head>
 
 <Stack>
 	<GoalBadges goals={data.goals} />

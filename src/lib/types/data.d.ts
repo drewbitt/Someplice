@@ -20,7 +20,7 @@ export interface Intentions {
 	text: string;
 	subIntentionQualifier: string | null;
 	date: string;
-	goalId: number | null;
+	goalId: number;
 }
 
 export interface DB {

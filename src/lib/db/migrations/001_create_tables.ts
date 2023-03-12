@@ -33,7 +33,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.execute();
 
 	// Kysely doesn't support deferrable foreign keys yet so we have to use raw sql
-	await sql`ALTER TABLE intentions ADD COLUMN goalId INTEGER REFERENCES goals(id) DEFERRABLE INITIALLY DEFERRED;`.execute(
+	await sql`ALTER TABLE intentions ADD COLUMN goalId INTEGER REFERENCES goals(id) NOT NULL DEFERRABLE INITIALLY DEFERRED;`.execute(
 		db
 	);
 }
