@@ -13,6 +13,7 @@
 - 🎯 Set and manage multiple goals
 - 📅 Set daily intentions for each goal
 - ✅ Mark intentions as complete
+- ☀️/🌙 Toggle between light and dark mode
 
 ## Installation
 
@@ -56,16 +57,16 @@ pnpm run dev
 docker build -t someplice .
 ```
 
-3. Run migrations to create DB
-
-```bash
-docker run someplice pnpm run db:migrate
-```
-
-4. Run the Docker image
+3. Run the Docker image
 
 ```bash
 docker run -p 3000:3000 someplice
+```
+
+4. Run migrations to create DB
+
+```bash
+docker exec -it someplice pnpm run db:migrate
 ```
 
 ## Contributing
