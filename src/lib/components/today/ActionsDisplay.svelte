@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { Paper, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
+	import Menu from '~icons/lucide/menu';
+	import { lighterHSLColor } from '$src/lib/utils';
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
 	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<any>;
+	let showMousoverMenu = false;
+	let showMousoverIndex: number | null = null;
 
 	const goalOrderNumberForId = (goalId: number) => {
 		const goal = goals.find((goal) => goal.id === goalId);
@@ -49,23 +53,70 @@
 		}
 		return 'black';
 	};
+	const lighterGoalColorForIntention = (goalColor: string) => {
+		if (goalColor === 'black') {
+			return 'grey';
+		}
+		return lighterHSLColor(goalColor);
+	};
 </script>
 
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
-		{#each intentions as intention}
-			<div class={'flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}>
+		{#each intentions as intention (intention.orderNumber)}
+			<span
+				class={'pl-3 flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}
+				on:mouseover={() => {
+					showMousoverMenu = true;
+					showMousoverIndex = intention.id;
+				}}
+				on:mouseout={() => {
+					showMousoverMenu = false;
+					showMousoverIndex = null;
+				}}
+				on:focus={() => {
+					showMousoverMenu = true;
+					showMousoverIndex = intention.id;
+				}}
+				on:blur={() => {
+					showMousoverMenu = false;
+					showMousoverIndex = null;
+				}}
+			>
+				{#if showMousoverMenu && showMousoverIndex === intention.id}
+					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
+						><g
+							fill="none"
+							stroke="currentColor"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="1.5"
+							><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
+								cx="8"
+								cy="13.5"
+								r=".75"
+							/></g
+						></svg
+					>
+					<Menu class="w-5" color="grey" />
+				{:else}
+					<div class="w-9" />
+				{/if}
 				<input
 					data-id={intention.id}
 					type="checkbox"
-					class="daisy-checkbox-xs"
+					class="daisy-checkbox-sm"
 					checked={Boolean(intention.completed)}
 					on:change={updateIntention}
 				/>
-				<span class="ml-2 font-bold" style="color: {goalColorForIntention(intention)}"
+				<span
+					class="ml-2 font-bold text-lg"
+					style="color: {Boolean(intention.completed)
+						? lighterGoalColorForIntention(goalColorForIntention(intention))
+						: goalColorForIntention(intention)}"
 					>{goalOrderNumberForId(intention.goalId)}) {intention.text}</span
 				>
-			</div>
+			</span>
 		{/each}
 	</Stack>
 </Paper>

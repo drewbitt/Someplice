@@ -4,6 +4,7 @@
 	import { colors } from './colors';
 	import { trpc } from '$src/lib/trpc/client';
 	import { cssvariable } from '@svelteuidev/composables';
+	import { lighterHSLColor } from '$src/lib/utils';
 
 	export let goalColor: string;
 
@@ -14,16 +15,6 @@
 		const allGoals = await trpc($page).goals.list.query(1);
 		const usedColors = allGoals.map((goal) => goal.color);
 		return colors.filter((color) => !usedColors.includes(color));
-	};
-
-	// make a lighter version of goalColor via maniuplating the goalColor variable via hsl
-	const lighterGoalColor = (color: string) => {
-		const [hue, saturation, lightness] = color
-			.slice(4, -1)
-			.split(' ')
-			.map((x) => parseFloat(x));
-		const lighterLightness = lightness + (100 - lightness) * 0.2;
-		return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 	};
 </script>
 
@@ -61,7 +52,7 @@
 <div
 	tabindex="0"
 	role="button"
-	use:cssvariable={{ 'lighter-goal-color': lighterGoalColor(goalColor) }}
+	use:cssvariable={{ 'lighter-goal-color': lighterHSLColor(goalColor) }}
 	class="goal-box-color-picker w-14 h-8 flex justify-center items-center cursor-pointer"
 	on:click={() => (opened = true)}
 	on:keydown={(event) => {
