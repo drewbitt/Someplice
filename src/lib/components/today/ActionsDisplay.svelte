@@ -51,7 +51,7 @@
 
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
-		{#each intentions as intention (intention.orderNumber)}
+		{#each intentions as intention, index (intention.orderNumber)}
 			<span
 				class={'pl-3 flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}
 				on:mouseover={() => {
@@ -69,14 +69,7 @@
 			>
 				{#if showMousoverMenu && showMousoverIndex === intention.id}
 					{#if showIntentionModal}
-						<IntentionsModal
-							bind:opened={showIntentionModal}
-							{intention}
-							closeModal={() => {
-								showIntentionModal = false;
-							}}
-							{goals}
-						/>
+						<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
 					{/if}
 					<span
 						class="hover:bg-gray-400 cursor-pointer py-0.5"
@@ -111,12 +104,16 @@
 				<input
 					data-id={intention.id}
 					type="checkbox"
-					class="daisy-checkbox-sm"
+					class={index === 0 ? 'daisy-checkbox-md' : 'daisy-checkbox-sm ml-0.5'}
 					checked={Boolean(intention.completed)}
 					on:change={updateIntention}
 				/>
 				<span
-					class="ml-2 font-bold text-lg"
+					on:contextmenu={(e) => {
+						e.preventDefault();
+						showIntentionModal = true;
+					}}
+					class="ml-2 font-bold {index === 0 ? 'text-xl' : 'text-lg'}"
 					style="color: {Boolean(intention.completed)
 						? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 						: goalColorForIntention(intention, goals)}"
