@@ -5,7 +5,7 @@ import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
 import { localeCurrentDate } from '$src/lib/utils';
 
-const IntentionsSchema = z.object({
+export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
 	orderNumber: z.number(),

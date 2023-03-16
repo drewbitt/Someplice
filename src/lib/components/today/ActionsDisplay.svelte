@@ -2,22 +2,17 @@
 	import { Paper, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Menu from '~icons/lucide/menu';
-	import { lighterHSLColor } from '$src/lib/utils';
+	import { goalColorForIntention, goalOrderNumberForId, lighterHSLColor } from '$src/lib/utils';
+	import IntentionsModal from './IntentionsModal.svelte';
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
+
 	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<any>;
 	let showMousoverMenu = false;
 	let showMousoverIndex: number | null = null;
-
-	const goalOrderNumberForId = (goalId: number) => {
-		const goal = goals.find((goal) => goal.id === goalId);
-		if (goal) {
-			return goal.orderNumber;
-		}
-		return -1;
-	};
+	let showIntentionModal = false;
 
 	// filter intentions to make sure no errors are present (e.g. no goal id)
 	$: intentions = intentions.filter(
@@ -46,13 +41,6 @@
 		}
 	};
 
-	const goalColorForIntention = (intention: Intention) => {
-		const goal = goals.find((goal) => goal.id === intention.goalId);
-		if (goal) {
-			return goal.color;
-		}
-		return 'black';
-	};
 	const lighterGoalColorForIntention = (goalColor: string) => {
 		if (goalColor === 'black') {
 			return 'grey';
@@ -70,10 +58,6 @@
 					showMousoverMenu = true;
 					showMousoverIndex = intention.id;
 				}}
-				on:mouseout={() => {
-					showMousoverMenu = false;
-					showMousoverIndex = null;
-				}}
 				on:focus={() => {
 					showMousoverMenu = true;
 					showMousoverIndex = intention.id;
@@ -84,20 +68,42 @@
 				}}
 			>
 				{#if showMousoverMenu && showMousoverIndex === intention.id}
-					<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
-						><g
-							fill="none"
-							stroke="currentColor"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="1.5"
-							><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
-								cx="8"
-								cy="13.5"
-								r=".75"
-							/></g
-						></svg
+					{#if showIntentionModal}
+						<IntentionsModal
+							bind:opened={showIntentionModal}
+							{intention}
+							closeModal={() => {
+								showIntentionModal = false;
+							}}
+							{goals}
+						/>
+					{/if}
+					<span
+						class="hover:bg-gray-400 cursor-pointer py-0.5"
+						on:click={() => {
+							showIntentionModal = true;
+						}}
+						on:keydown={(event) => {
+							if (event.key === 'Enter') {
+								showIntentionModal = true;
+							}
+						}}
 					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
+							><g
+								fill="none"
+								stroke="currentColor"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="1.5"
+								><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
+									cx="8"
+									cy="13.5"
+									r=".75"
+								/></g
+							></svg
+						>
+					</span>
 					<Menu class="w-5" color="grey" />
 				{:else}
 					<div class="w-9" />
@@ -112,9 +118,9 @@
 				<span
 					class="ml-2 font-bold text-lg"
 					style="color: {Boolean(intention.completed)
-						? lighterGoalColorForIntention(goalColorForIntention(intention))
-						: goalColorForIntention(intention)}"
-					>{goalOrderNumberForId(intention.goalId)}) {intention.text}</span
+						? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
+						: goalColorForIntention(intention, goals)}"
+					>{goalOrderNumberForId(intention.goalId, goals)}) {intention.text}</span
 				>
 			</span>
 		{/each}

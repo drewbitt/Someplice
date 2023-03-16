@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
 
-const GoalSchema = z.object({
+export const GoalSchema = z.object({
 	id: z.number().nullable(),
 	active: z.number(),
 	orderNumber: z.number(),

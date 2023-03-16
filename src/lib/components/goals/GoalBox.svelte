@@ -5,6 +5,7 @@
 	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, createStyles, Group, Modal, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
+	import GoalDeletionModal from './GoalDeletionModal.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 
@@ -53,34 +54,7 @@
 		{goal.orderNumber}
 	</Box>
 	{#if showDeletionPrompt}
-		<Modal
-			opened={showDeletionPrompt}
-			on:close={() => (showDeletionPrompt = false)}
-			title="Delete Goal"
-			withCloseButton={false}
-		>
-			<Stack spacing="xs">
-				<p>Are you sure you want to delete this goal? This action is irreversible.</p>
-				<Group position="right">
-					<button
-						class="daisy-btn daisy-btn-warning"
-						on:click={() => {
-							showDeletionPrompt = false;
-						}}
-					>
-						Cancel
-					</button>
-					<button
-						class="daisy-btn daisy-btn-error"
-						on:click={() => {
-							deletionConfirmed = true;
-						}}
-					>
-						Delete
-					</button>
-				</Group>
-			</Stack>
-		</Modal>
+		<GoalDeletionModal bind:showDeletionPrompt bind:deletionConfirmed />
 	{/if}
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
@@ -96,9 +70,5 @@
 		grid-auto-rows: 6rem;
 		line-height: 1;
 		background-color: var(--goal-color);
-	}
-	:global(.svelteui-Modal-header > div) {
-		font-size: 1.25rem;
-		line-height: 1.75rem;
 	}
 </style>
