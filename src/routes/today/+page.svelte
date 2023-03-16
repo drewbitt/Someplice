@@ -115,7 +115,11 @@
 			You have no goals. Please add some goals first.
 		</Notification>
 	{:else if intentionsFromServer.length > 0}
-		<ActionsDisplay bind:intentions {handleUpdateSingleIntention} goals={data.goals} />
+		<ActionsDisplay
+			bind:intentions={data.intentions}
+			{handleUpdateSingleIntention}
+			goals={data.goals}
+		/>
 		{#if showAdditionalIntentionsTextArea}
 			<Box class="flex items-center">
 				<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>

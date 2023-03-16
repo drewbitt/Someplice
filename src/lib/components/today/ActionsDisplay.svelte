@@ -15,7 +15,7 @@
 	let showIntentionModal = false;
 
 	// filter intentions to make sure no errors are present (e.g. no goal id)
-	$: intentions = intentions.filter(
+	$: intentions = intentions?.filter(
 		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
 	);
 
@@ -51,7 +51,7 @@
 
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
-		{#each intentions as intention, index (intention.orderNumber)}
+		{#each intentions as intention, index (intention)}
 			<span
 				class={'pl-3 flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}
 				on:mouseover={() => {

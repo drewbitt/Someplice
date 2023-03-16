@@ -74,6 +74,23 @@ export const intentions = t.router({
 				.where('id', '=', input.id)
 				.execute();
 		}),
+	appendText: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				id: z.number(),
+				text: z.string()
+			})
+		)
+		.mutation(async ({ input }) => {
+			return await db
+				.updateTable('intentions')
+				.set({
+					text: sql`text || ${input.text}`
+				})
+				.where('id', '=', input.id)
+				.execute();
+		}),
 	updateIntentions: t.procedure
 		.use(logger)
 		.input(

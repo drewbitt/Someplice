@@ -7,7 +7,7 @@
 	import AppendModal from './AppendModal.svelte';
 
 	export let goals: Goal[];
-	export let opened: boolean; // actual opened state to report to parent
+	export let opened: boolean; // actual opened state to report to parent (to close modal + child modals)
 	export let intention: Intention;
 
 	let intentionsModalOpened = opened; // local opened state to control modal
@@ -20,6 +20,10 @@
 		} else {
 			intentionsModalOpened = false;
 		}
+	};
+	const closeAppendModal = () => {
+		showAppendModal = false;
+		opened = false; // close modal in parent
 	};
 
 	onMount(() => {
@@ -78,13 +82,5 @@
 {/if}
 
 {#if showAppendModal}
-	<AppendModal
-		{goals}
-		{intention}
-		opened={showAppendModal}
-		closeModal={() => {
-			showAppendModal = false;
-			opened = false;
-		}}
-	/>
+	<AppendModal {goals} {intention} opened={showAppendModal} closeModal={closeAppendModal} />
 {/if}
