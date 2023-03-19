@@ -68,32 +68,46 @@
 		intentions = items;
 		await trpc($page).intentions.updateIntentions.mutate({ intentions: items });
 	};
+	const handleButtonPressIntention = (
+		event: KeyboardEvent & {
+			currentTarget: EventTarget & HTMLSpanElement;
+		}
+	) => {
+		if (event.key === ' ') {
+			const checkbox = event.currentTarget.querySelector(
+				'input[type="checkbox"]'
+			) as HTMLInputElement;
+			checkbox.checked = !checkbox.checked;
+			// TODO: Focus issue here, if you check and uncheck the checkbox, the focus is lost
+		}
+	};
 </script>
 
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
+		{#if intentions.length > 0}
+			<span class="flex pl-12 mb-5">
+				<Title order={2} class="font-bold text-gray-700"
+					>{intentions.length} intentions for today,</Title
+				>
+				<Title order={2} class="ml-5 font-bold text-gray-300">
+					{localeCurrentDate().toLocaleDateString('en-US', {
+						weekday: 'long',
+						month: 'short',
+						day: 'numeric'
+					})}
+				</Title>
+			</span>
+		{/if}
 		<section
 			class="overflow-hidden"
 			use:dndzone={{ items: intentions }}
 			on:consider={handleDndConsider}
 			on:finalize={handleDndFinalize}
 		>
-			{#if intentions.length > 0}
-				<span class="flex pl-12 mb-5">
-					<Title order={2} class="font-bold text-gray-700"
-						>{intentions.length} intentions for today,</Title
-					>
-					<Title order={2} class="ml-5 font-bold text-gray-300">
-						{localeCurrentDate().toLocaleDateString('en-US', {
-							weekday: 'long',
-							month: 'short',
-							day: 'numeric'
-						})}
-					</Title>
-				</span>
-			{/if}
 			{#each intentions as intention, index (intention)}
 				<span
+					data-id={intention.id}
 					class={'pl-3 flex items-center' +
 						(Boolean(intention.completed) ? ' line-through' : '') +
 						(Boolean(index === firstIncompleteIntentionIndex) ? ' mb-1' : '')}
@@ -108,6 +122,9 @@
 					on:blur={() => {
 						showMousoverMenu = false;
 						showMousoverIndex = null;
+					}}
+					on:keydown={(event) => {
+						handleButtonPressIntention(event);
 					}}
 				>
 					{#if showMousoverMenu && showMousoverIndex === intention.id}
@@ -145,6 +162,7 @@
 						<div class="w-9" />
 					{/if}
 					<input
+						tabindex={-1}
 						data-id={intention.id}
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
