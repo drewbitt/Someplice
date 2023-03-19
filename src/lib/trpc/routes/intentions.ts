@@ -3,7 +3,6 @@ import { t } from '$lib/trpc/t';
 import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
-import { localeCurrentDate } from '$src/lib/utils';
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -39,6 +38,7 @@ export const intentions = t.router({
 						'subIntentionQualifier',
 						'date'
 					])
+					.orderBy('orderNumber', 'asc')
 					.where('date', '>=', input.startDate)
 					.where('date', '<=', input.endDate)
 					.execute();
@@ -99,50 +99,17 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			// TODO: This is terribly inefficient
-
-			// If orderNumber on current day already exists, update the intention
-			// Otherwise, insert the intention
-			// Do not allow for duplicate orderNumbers on the same day
-
-			const intentions = await db
-				.selectFrom('intentions')
-				.select(['orderNumber'])
-				// where date is today
-				.where(
-					sql`strftime ('%Y-%m-%d', date)`,
-					'=',
-					localeCurrentDate().toISOString().slice(0, 10)
-				)
-				.execute();
-			const existingOrderNumbers = intentions.map((intention) => intention.orderNumber);
-			const brandNewIntentions = input.intentions.filter(
-				(intention) => !existingOrderNumbers.includes(intention.orderNumber)
-			);
-			// Insert brand new intentions
-			if (brandNewIntentions.length > 0) {
-				console.log(
-					'🚀 ~ file: intentions.ts:87 ~ .mutation ~ brandNewIntentions:',
-					brandNewIntentions
+			const results = await db.transaction().execute(async (trx) => {
+				return await Promise.all(
+					input.intentions.map((intention) => {
+						return sql<
+							typeof intention
+						>`INSERT OR REPLACE INTO intentions (id, goalId, orderNumber, completed, text, subIntentionQualifier, date)
+										 VALUES (${intention.id}, ${intention.goalId}, ${intention.orderNumber}, ${intention.completed},
+										${intention.text}, ${intention.subIntentionQualifier}, ${intention.date}) RETURNING *`.execute(trx);
+					})
 				);
-				return await db.insertInto('intentions').values(brandNewIntentions).execute();
-			}
-			// const existingIntentions = input.intentions.filter((intention) =>
-			// 	existingOrderNumbers.includes(intention.orderNumber)
-			// );
-			// Update existing intentions
-			// return existingIntentions.map((intention) => {
-			// 	return db
-			// 		.updateTable('intentions')
-			// 		.set({
-			// 			goalId: intention.goalId,
-			// 			orderNumber: intention.orderNumber,
-			// 			completed: intention.completed,
-			// 			text: intention.text,
-			// 			subIntentionQualifier: intention.subIntentionQualifier
-			// 		})
-			// 		.where('orderNumber', '=', intention.orderNumber)
-			// 		.execute();
-			// });
+			});
+			return results;
 		})
 });
