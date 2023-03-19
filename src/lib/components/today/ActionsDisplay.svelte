@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Paper, Stack, Title } from '@svelteuidev/core';
+	import { createStyles, Paper, Stack, Title } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Menu from '~icons/lucide/menu';
 	import {
@@ -26,7 +26,6 @@
 	$: intentions = intentions?.filter(
 		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
 	);
-
 	$: firstIncompleteIntentionIndex = intentions.findIndex((intention) => intention.completed === 0);
 
 	const updateIntention = async (event: Event) => {
@@ -81,16 +80,30 @@
 			// TODO: Focus issue here, if you check and uncheck the checkbox, the focus is lost
 		}
 	};
+
+	const darkModeStyles = createStyles((theme) => ({
+		intentionsNumber: {
+			darkMode: {
+				color: theme.fn.themeColor('grape', 1) + ' !important'
+			}
+		},
+		intentionsDate: {
+			darkMode: {
+				color: theme.fn.themeColor('gray', 8) + ' !important'
+			}
+		}
+	}));
+	$: ({ classes } = darkModeStyles());
 </script>
 
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
 		{#if intentions.length > 0}
 			<span class="flex pl-12 mb-5">
-				<Title order={2} class="font-bold text-gray-700"
+				<Title order={2} class="{classes.intentionsNumber} font-bold text-gray-700"
 					>{intentions.length} intentions for today,</Title
 				>
-				<Title order={2} class="ml-5 font-bold text-gray-300">
+				<Title order={2} class="{classes.intentionsDate} ml-5 font-bold text-gray-300">
 					{localeCurrentDate().toLocaleDateString('en-US', {
 						weekday: 'long',
 						month: 'short',
