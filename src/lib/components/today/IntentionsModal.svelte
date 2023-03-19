@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Grid, Modal } from '@svelteuidev/core';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import TextCursorInput from '~icons/lucide/text-cursor-input';
+	import { Grid, Modal } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
+	import TextCursorInput from '~icons/lucide/text-cursor-input';
 	import AppendModal from './AppendModal.svelte';
 
 	export let goals: Goal[];

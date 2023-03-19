@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import { trpc } from '$src/lib/trpc/client';
 	import { Grid, Input, Modal } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
-	import { invalidateAll } from '$app/navigation';
 
 	export let goals: Goal[];
 	export let opened: boolean;

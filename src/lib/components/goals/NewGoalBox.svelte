@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { Box, Notification, Text } from '@svelteuidev/core';
-	import { trpc } from '$src/lib/trpc/client';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { trpc } from '$src/lib/trpc/client';
+	import { Box, Notification, Text } from '@svelteuidev/core';
 	import { colors } from './colors';
 
 	let notificationVisible = false;

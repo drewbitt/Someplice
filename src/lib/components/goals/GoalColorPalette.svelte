@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { trpc } from '$src/lib/trpc/client';
+	import { lighterHSLColor } from '$src/lib/utils';
+	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, Grid, Modal } from '@svelteuidev/core';
 	import { colors } from './colors';
-	import { trpc } from '$src/lib/trpc/client';
-	import { cssvariable } from '@svelteuidev/composables';
-	import { lighterHSLColor } from '$src/lib/utils';
 
 	export let goalColor: string;
 

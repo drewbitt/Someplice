@@ -3,7 +3,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { cssvariable } from '@svelteuidev/composables';
-	import { Box, createStyles, Group, Modal, Stack } from '@svelteuidev/core';
+	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GoalDeletionModal from './GoalDeletionModal.svelte';
 	import GoalDescription from './GoalDescription.svelte';

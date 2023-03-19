@@ -1,7 +1,7 @@
 <script>
-	import '../app.postcss';
-	import { fns, AppShell, Header, SvelteUIProvider } from '@svelteuidev/core';
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
+	import { AppShell, fns, Header, SvelteUIProvider } from '@svelteuidev/core';
+	import '../app.postcss';
 
 	let isDark = false;
 

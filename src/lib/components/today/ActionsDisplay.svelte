@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { createStyles, Paper, Stack, Title } from '@svelteuidev/core';
-	import type { PageServerData } from '../../../routes/today/$types';
-	import Menu from '~icons/lucide/menu';
+	import { trpc } from '$src/lib/trpc/client';
 	import {
 		goalColorForIntention,
 		goalOrderNumberForId,
 		lighterHSLColor,
 		localeCurrentDate
 	} from '$src/lib/utils';
+	import { createStyles, Paper, Stack, Title } from '@svelteuidev/core';
+	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
+	import Menu from '~icons/lucide/menu';
+	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	import { dndzone } from 'svelte-dnd-action';
-	import { trpc } from '$src/lib/trpc/client';
+	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
