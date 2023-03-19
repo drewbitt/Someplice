@@ -108,8 +108,9 @@
 
 <Stack>
 	<GoalBadges goals={data.goals} />
-	<Title order={2} color="white">Actions you'll take towards your goals today</Title>
-
+	{#if !(intentionsFromServer.length > 0)}
+		<Title order={2} color="white">Actions you'll take towards your goals today</Title>
+	{/if}
 	{#if noGoals}
 		<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
 			You have no goals. Please add some goals first.

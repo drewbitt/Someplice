@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { Paper, Stack } from '@svelteuidev/core';
+	import { Paper, Stack, Title } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Menu from '~icons/lucide/menu';
-	import { goalColorForIntention, goalOrderNumberForId, lighterHSLColor } from '$src/lib/utils';
+	import {
+		goalColorForIntention,
+		goalOrderNumberForId,
+		lighterHSLColor,
+		localeCurrentDate
+	} from '$src/lib/utils';
 	import IntentionsModal from './IntentionsModal.svelte';
 	import { dndzone } from 'svelte-dnd-action';
 	import { trpc } from '$src/lib/trpc/client';
@@ -21,6 +26,8 @@
 	$: intentions = intentions?.filter(
 		(intention) => intention.goalId !== -1 && intention !== undefined && intention.goalId !== null
 	);
+
+	$: firstIncompleteIntentionIndex = intentions.findIndex((intention) => intention.completed === 0);
 
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
@@ -58,10 +65,6 @@
 		const items: Intention[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
 		});
-		console.log(
-			'🚀 ~ file: ActionsDisplay.svelte:61 ~ constitems:Intention[]=event.detail.items.map ~ items:',
-			items
-		);
 		intentions = items;
 		await trpc($page).intentions.updateIntentions.mutate({ intentions: items });
 	};
@@ -75,9 +78,25 @@
 			on:consider={handleDndConsider}
 			on:finalize={handleDndFinalize}
 		>
+			{#if intentions.length > 0}
+				<span class="flex pl-12 mb-5">
+					<Title order={2} class="font-bold text-gray-700"
+						>{intentions.length} intentions for today,</Title
+					>
+					<Title order={2} class="ml-5 font-bold text-gray-300">
+						{localeCurrentDate().toLocaleDateString('en-US', {
+							weekday: 'long',
+							month: 'short',
+							day: 'numeric'
+						})}
+					</Title>
+				</span>
+			{/if}
 			{#each intentions as intention, index (intention)}
 				<span
-					class={'pl-3 flex items-center' + (Boolean(intention.completed) ? ' line-through' : '')}
+					class={'pl-3 flex items-center' +
+						(Boolean(intention.completed) ? ' line-through' : '') +
+						(Boolean(index === firstIncompleteIntentionIndex) ? ' mb-1' : '')}
 					on:mouseover={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
@@ -128,7 +147,9 @@
 					<input
 						data-id={intention.id}
 						type="checkbox"
-						class={index === 0 ? 'daisy-checkbox-md' : 'daisy-checkbox-sm ml-0.5'}
+						class={index === firstIncompleteIntentionIndex
+							? 'daisy-checkbox-md'
+							: 'daisy-checkbox-sm ml-0.5'}
 						checked={Boolean(intention.completed)}
 						on:change={updateIntention}
 					/>
@@ -137,7 +158,7 @@
 							e.preventDefault();
 							showIntentionModal = true;
 						}}
-						class="ml-2 font-bold {index === 0 ? 'text-xl' : 'text-lg'}"
+						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
 						style="color: {Boolean(intention.completed)
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
