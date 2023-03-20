@@ -78,6 +78,7 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 			console.error(`failed to execute migration "${it.migrationName}"`);
 		}
 	});
+	console.log(`Ran ${results?.length} migrations`);
 
 	if (error) {
 		console.error('failed to migrate');
