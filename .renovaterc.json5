@@ -1,4 +1,28 @@
 {
 	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
-	extends: ['config:js-app']
+	extends: [
+		'config:base',
+		'group:allNonMajor', // batch non-majors into one PR
+		':semanticCommits' // nicer commit messages
+	],
+	rangeStrategy: 'bump',
+	packageRules: [
+		{
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			automerge: true
+		},
+		{
+			matchDatasources: ['npm'],
+			stabilityDays: 5
+		},
+		{
+			matchUpdateTypes: ['minor'],
+			matchCurrentVersion: '/^[~^]?0/',
+			dependencyDashboardApproval: true
+		},
+		{
+			matchUpdateTypes: ['major'],
+			dependencyDashboardApproval: true
+		}
+	]
 }
