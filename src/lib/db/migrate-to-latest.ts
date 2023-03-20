@@ -6,7 +6,7 @@ import { db as mainDb } from './db';
 import os from 'os';
 import path from 'path';
 
-export async function migrateToLatest(db?: Kysely<DB>) {
+export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	if (!db) {
 		db = mainDb;
 	}
@@ -24,7 +24,12 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 							'file://',
 							''
 						);
-						console.log('Running migration ', filePath);
+
+						if (migrationName && file !== migrationName + '.ts' && file !== migrationName + '.js') {
+							continue;
+						}
+
+						console.log('Found migration ', file);
 						const migration = await import(/* @vite-ignore */ filePath);
 						const migrationKey = file.substring(0, file.lastIndexOf('.'));
 						migrations[migrationKey] = migration;
@@ -41,7 +46,13 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 					}
 
 					const importPath = path.join(resolvedPath, fileName).replaceAll('\\', '/');
-					console.log('Running migration ', importPath);
+
+					/* prettier-ignore */
+					if (migrationName && fileName !== migrationName + '.js' && fileName !== migrationName + '.ts') {
+						continue;
+					}
+
+					console.log('Found migration ', importPath);
 					const migration = await import(importPath);
 					const migrationKey = fileName.substring(0, fileName.lastIndexOf('.'));
 
@@ -77,4 +88,8 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 	await db.destroy();
 }
 
-migrateToLatest();
+if (process.argv[2] === '--migration') {
+	migrateToLatest(undefined, process.argv[3]);
+} else {
+	migrateToLatest();
+}

@@ -13,7 +13,8 @@
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write .",
 		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --plugin-search-dir . --write ./src/lib/types/data.d.ts",
-		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts"
+		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts",
+		"db:migrate:single": "vite-node ./src/lib/db/migrate-to-latest.ts --migration"
 	},
 	"dependencies": {
 		"@svelteuidev/composables": "^0.10.0",
@@ -23,7 +24,7 @@
 		"better-sqlite3": "^8.2.0",
 		"kysely": "^0.23.5",
 		"trpc-sveltekit": "^3.5.1",
-		"vite-node": "^0.29.5",
+		"vite-node": "^0.29.7",
 		"zod": "^3.21.4"
 	},
 	"devDependencies": {
@@ -32,7 +33,7 @@
 		"@sveltejs/adapter-node": "^1.2.3",
 		"@sveltejs/kit": "^1.13.0",
 		"@types/better-sqlite3": "^7.6.3",
-		"@types/node": "^18.15.3",
+		"@types/node": "^18.15.4",
 		"@typescript-eslint/eslint-plugin": "^5.56.0",
 		"@typescript-eslint/parser": "^5.56.0",
 		"autoprefixer": "^10.4.14",
@@ -54,7 +55,7 @@
 		"typescript": "^5.0.2",
 		"unplugin-icons": "^0.15.3",
 		"vite": "^4.2.1",
-		"vitest": "^0.29.5"
+		"vitest": "^0.29.7"
 	},
 	"type": "module"
 }
