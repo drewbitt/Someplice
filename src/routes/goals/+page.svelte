@@ -132,6 +132,7 @@
 		</div>
 	</Title>
 	<section
+		id="goals-list-container"
 		class="overflow-hidden"
 		use:dndzone={{ items: data.goals, dragDisabled }}
 		on:consider={handleDndConsider}

@@ -66,7 +66,7 @@
 <div class="goal-box-new my-2.5 mx-5 grid">
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
 	<Box className="goal-box-details">
-		<Box root="button" on:click={addGoal}>
+		<Box id="new-goal-button" root="button" on:click={addGoal}>
 			<Text class="text-3xl">New Goal</Text>
 		</Box>
 	</Box>

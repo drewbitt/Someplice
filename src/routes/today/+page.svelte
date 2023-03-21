@@ -112,7 +112,13 @@
 		<Title order={2} color="white">Actions you'll take towards your goals today</Title>
 	{/if}
 	{#if noGoals}
-		<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
+		<Notification
+			id="no-goals-notification"
+			icon={CircleX}
+			color="red"
+			withCloseButton={false}
+			class="border-gray-400"
+		>
 			You have no goals. Please add some goals first.
 		</Notification>
 	{:else if intentionsFromServer.length > 0}
