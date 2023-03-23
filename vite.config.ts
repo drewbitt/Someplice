@@ -1,10 +1,12 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import Icons from 'unplugin-icons/vite';
 
 /** @type {import('vite').UserConfig} */
 const config = {
 	plugins: [
 		sveltekit(),
+		SvelteKitPWA(),
 		Icons({
 			compiler: 'svelte'
 		})
