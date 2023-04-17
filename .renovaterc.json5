@@ -13,7 +13,7 @@
 		},
 		{
 			matchDatasources: ['npm'],
-			stabilityDays: 5
+			stabilityDays: 2
 		},
 		{
 			matchUpdateTypes: ['minor'],
