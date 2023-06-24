@@ -8,7 +8,8 @@ const config = {
 	important: true,
 	daisyui: {
 		logs: false,
-		prefix: 'daisy-'
+		prefix: 'daisy-',
+		themes: false
 	}
 };
 

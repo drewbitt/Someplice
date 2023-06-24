@@ -28,16 +28,22 @@
 			</Group>
 		</a>
 		<Group class="leading-3">
-			<Box class="flex-none">
-				<Box root="ul" class="daisy-menu daisy-menu-horizontal space-x-1">
+			<Box>
+				<Box root="ul" class="daisy-menu daisy-menu-horizontal space-x-1 pt-0 primary">
 					<li>
-						<a href="/today" class:daisy-active={$page.url.pathname === '/today'} class="rounded-md"
-							>Today</a
+						<a
+							href="/today"
+							class:daisy-active={$page.url.pathname === '/today'}
+							class="rounded-md"
+							class:bg-primary-focus={$page.url.pathname === '/today'}>Today</a
 						>
 					</li>
 					<li>
-						<a href="/goals" class:daisy-active={$page.url.pathname === '/goals'} class="rounded-md"
-							>Goals</a
+						<a
+							href="/goals"
+							class:daisy-active={$page.url.pathname === '/goals'}
+							class="rounded-md"
+							class:bg-primary-focus={$page.url.pathname === '/goals'}>Goals</a
 						>
 					</li>
 				</Box>
