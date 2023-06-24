@@ -95,7 +95,7 @@
 </svelte:head>
 
 <div>
-	<Title class="flex" color="white">
+	<Title class="flex">
 		Goals
 		<div class="daisy-indicator">
 			<span

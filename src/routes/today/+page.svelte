@@ -109,7 +109,7 @@
 <Stack>
 	<GoalBadges goals={data.goals} />
 	{#if !(intentionsFromServer.length > 0)}
-		<Title order={2} color="white">Actions you'll take towards your goals today</Title>
+		<Title order={2}>Actions you'll take towards your goals today</Title>
 	{/if}
 	{#if noGoals}
 		<Notification
@@ -130,7 +130,7 @@
 		{#if showAdditionalIntentionsTextArea}
 			<Box class="flex items-center">
 				<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>
-				<Title order={3} color="white">What else are you doing towards your goals today?</Title>
+				<Title order={3}>What else are you doing towards your goals today?</Title>
 			</Box>
 			{#if showValidIntentionsNotification}
 				<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">

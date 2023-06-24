@@ -82,7 +82,7 @@
 		}
 	};
 
-	const darkModeStyles = createStyles((theme) => ({
+	const darkModeStyles = createStyles((theme: any) => ({
 		intentionsNumber: {
 			darkMode: {
 				color: theme.fn.themeColor('grape', 1) + ' !important'
