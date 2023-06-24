@@ -10,9 +10,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test:unit": "vitest",
-		"lint": "prettier --plugin-search-dir . --check . && eslint .",
-		"format": "prettier --plugin-search-dir . --write .",
-		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --plugin-search-dir . --write ./src/lib/types/data.d.ts",
+		"lint": "prettier --ignore-path ./config/.prettierignore --plugin-search-dir . --check . && eslint --ignore-path ./config/.eslintignore .",
+		"format": "prettier --ignore-path ./config/.prettierignore --plugin-search-dir . --write .",
+		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --ignore-path ./config/.prettierignore --plugin-search-dir . --write ./src/lib/types/data.d.ts",
 		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts",
 		"db:migrate:single": "vite-node ./src/lib/db/migrate-to-latest.ts --migration"
 	},
@@ -59,5 +59,8 @@
 		"vite-plugin-pwa": "^0.16.4",
 		"vitest": "^0.29.8"
 	},
-	"type": "module"
+	"type": "module",
+	"eslintConfig": {
+		"extends": "./config/.eslintrc.cjs"
+	}
 }
