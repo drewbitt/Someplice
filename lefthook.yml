@@ -3,3 +3,8 @@ pre-commit:
   commands:
     format:
       run: pnpm exec prettier --ignore-path ./config/.prettierignore --write {staged_files} && git add {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit

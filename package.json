@@ -28,6 +28,8 @@
 		"zod": "^3.21.4"
 	},
 	"devDependencies": {
+		"@commitlint/cli": "^17.6.6",
+		"@commitlint/config-conventional": "^17.6.6",
 		"@iconify-json/lucide": "^1.1.104",
 		"@playwright/test": "^1.35.1",
 		"@sveltejs/adapter-node": "^1.2.4",
