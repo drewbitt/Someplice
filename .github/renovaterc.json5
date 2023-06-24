@@ -13,12 +13,7 @@
 		},
 		{
 			matchDatasources: ['npm'],
-			stabilityDays: 2
-		},
-		{
-			matchUpdateTypes: ['minor'],
-			matchCurrentVersion: '/^[~^]?0/',
-			dependencyDashboardApproval: true
+			stabilityDays: 1
 		},
 		{
 			matchUpdateTypes: ['major'],
