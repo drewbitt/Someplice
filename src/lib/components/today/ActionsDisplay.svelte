@@ -123,8 +123,8 @@
 				<span
 					data-id={intention.id}
 					class={'pl-3 flex items-center' +
-						(Boolean(intention.completed) ? ' line-through' : '') +
-						(Boolean(index === firstIncompleteIntentionIndex) ? ' mb-1' : '')}
+						(intention.completed ? ' line-through' : '') +
+						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
 					on:mouseover={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
@@ -191,7 +191,7 @@
 							showIntentionModal = true;
 						}}
 						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
-						style="color: {Boolean(intention.completed)
+						style="color: {intention.completed
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
 						>{goalOrderNumberForId(intention.goalId, goals)}) {intention.text}</span

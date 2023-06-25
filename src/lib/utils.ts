@@ -4,7 +4,7 @@ export const localeCurrentDate = () => {
 	return new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
 };
 
-export const lighterHSLColor = (color: string) => {
+export const lighterHSLColor = (color: string): string => {
 	const [hue, saturation, lightness] = color
 		.slice(4, -1)
 		.split(' ')
