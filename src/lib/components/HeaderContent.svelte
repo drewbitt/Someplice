@@ -3,12 +3,14 @@
 	import logo from '$lib/assets/someplice-compressed-logo-2023-01-21.svg';
 	import { hotkey, useOs } from '@svelteuidev/composables';
 	import { ActionIcon, Box, Group, Text, Tooltip } from '@svelteuidev/core';
+	import { derived } from 'svelte/store';
 	import Moon from '~icons/lucide/moon';
 	import Sun from '~icons/lucide/sun-medium';
+	import theme from '../stores/theme';
 
 	const os = useOs();
 	const mod = os === 'macos' ? '⌘' : 'ctrl';
-	export let isDark: boolean;
+	const isDark = derived(theme, ($theme) => $theme === 'dark');
 	export let toggle: () => void;
 </script>
 
@@ -29,7 +31,7 @@
 		</a>
 		<Group class="leading-3">
 			<Box>
-				<Box root="ul" class="daisy-menu daisy-menu-horizontal space-x-1 pt-0 primary">
+				<Box root="ul" class="daisy-menu daisy-menu-horizontal space-x-1 pt-0">
 					<li>
 						<a
 							href="/today"
@@ -52,7 +54,7 @@
 	</Box>
 	<Tooltip label={`${mod} + J`}>
 		<ActionIcon variant="default" on:click={toggle} size={30} use={[[hotkey, [['mod+J', toggle]]]]}>
-			{#if isDark}
+			{#if $isDark}
 				<Moon />
 			{:else}
 				<Sun />
