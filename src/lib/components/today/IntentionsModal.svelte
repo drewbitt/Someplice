@@ -58,6 +58,8 @@
 				<ul class="daisy-menu w-56 text-lg">
 					<li>
 						<span
+							role="button"
+							tabindex="0"
 							class="grid"
 							style="grid-template-columns: 0.5rem auto;"
 							on:click={() => {
