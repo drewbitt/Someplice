@@ -17,6 +17,7 @@
 		"db:migrate:single": "vite-node ./src/lib/db/migrate-to-latest.ts --migration"
 	},
 	"dependencies": {
+		"@ngneat/falso": "^6.4.0",
 		"@svelteuidev/composables": "^0.13.0",
 		"@svelteuidev/core": "^0.13.0",
 		"@trpc/client": "^10.32.0",
