@@ -197,7 +197,8 @@
 							style="color: {intention.completed
 								? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 								: goalColorForIntention(intention, goals)}"
-							>{goalOrderNumberForId(intention.goalId, goals)}) {intention.text}</span
+							>{goalOrderNumberForId(intention.goalId, goals)}{intention.subIntentionQualifier ??
+								''}) {intention.text}</span
 						>
 					</span>
 				{/if}

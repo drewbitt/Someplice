@@ -2,7 +2,14 @@
  * This file is to be used to insert fake data into the database for testing purposes.
  */
 
-import { randHsl, randNumber, randText, incrementalNumber, randBetweenDate } from '@ngneat/falso';
+import {
+	randHsl,
+	randNumber,
+	randText,
+	incrementalNumber,
+	randBetweenDate,
+	randTextRange
+} from '@ngneat/falso';
 import { db } from './db';
 
 const numberOfGoals = 9;
@@ -14,7 +21,7 @@ const generateSubIntentionQualifier = () => {
 		return null;
 	}
 
-	const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	const alphabet = 'abcdefghijklmnopqrstuvwxyz';
 	let result = '';
 	for (let i = 0; i < randNumber({ min: 1, max: 3 }); i++) {
 		result += alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -59,7 +66,7 @@ async function insertFakeData() {
 	const intentions = Array.from({ length: 50 }, (_, i) => ({
 		orderNumber: i + 1,
 		completed: randNumber({ min: 0, max: 1 }),
-		text: randText(),
+		text: randTextRange({ min: 10, max: 80 }),
 		subIntentionQualifier: generateSubIntentionQualifier(),
 		date: customDateMath(i),
 		goalId: randNumber({ min: 1, max: numberOfGoals })
