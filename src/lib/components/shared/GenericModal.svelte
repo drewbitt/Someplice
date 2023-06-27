@@ -2,8 +2,12 @@
 	import { Group, Modal, Stack } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 
-	export let showDeletionPrompt: boolean;
-	export let deletionConfirmed: boolean;
+	export let showModal: boolean;
+	export let actionConfirmed: boolean;
+	export let title: string;
+	export let message: string;
+	export let action: string;
+	export let actionButtonClass: string;
 
 	onMount(() => {
 		const modalTitle = document.querySelector('.svelteui-Modal-title');
@@ -13,30 +17,25 @@
 	});
 </script>
 
-<Modal
-	opened={showDeletionPrompt}
-	on:close={() => (showDeletionPrompt = false)}
-	title="Delete Goal"
-	withCloseButton={false}
->
+<Modal opened={showModal} on:close={() => (showModal = false)} {title} withCloseButton={false}>
 	<Stack spacing="xs">
-		<p>Are you sure you want to delete this goal? This action is irreversible.</p>
+		<p>{message}</p>
 		<Group position="right">
 			<button
 				class="daisy-btn daisy-btn-warning"
 				on:click={() => {
-					showDeletionPrompt = false;
+					showModal = false;
 				}}
 			>
 				Cancel
 			</button>
 			<button
-				class="daisy-btn daisy-btn-error"
+				class={actionButtonClass}
 				on:click={() => {
-					deletionConfirmed = true;
+					actionConfirmed = true;
 				}}
 			>
-				Delete
+				{action}
 			</button>
 		</Group>
 	</Stack>

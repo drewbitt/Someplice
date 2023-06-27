@@ -5,7 +5,7 @@
 	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
-	import GoalDeletionModal from './GoalDeletionModal.svelte';
+	import GenericModal from '../shared/GenericModal.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 
@@ -16,6 +16,8 @@
 	$: goal.color = goalColor;
 	let showDeletionPrompt = false;
 	let deletionConfirmed = false;
+	let showArchivePrompt = false;
+	let archiveConfirmed = false;
 	$: if (deletionConfirmed) {
 		deleteGoal();
 	}
@@ -30,6 +32,20 @@
 		if (goal.id) {
 			const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
 			if (deleteResult.length > 0) {
+				await invalidateAll();
+			}
+		}
+	};
+	const handleArchiveGoal = async () => {
+		if (goal.id) {
+			// Prompt user to confirm archive
+			showArchivePrompt = true;
+		}
+	};
+	const archiveGoal = async () => {
+		if (goal.id) {
+			const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
+			if (archiveResult.length > 0) {
 				await invalidateAll();
 			}
 		}
@@ -54,11 +70,33 @@
 		{goal.orderNumber}
 	</Box>
 	{#if showDeletionPrompt}
-		<GoalDeletionModal bind:showDeletionPrompt bind:deletionConfirmed />
+		<GenericModal
+			bind:showModal={showDeletionPrompt}
+			bind:actionConfirmed={deletionConfirmed}
+			title="Delete Goal"
+			message="Are you sure you want to delete this goal? This action is irreversible."
+			action="Delete"
+			actionButtonClass="daisy-btn daisy-btn-error"
+		/>
+	{/if}
+	{#if showArchivePrompt}
+		<GenericModal
+			bind:showModal={showArchivePrompt}
+			bind:actionConfirmed={archiveConfirmed}
+			title="Archive Goal"
+			message="Are you sure you want to archive this goal? This action is reversible."
+			action="Archive"
+			actionButtonClass="daisy-btn daisy-btn-accent"
+		/>
 	{/if}
 	<Stack className="goal-box-details" spacing="xs">
 		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
-		<GoalDescription bind:description={goal.description} {currentlyEditing} {handleDeleteGoal} />
+		<GoalDescription
+			bind:description={goal.description}
+			{currentlyEditing}
+			{handleDeleteGoal}
+			{handleArchiveGoal}
+		/>
 	</Stack>
 </div>
 
