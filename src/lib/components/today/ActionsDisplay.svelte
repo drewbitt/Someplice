@@ -114,6 +114,7 @@
 			</span>
 		{/if}
 		<section
+			role="list"
 			class="overflow-hidden"
 			use:dndzone={{ items: intentions }}
 			on:consider={handleDndConsider}
@@ -122,6 +123,7 @@
 			{#each intentions as intention, index (intention)}
 				{#if goalOrderNumberForId(intention.goalId, goals) !== -1}
 					<span
+						role="listitem"
 						data-id={intention.id}
 						class={'pl-3 flex items-center' +
 							(intention.completed ? ' line-through' : '') +
@@ -146,7 +148,8 @@
 							{#if showIntentionModal}
 								<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
 							{/if}
-							<span
+							<button
+								aria-haspopup="true"
 								class="hover:bg-gray-400 cursor-pointer py-0.5"
 								on:click={() => {
 									showIntentionModal = true;
@@ -171,7 +174,7 @@
 										/></g
 									></svg
 								>
-							</span>
+							</button>
 							<Menu class="w-5" color="grey" />
 						{:else}
 							<div class="w-9" />
@@ -187,6 +190,9 @@
 							on:change={updateIntention}
 						/>
 						<span
+							role="button"
+							tabindex={0}
+							aria-haspopup="true"
 							on:contextmenu={(e) => {
 								e.preventDefault();
 								showIntentionModal = true;
