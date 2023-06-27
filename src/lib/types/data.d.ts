@@ -23,7 +23,20 @@ export interface Intentions {
 	goalId: number;
 }
 
+export interface Outcomes {
+	id: Generated<number | null>;
+	reviewed: number;
+	date: string;
+}
+
+export interface OutcomesIntentions {
+	outcomeId: number;
+	intentionId: number;
+}
+
 export interface DB {
 	goals: Goals;
 	intentions: Intentions;
+	outcomes: Outcomes;
+	outcomes_intentions: OutcomesIntentions;
 }

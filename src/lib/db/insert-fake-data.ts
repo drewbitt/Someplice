@@ -3,17 +3,27 @@
  */
 
 import {
+	incrementalDate,
+	incrementalNumber,
+	randBetweenDate,
 	randHsl,
 	randNumber,
 	randText,
-	incrementalNumber,
-	randBetweenDate,
 	randTextRange
 } from '@ngneat/falso';
 import { db } from './db';
 
 const numberOfGoals = 9;
 const incrementalNumberFactory = incrementalNumber();
+
+// This factory will generate a new date every time it's called
+// The dates will be between 20 days ago and 1 day ago
+// This does not cover all historical dates, but it's good enough for testing
+const incrementalDateFactory = incrementalDate({
+	from: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
+	to: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+	step: 24 * 60 * 60 * 1000 // 1 day
+});
 
 const generateSubIntentionQualifier = () => {
 	if (Math.random() < 0.3) {
@@ -73,11 +83,19 @@ async function insertFakeData() {
 	}));
 
 	// Generate fake outcomes
-	const outcomes = Array.from({ length: 20 }, (_, i) => ({
-		id: incrementalNumberFactory(),
-		completed: randNumber({ min: 0, max: 1 }),
-		date: customDateMath(i)
-	}));
+	const outcomes = Array.from({ length: 20 }, () => {
+		const date = incrementalDateFactory();
+		if (!date) {
+			throw new Error('Failed to generate unique date for outcome');
+		}
+
+		return {
+			id: incrementalNumberFactory(),
+			reviewed: randNumber({ min: 0, max: 1 }),
+			// Convert the date to ISO 8601 date string and slice to remove the time
+			date: date.toISOString().slice(0, 10)
+		};
+	});
 
 	// Generate fake outcomes_intentions
 	// Do this a bit differently in order to have unique ids but still match existing data
@@ -93,6 +111,9 @@ async function insertFakeData() {
 		await db.insertInto('outcomes').values(outcomes).execute();
 		await db.insertInto('outcomes_intentions').values(outcomesIntentions).execute();
 	});
+	console.log(
+		`Inserted ${numberOfGoals} goals, 50 intentions, 20 outcomes, and 40 outcomes_intentions.`
+	);
 }
 
 insertFakeData().catch((err) => {

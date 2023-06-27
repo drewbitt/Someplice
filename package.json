@@ -22,8 +22,10 @@
 		"@trpc/client": "^10.32.0",
 		"@trpc/server": "^10.32.0",
 		"better-sqlite3": "^8.4.0",
+		"croner": "^6.0.5",
 		"kysely": "^0.25.0",
 		"trpc-sveltekit": "^3.5.14",
+		"tslog": "^4.8.2",
 		"vite-node": "^0.32.2",
 		"zod": "^3.21.4"
 	},
