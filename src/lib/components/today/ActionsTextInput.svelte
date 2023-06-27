@@ -1,7 +1,7 @@
 <script lang="ts">
-	import Editor from './actions-input/Editor.svelte';
-	import type { PageServerData } from '../../../routes/today/$types';
 	import { localeCurrentDate } from '$src/lib/utils';
+	import type { PageServerData } from '../../../routes/today/$types';
+	import Editor from './actions-input/Editor.svelte';
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];

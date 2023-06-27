@@ -1,18 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
-	import {
-		goalColorForIntention,
-		goalOrderNumberForId,
-		lighterHSLColor,
-		localeCurrentDate
-	} from '$src/lib/utils';
-	import { createStyles, Paper, Stack, Title } from '@svelteuidev/core';
+	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
+	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
+	import { onMount } from 'svelte';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import Menu from '~icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	import { onMount } from 'svelte';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let goals: PageServerData['goals'];
@@ -154,12 +149,11 @@
 			on:finalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
+				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 				<span
 					role="listitem"
-					aria-label="{goalOrderNumberForId(
-						intention.goalId,
-						goals
-					)}{intention.subIntentionQualifier ?? ''}) {intention.text}"
+					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
+						''}) {intention.text}"
 					data-id={intention.id}
 					class={'pl-3 flex items-center' +
 						(intention.completed ? ' line-through' : '') +
