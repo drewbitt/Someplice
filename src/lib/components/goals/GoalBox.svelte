@@ -35,7 +35,7 @@
 		}
 	};
 
-	const darkModeStyles = createStyles((theme) => ({
+	const darkModeStyles = createStyles(() => ({
 		root: {
 			darkMode: {
 				color: 'white'

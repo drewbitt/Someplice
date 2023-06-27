@@ -22,6 +22,29 @@ const generateSubIntentionQualifier = () => {
 	return result;
 };
 
+/**
+ * This function is used to generate dates for the intentions.
+ * The first 10 intentions will be from the last 24 hours.
+ * The next 10 intentions will be from the last 7 days.
+ * The rest of the intentions will be from the last 2 years.
+ */
+const customDateMath = (i: number) => {
+	return i < 10
+		? randBetweenDate({
+				from: new Date(Date.now() - 24 * 60 * 60 * 1000),
+				to: new Date()
+		  }).toISOString()
+		: i < 20
+		? randBetweenDate({
+				from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+				to: new Date()
+		  }).toISOString()
+		: randBetweenDate({
+				from: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
+				to: new Date()
+		  }).toISOString();
+};
+
 async function insertFakeData() {
 	// Generate fake goals
 	const goals = Array.from({ length: numberOfGoals }, (_, i) => ({
@@ -38,21 +61,7 @@ async function insertFakeData() {
 		completed: randNumber({ min: 0, max: 1 }),
 		text: randText(),
 		subIntentionQualifier: generateSubIntentionQualifier(),
-		date:
-			i < 10
-				? randBetweenDate({
-						from: new Date(Date.now() - 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString()
-				: i < 20
-				? randBetweenDate({
-						from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString()
-				: randBetweenDate({
-						from: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString(),
+		date: customDateMath(i),
 		goalId: randNumber({ min: 1, max: numberOfGoals })
 	}));
 
@@ -60,21 +69,7 @@ async function insertFakeData() {
 	const outcomes = Array.from({ length: 20 }, (_, i) => ({
 		id: incrementalNumberFactory(),
 		completed: randNumber({ min: 0, max: 1 }),
-		date:
-			i < 5
-				? randBetweenDate({
-						from: new Date(Date.now() - 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString()
-				: i < 10
-				? randBetweenDate({
-						from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString()
-				: randBetweenDate({
-						from: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
-						to: new Date()
-				  }).toISOString()
+		date: customDateMath(i)
 	}));
 
 	// Generate fake outcomes_intentions
