@@ -120,83 +120,87 @@
 			on:finalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
-				<span
-					data-id={intention.id}
-					class={'pl-3 flex items-center' +
-						(intention.completed ? ' line-through' : '') +
-						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
-					on:mouseover={() => {
-						showMousoverMenu = true;
-						showMousoverIndex = intention.id;
-					}}
-					on:focus={() => {
-						showMousoverMenu = true;
-						showMousoverIndex = intention.id;
-					}}
-					on:blur={() => {
-						showMousoverMenu = false;
-						showMousoverIndex = null;
-					}}
-					on:keydown={(event) => {
-						handleButtonPressIntention(event);
-					}}
-				>
-					{#if showMousoverMenu && showMousoverIndex === intention.id}
-						{#if showIntentionModal}
-							<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
+				{#if goalOrderNumberForId(intention.goalId, goals) !== -1}
+					<span
+						data-id={intention.id}
+						class={'pl-3 flex items-center' +
+							(intention.completed ? ' line-through' : '') +
+							(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
+						on:mouseover={() => {
+							showMousoverMenu = true;
+							showMousoverIndex = intention.id;
+						}}
+						on:focus={() => {
+							showMousoverMenu = true;
+							showMousoverIndex = intention.id;
+						}}
+						on:blur={() => {
+							showMousoverMenu = false;
+							showMousoverIndex = null;
+						}}
+						on:keydown={(event) => {
+							handleButtonPressIntention(event);
+						}}
+					>
+						{#if showMousoverMenu && showMousoverIndex === intention.id}
+							{#if showIntentionModal}
+								<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
+							{/if}
+							<span
+								class="hover:bg-gray-400 cursor-pointer py-0.5"
+								on:click={() => {
+									showIntentionModal = true;
+								}}
+								on:keydown={(event) => {
+									if (event.key === 'Enter') {
+										showIntentionModal = true;
+									}
+								}}
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
+									><g
+										fill="none"
+										stroke="currentColor"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="1.5"
+										><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
+											cx="8"
+											cy="13.5"
+											r=".75"
+										/></g
+									></svg
+								>
+							</span>
+							<Menu class="w-5" color="grey" />
+						{:else}
+							<div class="w-9" />
 						{/if}
+						<input
+							tabindex={-1}
+							data-id={intention.id}
+							type="checkbox"
+							class={index === firstIncompleteIntentionIndex
+								? 'daisy-checkbox-md'
+								: 'daisy-checkbox-sm ml-0.5'}
+							checked={Boolean(intention.completed)}
+							on:change={updateIntention}
+						/>
 						<span
-							class="hover:bg-gray-400 cursor-pointer py-0.5"
-							on:click={() => {
+							on:contextmenu={(e) => {
+								e.preventDefault();
 								showIntentionModal = true;
 							}}
-							on:keydown={(event) => {
-								if (event.key === 'Enter') {
-									showIntentionModal = true;
-								}
-							}}
+							class="ml-2 font-bold {index === firstIncompleteIntentionIndex
+								? 'text-xl'
+								: 'text-lg'}"
+							style="color: {intention.completed
+								? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
+								: goalColorForIntention(intention, goals)}"
+							>{goalOrderNumberForId(intention.goalId, goals)}) {intention.text}</span
 						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
-								><g
-									fill="none"
-									stroke="currentColor"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="1.5"
-									><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
-										cx="8"
-										cy="13.5"
-										r=".75"
-									/></g
-								></svg
-							>
-						</span>
-						<Menu class="w-5" color="grey" />
-					{:else}
-						<div class="w-9" />
-					{/if}
-					<input
-						tabindex={-1}
-						data-id={intention.id}
-						type="checkbox"
-						class={index === firstIncompleteIntentionIndex
-							? 'daisy-checkbox-md'
-							: 'daisy-checkbox-sm ml-0.5'}
-						checked={Boolean(intention.completed)}
-						on:change={updateIntention}
-					/>
-					<span
-						on:contextmenu={(e) => {
-							e.preventDefault();
-							showIntentionModal = true;
-						}}
-						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
-						style="color: {intention.completed
-							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
-							: goalColorForIntention(intention, goals)}"
-						>{goalOrderNumberForId(intention.goalId, goals)}) {intention.text}</span
-					>
-				</span>
+					</span>
+				{/if}
 			{/each}
 		</section>
 	</Stack>

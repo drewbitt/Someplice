@@ -41,9 +41,6 @@
 						date: localeCurrentDate().toISOString()
 					};
 					return newIntention;
-				} else {
-					// Goal not found
-					valid = false;
 				}
 			}
 			valid = false;
@@ -57,7 +54,7 @@
 				date: localeCurrentDate().toISOString()
 			};
 		})
-		.filter((intention: Intention) => intention.goalId !== -1 && intention !== undefined);
+		.filter((intention: Intention) => intention.goalId != -1 && intention !== undefined);
 
 	$: intentions = [...(existingIntentions || []), ...intentions];
 
