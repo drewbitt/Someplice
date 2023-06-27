@@ -7,7 +7,7 @@
 
 <Group>
 	{#each goals as goal}
-		<Badge size="lg" variant="filled" color={goal.color}>
+		<Badge size="lg" variant="filled" color={goal.color} class="border border-gray-200">
 			{goal.title}
 			<svelte:fragment slot="leftSection">
 				<span class="pr-1">
