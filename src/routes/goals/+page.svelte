@@ -5,14 +5,9 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import type { GoalLog } from '$src/lib/trpc/types';
 	import { Button, Title } from '@svelteuidev/core';
-	import { onMount } from 'svelte';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import type { PageServerData } from './$types';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
-
-	onMount(async () => {
-		await fetchInactiveGoals();
-	});
 
 	export let data: PageServerData;
 	type Goals = (typeof data.goals)[0];
@@ -99,7 +94,7 @@
 		So that the inactive goals are sorted by the date they were archived,
 		we need to get the date of the last log for each goal and update the inactive goals array
 	*/
-	async function fetchInactiveGoals() {
+	async function sortInactiveGoals() {
 		const allInactiveGoals = data.inactiveGoals;
 		const goalDateMap = new Map<number, string>();
 		for (const iGoal of allInactiveGoals) {
@@ -124,6 +119,7 @@
 		});
 		data.inactiveGoals = allInactiveGoals;
 	}
+	$: sortInactiveGoals();
 </script>
 
 <svelte:head>
