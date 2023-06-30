@@ -58,10 +58,14 @@ export const goals = t.router({
 
 				// Insert into goal_logs after the goal is added
 				if (result) {
-					const startDate = new Date().toISOString();
+					const date = new Date().toISOString();
 					await db
 						.insertInto('goal_logs')
-						.values({ goalId: Number(result[0]?.insertId), startDate })
+						.values({
+							goalId: Number(result[0]?.insertId),
+							type: 'start',
+							date: date
+						})
 						.execute();
 				}
 
@@ -138,7 +142,14 @@ export const goals = t.router({
 				// Update the goal_logs when a goal is archived
 				if (result) {
 					const endDate = new Date().toISOString();
-					await db.updateTable('goal_logs').set({ endDate }).where('goalId', '=', input).execute();
+					await db
+						.insertInto('goal_logs')
+						.values({
+							goalId: input,
+							type: 'end',
+							date: endDate
+						})
+						.execute();
 				}
 
 				return result;

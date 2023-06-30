@@ -29,5 +29,34 @@ export const goal_logs = t.router({
 				.select(['type', 'date'])
 				.where('goalId', '=', input)
 				.execute();
+		}),
+	reactivate: t.procedure
+		.use(logger)
+		.input(z.number())
+		.mutation(async ({ input }) => {
+			const goalId = input;
+
+			return await db.transaction().execute(async (trx) => {
+				const latestLog = await db
+					.selectFrom('goal_logs')
+					.select(['type'])
+					.where('goalId', '=', goalId)
+					.orderBy('date', 'desc')
+					.limit(1)
+					.execute();
+
+				if (latestLog[0].type === 'end') {
+					return await db
+						.insertInto('goal_logs')
+						.values({
+							goalId: goalId,
+							type: 'start',
+							date: new Date().toISOString()
+						})
+						.execute();
+				} else {
+					throw new Error('The goal is already active');
+				}
+			});
 		})
 });
