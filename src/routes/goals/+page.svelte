@@ -88,6 +88,35 @@
 
 		await trpc($page).goals.updateGoals.mutate({ goals: items });
 	};
+
+	/* 
+		So that the inactive goals are sorted by the date they were archived,
+		we need to fetch the date of the last log for each goal.
+	*/
+	async function fetchInactiveGoals() {
+		const allInactiveGoals = data.inactiveGoals;
+		const goalDateMap = new Map<number, string>();
+		for (const iGoal of allInactiveGoals) {
+			if (!iGoal.id) continue;
+			const goalLogs = await trpc($page).goal_logs.get.query(iGoal.id);
+			const last = goalLogs.sort(
+				(a: any, b: any) => new Date(b.date).valueOf() - new Date(a.date).valueOf()
+			)[0];
+			if (last?.type === 'end' && iGoal.id) {
+				goalDateMap.set(iGoal.id, last.date);
+			}
+		}
+		allInactiveGoals.sort((a: Goals, b: Goals) => {
+			if (!a.id || !b.id) return 0;
+			const aValue = goalDateMap.get(a.id);
+			const bValue = goalDateMap.get(b.id);
+			if (!aValue || !bValue) return 0;
+			return new Date(bValue).valueOf() - new Date(aValue).valueOf();
+		});
+		data.inactiveGoals = allInactiveGoals;
+	}
+
+	$: fetchInactiveGoals(), data.inactiveGoals;
 </script>
 
 <svelte:head>

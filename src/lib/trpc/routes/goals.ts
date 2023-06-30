@@ -127,11 +127,42 @@ export const goals = t.router({
 		.input(z.number())
 		.mutation(async ({ input }) => {
 			return await db.transaction().execute(async (trx) => {
+				// find the orderNumber of the goal that is to be archived
+				const archivedGoal = await trx
+					.selectFrom('goals')
+					.select(['orderNumber'])
+					.where('id', '=', input)
+					.executeTakeFirst();
+				const archivedGoalOrder = archivedGoal?.orderNumber;
+				if (!archivedGoalOrder) {
+					throw new Error('ARCHIVE_GOAL_ERROR: archivedGoalOrder is undefined');
+				}
+
+				// set the archived goal as inactive
 				const result = await trx
 					.updateTable('goals')
 					.set({ active: 0 })
 					.where('id', '=', input)
 					.execute();
+
+				// get all active goals with orderNumber greater than the archived one
+				const goalsToUpdate = await trx
+					.selectFrom('goals')
+					.select(['id', 'orderNumber'])
+					.where('orderNumber', '>', archivedGoalOrder)
+					.where('active', '=', 1)
+					.orderBy('orderNumber', 'asc')
+					.execute();
+
+				// decrement the orderNumber of each goal sequentially
+				const updatePromises = goalsToUpdate.map((goal, i) =>
+					trx
+						.updateTable('goals')
+						.set({ orderNumber: goal.orderNumber - 1 })
+						.where('id', '=', goal.id)
+						.execute()
+				);
+				await Promise.all(updatePromises);
 
 				// Update the goal_logs when a goal is archived
 				if (result) {

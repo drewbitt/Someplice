@@ -55,7 +55,7 @@ export const goal_logs = t.router({
 						})
 						.execute();
 				} else {
-					throw new Error('The goal is already active');
+					throw new Error('REACTIVATE_GOAL_ERROR: Goal is already active');
 				}
 			});
 		})
