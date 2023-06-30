@@ -13,6 +13,15 @@ export const lighterHSLColor = (color: string): string => {
 	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 };
 
+export const evenLighterHSLColor = (color: string): string => {
+	const [hue, saturation, lightness] = color
+		.slice(4, -1)
+		.split(' ')
+		.map((x) => parseFloat(x));
+	const lighterLightness = lightness + (100 - lightness) * 0.4;
+	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
+};
+
 export const goalColorForIntention = (intention: Intention, goals: Goal[]) => {
 	const goal = goals.find((goal) => goal.id === intention.goalId);
 	if (goal) {

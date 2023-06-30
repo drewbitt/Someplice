@@ -4,6 +4,13 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 	? ColumnType<S, I | undefined, U>
 	: ColumnType<T, T | undefined, T>;
 
+export interface GoalLogs {
+	id: Generated<number | null>;
+	goalId: number;
+	startDate: string;
+	endDate: string | null;
+}
+
 export interface Goals {
 	id: Generated<number | null>;
 	active: number;
@@ -35,6 +42,7 @@ export interface OutcomesIntentions {
 }
 
 export interface DB {
+	goal_logs: GoalLogs;
 	goals: Goals;
 	intentions: Intentions;
 	outcomes: Outcomes;

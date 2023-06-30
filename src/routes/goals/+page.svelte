@@ -132,6 +132,7 @@
 		</div>
 	</Title>
 	<section
+		role="list"
 		id="goals-list-container"
 		class="overflow-hidden"
 		use:dndzone={{ items: data.goals, dragDisabled }}
@@ -143,4 +144,10 @@
 		{/each}
 	</section>
 	<NewGoalBoxComponent bind:addedGoal />
+	<Title>Inactive Goals</Title>
+	<section role="list" id="goals-list-container" class="overflow-hidden">
+		{#each data.inactiveGoals as goal (goal)}
+			<GoalBoxComponent bind:goal currentlyEditing={false} showDates={true} />
+		{/each}
+	</section>
 </div>

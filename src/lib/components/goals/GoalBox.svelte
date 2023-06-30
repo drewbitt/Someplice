@@ -6,11 +6,13 @@
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GenericModal from '../shared/GenericModal.svelte';
+	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
+	export let showDates: boolean = false;
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;
@@ -20,6 +22,9 @@
 	let archiveConfirmed = false;
 	$: if (deletionConfirmed) {
 		deleteGoal();
+	}
+	$: if (archiveConfirmed) {
+		archiveGoal();
 	}
 
 	const handleDeleteGoal = async () => {
@@ -61,43 +66,48 @@
 	$: ({ getStyles } = darkModeStyles());
 </script>
 
-<div
-	style="background-color: {goalColor}"
-	use:cssvariable={{ 'goal-color': goalColor }}
-	class="goal-box my-2.5 mx-5 grid"
->
-	<Box root="span" class="font-mono text-7xl {getStyles()}" className="goal-box-number">
-		{goal.orderNumber}
-	</Box>
-	{#if showDeletionPrompt}
-		<GenericModal
-			bind:showModal={showDeletionPrompt}
-			bind:actionConfirmed={deletionConfirmed}
-			title="Delete Goal"
-			message="Are you sure you want to delete this goal? This action is irreversible."
-			action="Delete"
-			actionButtonClass="daisy-btn daisy-btn-error"
-		/>
+<div role="listitem" class="mb-2.5">
+	<div
+		style="background-color: {goalColor}"
+		use:cssvariable={{ 'goal-color': goalColor }}
+		class="goal-box mt-2.5 mx-5 grid"
+	>
+		<Box root="span" class="font-mono text-7xl {getStyles()}" className="goal-box-number">
+			{goal.orderNumber}
+		</Box>
+		{#if showDeletionPrompt}
+			<GenericModal
+				bind:showModal={showDeletionPrompt}
+				bind:actionConfirmed={deletionConfirmed}
+				title="Delete Goal"
+				message="Are you sure you want to delete this goal? This action is irreversible."
+				action="Delete"
+				actionButtonClass="daisy-btn daisy-btn-error"
+			/>
+		{/if}
+		{#if showArchivePrompt}
+			<GenericModal
+				bind:showModal={showArchivePrompt}
+				bind:actionConfirmed={archiveConfirmed}
+				title="Archive Goal"
+				message="Are you sure you want to archive this goal? This action is reversible."
+				action="Archive"
+				actionButtonClass="daisy-btn daisy-btn-accent"
+			/>
+		{/if}
+		<Stack className="goal-box-details" spacing="xs">
+			<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
+			<GoalDescription
+				bind:description={goal.description}
+				{currentlyEditing}
+				{handleDeleteGoal}
+				{handleArchiveGoal}
+			/>
+		</Stack>
+	</div>
+	{#if showDates}
+		<GoalDateDisplay {goal} />
 	{/if}
-	{#if showArchivePrompt}
-		<GenericModal
-			bind:showModal={showArchivePrompt}
-			bind:actionConfirmed={archiveConfirmed}
-			title="Archive Goal"
-			message="Are you sure you want to archive this goal? This action is reversible."
-			action="Archive"
-			actionButtonClass="daisy-btn daisy-btn-accent"
-		/>
-	{/if}
-	<Stack className="goal-box-details" spacing="xs">
-		<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
-		<GoalDescription
-			bind:description={goal.description}
-			{currentlyEditing}
-			{handleDeleteGoal}
-			{handleArchiveGoal}
-		/>
-	</Stack>
 </div>
 
 <style>

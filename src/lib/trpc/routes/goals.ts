@@ -1,8 +1,8 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
+import { z } from 'zod';
 
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
@@ -15,12 +15,11 @@ export const GoalSchema = z.object({
 
 export const goals = t.router({
 	/**
-	 * @param {number} input - 0 (false) or 1 (true) to return only active goals
+	 * @param {number} input - 0 (false) or 1 (true) to return inactive or active goals respectively
 	 */
 	list: t.procedure
 		.use(logger)
-		// Input if want to return only active goals
-		.input(z.number().nonnegative().lte(1).optional().default(0))
+		.input(z.number().nonnegative().lte(1).optional().default(1))
 		.query(({ input }) =>
 			db
 				.selectFrom('goals')
@@ -40,21 +39,34 @@ export const goals = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			// get orderNumber by getting the max orderNumber and adding 1
-			// Could make this a trigger in kysely with raw sql
-			const maxOrderNumber = await db
-				.selectFrom('goals')
-				.select('orderNumber')
-				.orderBy('orderNumber', 'desc')
-				.limit(1)
-				.execute();
-			// If no goals, set orderNumber to 1
-			const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
+			return await db.transaction().execute(async (trx) => {
+				// get orderNumber by getting the max orderNumber and adding 1
+				// Could make this a trigger in kysely with raw sql
+				const maxOrderNumber = await db
+					.selectFrom('goals')
+					.select('orderNumber')
+					.orderBy('orderNumber', 'desc')
+					.limit(1)
+					.execute();
+				// If no goals, set orderNumber to 1
+				const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
 
-			return await db
-				.insertInto('goals')
-				.values({ ...input, orderNumber })
-				.execute();
+				const result = await db
+					.insertInto('goals')
+					.values({ ...input, orderNumber })
+					.execute();
+
+				// Insert into goal_logs after the goal is added
+				if (result) {
+					const startDate = new Date().toISOString();
+					await db
+						.insertInto('goal_logs')
+						.values({ goalId: Number(result[0]?.insertId), startDate })
+						.execute();
+				}
+
+				return result;
+			});
 		}),
 	/**
 	 * Update a goal in DB with input goal by ID
@@ -104,25 +116,32 @@ export const goals = t.router({
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
-			// check if goal has any intentions
-			const intentions = await db
-				.selectFrom('intentions')
-				.select('id')
-				.where('goalId', '=', input)
-				.execute();
-			// if no intentions, delete goal
-			if (!intentions.length) {
-				return await db.deleteFrom('goals').where('id', '=', input).execute();
-			}
-			// if intentions, first delete intentions
-			await db.deleteFrom('intentions').where('goalId', '=', input).execute();
-			// then delete goal
-			return await db.deleteFrom('goals').where('id', '=', input).execute();
+			return await db.transaction().execute(async (trx) => {
+				// delete from intentions table
+				await trx.deleteFrom('intentions').where('goalId', '=', input).execute();
+
+				// delete from goals table
+				return await trx.deleteFrom('goals').where('id', '=', input).execute();
+			});
 		}),
 	archive: t.procedure
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
-			return await db.updateTable('goals').set({ active: 0 }).where('id', '=', input).execute();
+			return await db.transaction().execute(async (trx) => {
+				const result = await db
+					.updateTable('goals')
+					.set({ active: 0 })
+					.where('id', '=', input)
+					.execute();
+
+				// Update the goal_logs when a goal is archived
+				if (result) {
+					const endDate = new Date().toISOString();
+					await db.updateTable('goal_logs').set({ endDate }).where('goalId', '=', input).execute();
+				}
+
+				return result;
+			});
 		})
 });

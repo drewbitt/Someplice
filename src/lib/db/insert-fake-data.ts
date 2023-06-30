@@ -104,15 +104,24 @@ async function insertFakeData() {
 		intentionId: (i % 50) + 1
 	}));
 
+	// Generate fake dates for when the goal was started. For now, just use the current date
+	const startDate = new Date().toISOString();
+	const goal_logs = goals.map((goal, i) => ({
+		goalId: i + 1,
+		startDate: startDate,
+		endDate: goal.active ? null : new Date().toISOString()
+	}));
+
 	// Combine all inserts into single transaction
 	await db.transaction().execute(async (db) => {
 		await db.insertInto('goals').values(goals).execute();
 		await db.insertInto('intentions').values(intentions).execute();
 		await db.insertInto('outcomes').values(outcomes).execute();
 		await db.insertInto('outcomes_intentions').values(outcomesIntentions).execute();
+		await db.insertInto('goal_logs').values(goal_logs).execute();
 	});
 	console.log(
-		`Inserted ${numberOfGoals} goals, 50 intentions, 20 outcomes, and 40 outcomes_intentions.`
+		`Inserted ${numberOfGoals} goals, 50 intentions, 20 outcomes, 40 outcomes_intentions, and ${numberOfGoals} start dates.`
 	);
 }
 
