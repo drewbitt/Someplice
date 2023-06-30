@@ -6,28 +6,18 @@ import { z } from 'zod';
 export const GoalLogSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
-	startDate: z.string(),
-	endDate: z.string().nullable()
+	type: z.string(),
+	date: z.string()
 });
 
 export const goal_logs = t.router({
-	start: t.procedure
+	create: t.procedure
 		.use(logger)
-		.input(GoalLogSchema.omit({ endDate: true }))
+		.input(GoalLogSchema)
 		.mutation(async ({ input }) => {
 			return await db
 				.insertInto('goal_logs')
 				.values({ ...input })
-				.execute();
-		}),
-	end: t.procedure
-		.use(logger)
-		.input(GoalLogSchema.omit({ startDate: true, id: true }))
-		.mutation(async ({ input }) => {
-			return await db
-				.updateTable('goal_logs')
-				.set({ endDate: input.endDate })
-				.where('goalId', '=', input.goalId)
 				.execute();
 		}),
 	get: t.procedure
@@ -36,7 +26,7 @@ export const goal_logs = t.router({
 		.query(async ({ input }) => {
 			return await db
 				.selectFrom('goal_logs')
-				.select(['startDate', 'endDate'])
+				.select(['type', 'date'])
 				.where('goalId', '=', input)
 				.execute();
 		})

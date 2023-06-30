@@ -14,8 +14,15 @@
 
 		const goalLogs = await trpc($page).goal_logs.get.query(goal.id);
 		if (goalLogs.length > 0) {
-			startDate = goalLogs[0].startDate;
-			endDate = goalLogs[0].endDate ?? '';
+			// filter 'start' and 'end' dates and sort them in descending order
+			const startDates = goalLogs
+				.filter((log) => log.type === 'start')
+				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+			const endDates = goalLogs
+				.filter((log) => log.type === 'end')
+				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+			startDate = startDates[0]?.date ?? '';
+			endDate = endDates[0]?.date ?? '';
 		}
 	});
 </script>

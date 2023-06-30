@@ -7,8 +7,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 export interface GoalLogs {
 	id: Generated<number | null>;
 	goalId: number;
-	startDate: string;
-	endDate: string | null;
+	type: string;
+	date: string;
 }
 
 export interface Goals {

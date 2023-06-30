@@ -105,12 +105,31 @@ async function insertFakeData() {
 	}));
 
 	// Generate fake dates for when the goal was started. For now, just use the current date
-	const startDate = new Date().toISOString();
-	const goal_logs = goals.map((goal, i) => ({
-		goalId: i + 1,
-		startDate: startDate,
-		endDate: goal.active ? null : new Date().toISOString()
-	}));
+	const goal_logs = goals.flatMap((goal, i) => {
+		const startDate = new Date().toISOString();
+		if (goal.active) {
+			return [
+				{
+					goalId: i + 1,
+					type: 'start',
+					date: startDate
+				}
+			];
+		} else {
+			return [
+				{
+					goalId: i + 1,
+					type: 'start',
+					date: startDate
+				},
+				{
+					goalId: i + 1,
+					type: 'end',
+					date: new Date(Date.now() - i * 1000).toISOString()
+				}
+			];
+		}
+	});
 
 	// Combine all inserts into single transaction
 	await db.transaction().execute(async (db) => {
