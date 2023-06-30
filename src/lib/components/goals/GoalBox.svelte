@@ -72,8 +72,8 @@
 		use:cssvariable={{ 'goal-color': goalColor }}
 		class="goal-box mt-2.5 mx-5 grid"
 	>
-		<Box root="span" class="font-mono text-7xl {getStyles()}" className="goal-box-number">
-			{goal.orderNumber}
+		<Box root="span" class="font-mono text-7xl {getStyles()} pl-2" className="goal-box-number">
+			{goal.active ? goal.orderNumber : 'X'}
 		</Box>
 		{#if showDeletionPrompt}
 			<GenericModal

@@ -7,11 +7,26 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		// 0 (false) or 1 (true)
 		.addColumn('active', 'integer', (col) => col.notNull())
-		.addColumn('orderNumber', 'integer', (col) => col.notNull().unique())
+		.addColumn('orderNumber', 'integer', (col) => col.notNull())
 		.addColumn('title', 'text', (col) => col.notNull())
 		.addColumn('description', 'text')
 		.addColumn('color', 'text', (col) => col.notNull())
 		.execute();
+
+	await sql`
+		CREATE TRIGGER unique_orderNumber_for_active_goals
+		BEFORE INSERT ON goals
+		FOR EACH ROW
+		WHEN EXISTS (
+			SELECT 1 
+			FROM goals 
+			WHERE orderNumber = NEW.orderNumber 
+			  AND active = 1
+		)
+		BEGIN
+			SELECT RAISE(FAIL, "Another active goal with the same orderNumber exists.");
+		END;
+	`.execute(db);
 
 	await db.schema
 		.createTable('intentions')

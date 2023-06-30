@@ -69,7 +69,6 @@ export function createCronJobs() {
 	});
 }
 
-// Check for missing outcomes from past days when the application is restarted
 export async function checkMissingOutcomes() {
 	logger.info('Checking for missing outcomes from past days when the application is restarted');
 	const intentions = await db.selectFrom('intentions').selectAll().execute();

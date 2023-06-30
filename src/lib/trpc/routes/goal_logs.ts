@@ -37,7 +37,7 @@ export const goal_logs = t.router({
 			const goalId = input;
 
 			return await db.transaction().execute(async (trx) => {
-				const latestLog = await db
+				const latestLog = await trx
 					.selectFrom('goal_logs')
 					.select(['type'])
 					.where('goalId', '=', goalId)
@@ -46,7 +46,7 @@ export const goal_logs = t.router({
 					.execute();
 
 				if (latestLog[0].type === 'end') {
-					return await db
+					return await trx
 						.insertInto('goal_logs')
 						.values({
 							goalId: goalId,

@@ -1,7 +1,6 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
-import { sql } from 'kysely';
 import { z } from 'zod';
 
 export const GoalSchema = z.object({
@@ -42,7 +41,7 @@ export const goals = t.router({
 			return await db.transaction().execute(async (trx) => {
 				// get orderNumber by getting the max orderNumber and adding 1
 				// Could make this a trigger in kysely with raw sql
-				const maxOrderNumber = await db
+				const maxOrderNumber = await trx
 					.selectFrom('goals')
 					.select('orderNumber')
 					.orderBy('orderNumber', 'desc')
@@ -51,7 +50,7 @@ export const goals = t.router({
 				// If no goals, set orderNumber to 1
 				const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
 
-				const result = await db
+				const result = await trx
 					.insertInto('goals')
 					.values({ ...input, orderNumber })
 					.execute();
@@ -59,7 +58,7 @@ export const goals = t.router({
 				// Insert into goal_logs after the goal is added
 				if (result) {
 					const date = new Date().toISOString();
-					await db
+					await trx
 						.insertInto('goal_logs')
 						.values({
 							goalId: Number(result[0]?.insertId),
@@ -97,23 +96,18 @@ export const goals = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			/* 
-			Update all goals with input goals (rolls back if any updates fail)
-
-			Use INSERT OR REPLACE to get around swaps of UNIQUE constraints throwing errors
-			in sequential updates
-			*/
 			const results = await db.transaction().execute(async (trx) => {
 				return await Promise.all(
 					input.goals.map((goal) => {
-						return sql<
-							typeof goal
-						>`INSERT OR REPLACE INTO goals (id, active, orderNumber, title, description, color)
-										 VALUES (${goal.id}, ${goal.active}, ${goal.orderNumber}, ${goal.title},
-										${goal.description}, ${goal.color}) RETURNING *`.execute(trx);
+						if (goal.id) {
+							return trx.updateTable('goals').set(goal).where('id', '=', goal.id).execute();
+						} else {
+							return trx.insertInto('goals').values(goal).execute();
+						}
 					})
 				);
 			});
+
 			return results;
 		}),
 	delete: t.procedure
@@ -133,7 +127,7 @@ export const goals = t.router({
 		.input(z.number())
 		.mutation(async ({ input }) => {
 			return await db.transaction().execute(async (trx) => {
-				const result = await db
+				const result = await trx
 					.updateTable('goals')
 					.set({ active: 0 })
 					.where('id', '=', input)
@@ -142,7 +136,7 @@ export const goals = t.router({
 				// Update the goal_logs when a goal is archived
 				if (result) {
 					const endDate = new Date().toISOString();
-					await db
+					await trx
 						.insertInto('goal_logs')
 						.values({
 							goalId: input,

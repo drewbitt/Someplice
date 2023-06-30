@@ -63,14 +63,32 @@ const customDateMath = (i: number) => {
 };
 
 async function insertFakeData() {
+	// Initialize incremental counters
+	let activeCount = 1;
+	let inactiveCount = numberOfGoals + 1;
+
 	// Generate fake goals
-	const goals = Array.from({ length: numberOfGoals }, (_, i) => ({
-		active: randNumber({ min: 0, max: 1 }),
-		orderNumber: i + 1,
-		title: randText(),
-		description: randText(),
-		color: randHsl()
-	}));
+	const goals = Array.from({ length: numberOfGoals }, (_, i) => {
+		if (randNumber({ min: 0, max: 1 })) {
+			// active goal
+			return {
+				active: 1,
+				orderNumber: activeCount++,
+				title: randText(),
+				description: randText(),
+				color: randHsl()
+			};
+		} else {
+			// inactive goal
+			return {
+				active: 0,
+				orderNumber: inactiveCount++,
+				title: randText(),
+				description: randText(),
+				color: randHsl()
+			};
+		}
+	});
 
 	// Generate fake intentions
 	const intentions = Array.from({ length: 50 }, (_, i) => ({
