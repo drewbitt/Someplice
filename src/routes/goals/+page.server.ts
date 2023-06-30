@@ -5,5 +5,6 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => ({
 	goals: router.createCaller(await createContext(event)).goals.list(),
-	inactiveGoals: router.createCaller(await createContext(event)).goals.list(0)
+	inactiveGoals: router.createCaller(await createContext(event)).goals.list(0),
+	goalLogs: router.createCaller(await createContext(event)).goal_logs.getAll()
 });
