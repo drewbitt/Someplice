@@ -179,5 +179,54 @@ export const goals = t.router({
 
 				return result;
 			});
+		}),
+	restore: t.procedure
+		.use(logger)
+		.input(z.number())
+		.mutation(async ({ input }) => {
+			return await db.transaction().execute(async (trx) => {
+				// Retrieve goal to be restored
+				const restoreGoal = await trx
+					.selectFrom('goals')
+					.select(['orderNumber', 'active'])
+					.where('id', '=', input)
+					.executeTakeFirst();
+
+				if (restoreGoal?.active === 1) {
+					throw new Error('RESTORE_GOAL_ERROR: Goal is already active');
+				}
+
+				// Get max orderNumber from active goals
+				const maxOrderNumber = await trx
+					.selectFrom('goals')
+					.select('orderNumber')
+					.where('active', '=', 1)
+					.orderBy('orderNumber', 'desc')
+					.limit(1)
+					.execute();
+
+				const restoredOrderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
+
+				// Set the restored goal as active, with orderNumber as maxOrderNumber + 1
+				const result = await trx
+					.updateTable('goals')
+					.set({ active: 1, orderNumber: restoredOrderNumber })
+					.where('id', '=', input)
+					.execute();
+
+				// Log the start of the goal
+				if (result) {
+					await trx
+						.insertInto('goal_logs')
+						.values({
+							goalId: input,
+							type: 'start',
+							date: new Date().toISOString()
+						})
+						.execute();
+				}
+
+				return result;
+			});
 		})
 });

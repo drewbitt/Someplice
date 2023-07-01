@@ -123,7 +123,7 @@
 </script>
 
 <svelte:head>
-	<title>Someplice - Goals</title>
+	<title>Someplice - Your Goals</title>
 </svelte:head>
 
 <div>
@@ -179,7 +179,7 @@
 	<Title>Inactive Goals</Title>
 	<section role="list" id="goals-list-container" class="overflow-hidden">
 		{#each data.inactiveGoals as goal (goal)}
-			<GoalBoxComponent bind:goal currentlyEditing={false} showDates={true} />
+			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} isInactiveGoal={true} />
 		{/each}
 	</section>
 </div>

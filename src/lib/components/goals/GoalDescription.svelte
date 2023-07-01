@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { Box, Group, Text } from '@svelteuidev/core';
 	import Archive from 'virtual:icons/lucide/archive';
+	import ArchiveRestore from 'virtual:icons/lucide/archive-restore';
 	import Trash from 'virtual:icons/lucide/trash-2';
 
 	export let currentlyEditing: boolean;
 	export let description: string | null;
 	export let handleDeleteGoal: () => Promise<void>;
 	export let handleArchiveGoal: () => Promise<void>;
-	// goalColor is HSL
+	export let handleRestoreGoal: () => Promise<void>;
+	export let isInactiveGoal: boolean = false;
 </script>
 
-{#if currentlyEditing}
+{#if currentlyEditing && !isInactiveGoal}
 	<div class="goal-box-description-editable w-full">
 		<Group position="apart">
 			<textarea
@@ -36,6 +38,17 @@
 				</button>
 			</Box>
 		</Group>
+	</div>
+{:else if currentlyEditing && isInactiveGoal}
+	<div class="goal-box-description w-full flex justify-between">
+		<Text>{description ?? ''}</Text>
+		<button
+			id="goal-box-archive-button"
+			class="mr-2 p-1.5 rounded-lg bg-blue-600 daisy-btn-sm"
+			on:click={handleRestoreGoal}
+		>
+			<ArchiveRestore class="text-white" />
+		</button>
 	</div>
 {:else}
 	<div class="goal-box-description w-full">

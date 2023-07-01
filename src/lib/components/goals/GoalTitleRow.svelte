@@ -5,6 +5,7 @@
 	export let goalColor: string;
 	export let currentlyEditing: boolean;
 	export let title: string;
+	export let isInactiveGoal: boolean = false;
 
 	const darkModeStyles = createStyles(() => ({
 		root: {
@@ -18,7 +19,7 @@
 	// Not currently possible in svelteui.
 </script>
 
-{#if currentlyEditing}
+{#if currentlyEditing && !isInactiveGoal}
 	<Group position="apart">
 		<div class="goal-box-title-editable w-1/2">
 			<Input

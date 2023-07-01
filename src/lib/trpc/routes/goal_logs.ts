@@ -33,6 +33,7 @@ export const goal_logs = t.router({
 	getAll: t.procedure.use(logger).query(async () => {
 		return await db.selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
 	}),
+	// Just update logs - debugging purposes
 	reactivate: t.procedure
 		.use(logger)
 		.input(z.number())

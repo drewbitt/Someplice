@@ -12,7 +12,7 @@
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
-	export let showDates: boolean = false;
+	export let isInactiveGoal: boolean = false;
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;
@@ -20,11 +20,16 @@
 	let deletionConfirmed = false;
 	let showArchivePrompt = false;
 	let archiveConfirmed = false;
+	let showRestorePrompt = false;
+	let restoreConfirmed = false;
 	$: if (deletionConfirmed) {
 		deleteGoal();
 	}
 	$: if (archiveConfirmed) {
 		archiveGoal();
+	}
+	$: if (restoreConfirmed) {
+		restoreGoal();
 	}
 
 	const handleDeleteGoal = async () => {
@@ -51,6 +56,20 @@
 		if (goal.id) {
 			const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
 			if (archiveResult.length > 0) {
+				await invalidateAll();
+			}
+		}
+	};
+	const handleRestoreGoal = async () => {
+		if (goal.id) {
+			// Let's show the user a prompt to confirm restoration
+			showRestorePrompt = true;
+		}
+	};
+	const restoreGoal = async () => {
+		if (goal.id) {
+			const restoreResult = await trpc($page).goals.restore.mutate(goal.id);
+			if (restoreResult.length > 0) {
 				await invalidateAll();
 			}
 		}
@@ -95,17 +114,29 @@
 				actionButtonClass="daisy-btn daisy-btn-accent"
 			/>
 		{/if}
+		{#if showRestorePrompt}
+			<GenericModal
+				bind:showModal={showRestorePrompt}
+				bind:actionConfirmed={restoreConfirmed}
+				title="Restore Goal"
+				message="Are you sure you want to restore this goal?"
+				action="Restore"
+				actionButtonClass="daisy-btn daisy-btn-accent"
+			/>
+		{/if}
 		<Stack className="goal-box-details" spacing="xs">
-			<GoalTitleRow bind:title={goal.title} {currentlyEditing} bind:goalColor />
+			<GoalTitleRow bind:title={goal.title} {currentlyEditing} {isInactiveGoal} bind:goalColor />
 			<GoalDescription
 				bind:description={goal.description}
 				{currentlyEditing}
 				{handleDeleteGoal}
 				{handleArchiveGoal}
+				{isInactiveGoal}
+				{handleRestoreGoal}
 			/>
 		</Stack>
 	</div>
-	{#if showDates}
+	{#if isInactiveGoal}
 		<GoalDateDisplay {goal} />
 	{/if}
 </div>
