@@ -138,10 +138,10 @@ export const goals = t.router({
 					throw new Error('ARCHIVE_GOAL_ERROR: archivedGoalOrder is undefined');
 				}
 
-				// set the archived goal as inactive
+				// set the archived goal as inactive and set orderNumber to 0
 				const result = await trx
 					.updateTable('goals')
-					.set({ active: 0 })
+					.set({ active: 0, orderNumber: 0 })
 					.where('id', '=', input)
 					.execute();
 

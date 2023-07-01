@@ -65,7 +65,6 @@ const customDateMath = (i: number) => {
 async function insertFakeData() {
 	// Initialize incremental counters
 	let activeCount = 1;
-	let inactiveCount = numberOfGoals + 1;
 
 	// Generate fake goals
 	const goals = Array.from({ length: numberOfGoals }, (_, i) => {
@@ -82,7 +81,7 @@ async function insertFakeData() {
 			// inactive goal
 			return {
 				active: 0,
-				orderNumber: inactiveCount++,
+				orderNumber: 0,
 				title: randText(),
 				description: randText(),
 				color: randHsl()

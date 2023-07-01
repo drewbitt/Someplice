@@ -44,7 +44,7 @@
 		<Text>{description ?? ''}</Text>
 		<button
 			id="goal-box-archive-button"
-			class="mr-2 p-1.5 rounded-lg bg-blue-600 daisy-btn-sm"
+			class="mr-3.5 p-1.5 rounded-lg bg-blue-600 daisy-btn-sm"
 			on:click={handleRestoreGoal}
 		>
 			<ArchiveRestore class="text-white" />
