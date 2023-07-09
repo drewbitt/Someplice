@@ -2,10 +2,7 @@ import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
 import { z } from 'zod';
-
-BigInt.prototype.toJSON = function () {
-	return this.toString();
-};
+import { processUpdateResults } from '../middleware/utils';
 
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
@@ -85,7 +82,8 @@ export const goals = t.router({
 		.use(logger)
 		.input(GoalSchema)
 		.mutation(async ({ input }) => {
-			return await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
+			const result = await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
+			return processUpdateResults(result);
 		}),
 	/**
 	 * Update all goals in DB with input goals
@@ -102,11 +100,16 @@ export const goals = t.router({
 		.mutation(async ({ input }) => {
 			const results = await db.transaction().execute(async (trx) => {
 				return await Promise.all(
-					input.goals.map((goal) => {
+					input.goals.map(async (goal) => {
 						if (goal.id) {
-							return trx.updateTable('goals').set(goal).where('id', '=', goal.id).execute();
+							const result = await trx
+								.updateTable('goals')
+								.set(goal)
+								.where('id', '=', goal.id)
+								.execute();
+							return processUpdateResults(result);
 						} else {
-							return trx.insertInto('goals').values(goal).execute();
+							return await trx.insertInto('goals').values(goal).execute();
 						}
 					})
 				);
@@ -159,7 +162,7 @@ export const goals = t.router({
 					.execute();
 
 				// decrement the orderNumber of each goal sequentially
-				const updatePromises = goalsToUpdate.map((goal, i) =>
+				const updatePromises = goalsToUpdate.map((goal) =>
 					trx
 						.updateTable('goals')
 						.set({ orderNumber: goal.orderNumber - 1 })
@@ -181,7 +184,7 @@ export const goals = t.router({
 						.execute();
 				}
 
-				return result;
+				return processUpdateResults(result);
 			});
 		}),
 	restore: t.procedure
@@ -230,7 +233,7 @@ export const goals = t.router({
 						.execute();
 				}
 
-				return result;
+				return processUpdateResults(result);
 			});
 		})
 });

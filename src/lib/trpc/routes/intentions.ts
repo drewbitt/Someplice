@@ -1,8 +1,9 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { z } from 'zod';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
+import { z } from 'zod';
+import { processUpdateResults } from '../middleware/utils';
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -62,7 +63,7 @@ export const intentions = t.router({
 		.use(logger)
 		.input(IntentionsSchema)
 		.mutation(async ({ input }) => {
-			return await db
+			const result = await db
 				.updateTable('intentions')
 				.set({
 					goalId: input.goalId,
@@ -73,6 +74,7 @@ export const intentions = t.router({
 				})
 				.where('id', '=', input.id)
 				.execute();
+			return processUpdateResults(result);
 		}),
 	appendText: t.procedure
 		.use(logger)
@@ -83,13 +85,14 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			return await db
+			const result = await db
 				.updateTable('intentions')
 				.set({
 					text: sql`text || ${input.text}`
 				})
 				.where('id', '=', input.id)
 				.execute();
+			return processUpdateResults(result);
 		}),
 	updateIntentions: t.procedure
 		.use(logger)

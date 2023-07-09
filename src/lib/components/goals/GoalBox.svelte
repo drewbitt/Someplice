@@ -55,7 +55,7 @@
 	const archiveGoal = async () => {
 		if (goal.id) {
 			const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
-			if (archiveResult.length > 0) {
+			if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
 				await invalidateAll();
 			}
 		}
@@ -69,7 +69,7 @@
 	const restoreGoal = async () => {
 		if (goal.id) {
 			const restoreResult = await trpc($page).goals.restore.mutate(goal.id);
-			if (restoreResult.length > 0) {
+			if (restoreResult[0]?.numUpdatedRows !== undefined && restoreResult[0].numUpdatedRows > 0) {
 				await invalidateAll();
 			}
 		}

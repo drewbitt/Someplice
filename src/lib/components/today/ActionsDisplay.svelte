@@ -67,7 +67,10 @@
 			if (intention) {
 				intention = { ...intention, completed: target.checked ? 1 : 0 };
 				const updatedIntention = await handleUpdateSingleIntention(intention);
-				if (updatedIntention.length > 0) {
+				if (
+					updatedIntention[0]?.numUpdatedRows !== undefined &&
+					updatedIntention[0].numUpdatedRows > 0
+				) {
 					intentions = intentions.map((intention) => {
 						if (intention.id === parseInt(intentionId)) {
 							intention.completed = target.checked ? 1 : 0;
