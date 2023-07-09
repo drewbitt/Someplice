@@ -23,7 +23,7 @@
 		"@trpc/server": "^10.34.0",
 		"better-sqlite3": "^8.4.0",
 		"croner": "^6.0.6",
-		"kysely": "^0.26.1",
+		"kysely": "^0.25.0",
 		"trpc-sveltekit": "^3.5.16",
 		"tslog": "^4.8.2",
 		"vite-node": "^0.33.0",

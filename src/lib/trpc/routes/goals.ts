@@ -3,6 +3,10 @@ import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
 import { z } from 'zod';
 
+BigInt.prototype.toJSON = function () {
+	return this.toString();
+};
+
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
 	active: z.number(),

@@ -33,6 +33,7 @@
 				class={actionButtonClass}
 				on:click={() => {
 					actionConfirmed = true;
+					showModal = false;
 				}}
 			>
 				{action}
