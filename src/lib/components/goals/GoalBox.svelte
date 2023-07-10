@@ -12,7 +12,7 @@
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
-	export let isInactiveGoal: boolean = false;
+	export let isInactiveGoal = false;
 
 	let goalColor = goal.color;
 	$: goal.color = goalColor;

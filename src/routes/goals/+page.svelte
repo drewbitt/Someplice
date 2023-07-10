@@ -78,9 +78,11 @@
 	function handleRenumberButtonClick() {
 		dragDisabled = !dragDisabled;
 	}
+	// eslint-disable-next-line no-undef
 	const handleDndConsider = (event: CustomEvent<DndEvent<Goals>>) => {
 		data.goals = event.detail.items;
 	};
+	// eslint-disable-next-line no-undef
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
 		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };

@@ -9,7 +9,7 @@
 	export let handleDeleteGoal: () => Promise<void>;
 	export let handleArchiveGoal: () => Promise<void>;
 	export let handleRestoreGoal: () => Promise<void>;
-	export let isInactiveGoal: boolean = false;
+	export let isInactiveGoal = false;
 </script>
 
 {#if currentlyEditing && !isInactiveGoal}

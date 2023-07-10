@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
+	import type { UpdateResultNormal } from '$src/lib/trpc/middleware/utils';
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
@@ -14,7 +15,8 @@
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
 
-	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<any>;
+	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<UpdateResultNormal[]>;
+
 	let showMousoverMenu = false;
 	let showMousoverIndex: number | null = null;
 	let showIntentionModal = false;
@@ -88,10 +90,11 @@
 		}
 		return lighterHSLColor(goalColor);
 	};
-
+	// eslint-disable-next-line no-undef
 	const handleDndConsider = (event: CustomEvent<DndEvent<Intention>>) => {
 		intentions = event.detail.items;
 	};
+	// eslint-disable-next-line no-undef
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Intention>>) => {
 		const items: Intention[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
@@ -113,18 +116,24 @@
 		}
 	};
 
-	const darkModeStyles = createStyles((theme: any) => ({
-		intentionsNumber: {
-			darkMode: {
-				color: theme.fn.themeColor('grape', 1) + ' !important'
+	const darkModeStyles = createStyles(
+		(theme: {
+			fn: {
+				themeColor: (color: string, shade: number) => string;
+			};
+		}) => ({
+			intentionsNumber: {
+				darkMode: {
+					color: theme.fn.themeColor('grape', 1) + ' !important'
+				}
+			},
+			intentionsDate: {
+				darkMode: {
+					color: theme.fn.themeColor('gray', 8) + ' !important'
+				}
 			}
-		},
-		intentionsDate: {
-			darkMode: {
-				color: theme.fn.themeColor('gray', 8) + ' !important'
-			}
-		}
-	}));
+		})
+	);
 	$: ({ classes } = darkModeStyles());
 </script>
 

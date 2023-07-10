@@ -8,6 +8,7 @@ import { db } from './db';
 // This seperates the creation of the cron jobs into a module
 export function createCronJobs() {
 	// Run at 00:00 every day
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const outcomeCron = Cron('0 0 * * *', async () => {
 		const today = new Date().toISOString().slice(0, 10); // get today's date in YYYY-MM-DD format
 
@@ -41,7 +42,7 @@ export function createCronJobs() {
 			.execute();
 
 		// associate the intentions with the outcome
-		for (let intention of intentions) {
+		for (const intention of intentions) {
 			await db.transaction().execute(async (db) => {
 				logger.info(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 
@@ -73,7 +74,7 @@ export async function checkMissingOutcomes() {
 	logger.info('Checking for missing outcomes from past days when the application is restarted');
 	const intentions = await db.selectFrom('intentions').selectAll().execute();
 
-	for (let intention of intentions) {
+	for (const intention of intentions) {
 		const outcomes = await db
 			.selectFrom('outcomes')
 			.selectAll()

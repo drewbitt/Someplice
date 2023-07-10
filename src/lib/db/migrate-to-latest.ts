@@ -2,7 +2,7 @@ import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely
 import type { DB } from '../types/data';
 import { db as mainDb } from './db';
 
-export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
+export async function migrateToLatest(db?: Kysely<DB>) {
 	if (!db) {
 		db = mainDb;
 	}

@@ -3,7 +3,7 @@ import type { UpdateResult } from 'kysely';
 /***
  * Similiar to UpdateResult from kysely, but with bigint converted to number
  */
-class UpdateResultNormal {
+export class UpdateResultNormal {
 	readonly numUpdatedRows: number | undefined;
 	readonly numChangedRows: number | undefined;
 

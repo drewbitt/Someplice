@@ -5,7 +5,7 @@
 	export let goalColor: string;
 	export let currentlyEditing: boolean;
 	export let title: string;
-	export let isInactiveGoal: boolean = false;
+	export let isInactiveGoal = false;
 
 	const darkModeStyles = createStyles(() => ({
 		root: {

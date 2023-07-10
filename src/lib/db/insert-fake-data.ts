@@ -67,7 +67,7 @@ async function insertFakeData() {
 	let activeCount = 1;
 
 	// Generate fake goals
-	const goals = Array.from({ length: numberOfGoals }, (_, i) => {
+	const goals = Array.from({ length: numberOfGoals }, () => {
 		if (randNumber({ min: 0, max: 1 })) {
 			// active goal
 			return {
