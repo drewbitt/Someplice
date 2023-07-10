@@ -31,7 +31,7 @@
 						tabindex="0"
 						role="button"
 						style="background-color: {color}"
-						class="goal-box-color-picker-color w-10 h-10 rounded-full cursor-pointer"
+						class="goal-box-color-picker-color h-10 w-10 cursor-pointer rounded-full"
 						on:click={() => {
 							goalColor = color;
 							closeModal();
@@ -53,7 +53,7 @@
 	tabindex="0"
 	role="button"
 	use:cssvariable={{ 'lighter-goal-color': lighterHSLColor(goalColor) }}
-	class="goal-box-color-picker w-14 h-8 flex justify-center items-center cursor-pointer"
+	class="goal-box-color-picker flex h-8 w-14 cursor-pointer items-center justify-center"
 	on:click={() => (opened = true)}
 	on:keydown={(event) => {
 		if (event.key === 'Enter') {
@@ -63,7 +63,7 @@
 >
 	<div
 		use:cssvariable={{ 'goal-color': goalColor }}
-		class="goal-box-color-picker-color-current w-6 h-6 border"
+		class="goal-box-color-picker-color-current h-6 w-6 border"
 		style="background-color: {goalColor}"
 	/>
 </div>

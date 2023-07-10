@@ -63,18 +63,18 @@
 	overlayOpacity={0.25}
 >
 	<p
-		class="font-bold text-center text-lg mb-8"
+		class="mb-8 text-center text-lg font-bold"
 		style="color: {goalColorForIntention(intention, goals)}"
 	>
 		{modalTitle}
 	</p>
 	<Grid class="justify-center">
 		<span class="w-11/12">
-			<Input class="text-xl h-12" id="append-text" />
+			<Input class="h-12 text-xl" id="append-text" />
 		</span>
 		<span class="append-buttons mt-8">
 			<button
-				class="daisy-btn daisy-btn-warning"
+				class="daisy-btn-warning daisy-btn"
 				on:click={closeAppendModal}
 				on:keypress={(e) => {
 					if (e.key === 'Enter') {
@@ -82,7 +82,7 @@
 					}
 				}}>Cancel</button
 			>
-			<button class="daisy-btn daisy-btn-primary" on:click={appendInputValue}>Append</button>
+			<button class="daisy-btn-primary daisy-btn" on:click={appendInputValue}>Append</button>
 		</span>
 	</Grid>
 </Modal>

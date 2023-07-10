@@ -16,14 +16,14 @@
 	<div class="goal-box-description-editable w-full">
 		<Group position="apart">
 			<textarea
-				class="bg-white text-black py-1 px-2 w-5/6 max-w-6xl rounded-md border border-transparent overflow-visible"
+				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
 				placeholder="Describe your goal"
 				bind:value={description}
 			/>
 			<Box class="flex">
 				<button
 					id="goal-box-archive-button"
-					class="mr-2 p-1.5 rounded-lg bg-blue-600 daisy-btn-sm"
+					class="daisy-btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
 					on:click={handleArchiveGoal}
 				>
 					<Archive class="text-white" />
@@ -31,7 +31,7 @@
 				<button
 					id="goal-box-delete-button"
 					aria-haspopup="true"
-					class="mr-3.5 p-1.5 rounded-lg bg-red-600 daisy-btn-sm"
+					class="daisy-btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
 					on:click={handleDeleteGoal}
 				>
 					<Trash class="text-white" />
@@ -40,11 +40,11 @@
 		</Group>
 	</div>
 {:else if currentlyEditing && isInactiveGoal}
-	<div class="goal-box-description w-full flex justify-between">
+	<div class="goal-box-description flex w-full justify-between">
 		<Text>{description ?? ''}</Text>
 		<button
 			id="goal-box-archive-button"
-			class="mr-3.5 p-1.5 rounded-lg bg-blue-600 daisy-btn-sm"
+			class="daisy-btn-sm mr-3.5 rounded-lg bg-blue-600 p-1.5"
 			on:click={handleRestoreGoal}
 		>
 			<ArchiveRestore class="text-white" />

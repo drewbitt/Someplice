@@ -73,7 +73,7 @@
 								}
 							}}
 						>
-							<TextCursorInput class="w-6 h-6" />
+							<TextCursorInput class="h-6 w-6" />
 							<button class="outline-none">Append Text</button>
 						</span>
 					</li>

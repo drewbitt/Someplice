@@ -131,7 +131,7 @@
 <Paper shadow="sm">
 	<Stack class="gap-1.5">
 		{#if intentions.length > 0}
-			<span class="flex pl-12 mb-5">
+			<span class="mb-5 flex pl-12">
 				<Title order={2} class="{classes.intentionsNumber} font-bold text-gray-700"
 					>{intentions.length} intentions for today,</Title
 				>
@@ -158,7 +158,7 @@
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
 						''}) {intention.text}"
 					data-id={intention.id}
-					class={'pl-3 flex items-center' +
+					class={'flex items-center pl-3' +
 						(intention.completed ? ' line-through' : '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
 					on:mouseover={() => {
@@ -183,7 +183,7 @@
 						{/if}
 						<button
 							aria-haspopup="true"
-							class="hover:bg-gray-400 cursor-pointer py-0.5"
+							class="cursor-pointer py-0.5 hover:bg-gray-400"
 							on:click={() => {
 								showIntentionModal = true;
 							}}

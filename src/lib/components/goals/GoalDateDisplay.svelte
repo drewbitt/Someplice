@@ -28,7 +28,7 @@
 </script>
 
 <div
-	class="goal-box-date-display flex justify-between items-center mx-5 px-1 py-1"
+	class="goal-box-date-display mx-5 flex items-center justify-between px-1 py-1"
 	style="background-color: {evenLighterHSLColor(goal.color)}"
 >
 	<span class="goal-box-date-display-date">

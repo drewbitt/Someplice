@@ -132,7 +132,7 @@
 		<div class="daisy-indicator">
 			<span
 				class={editButtonActive
-					? 'daisy-indicator-item daisy-badge daisy-badge-secondary translate-x-1/4'
+					? 'daisy-badge daisy-badge-secondary daisy-indicator-item translate-x-1/4'
 					: ''}
 			/>
 			{#if editButtonActive}
@@ -151,7 +151,7 @@
 			<span
 				class={dragDisabled
 					? ''
-					: 'daisy-indicator-item daisy-badge daisy-badge-secondary translate-x-1/4'}
+					: 'daisy-badge daisy-badge-secondary daisy-indicator-item translate-x-1/4'}
 			/>
 			<Button
 				class={'mx-2'}

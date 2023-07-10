@@ -22,7 +22,7 @@
 <div class="goal__editor form-control">
 	<pre class="goal__editor__pre" aria-hidden="true" />
 	<textarea
-		class="goal__editor__textarea border border-base-content rounded-btn transition duration-200 ease-in-out"
+		class="goal__editor__textarea rounded-btn border border-base-content transition duration-200 ease-in-out"
 		contenteditable="true"
 		bind:this={input}
 		bind:value

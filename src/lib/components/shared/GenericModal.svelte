@@ -22,7 +22,7 @@
 		<p>{message}</p>
 		<Group position="right">
 			<button
-				class="daisy-btn daisy-btn-warning"
+				class="daisy-btn-warning daisy-btn"
 				on:click={() => {
 					showModal = false;
 				}}
