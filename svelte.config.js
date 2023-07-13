@@ -1,6 +1,7 @@
-import preprocess from 'svelte-preprocess';
-import adapter from '@sveltejs/adapter-node';
+import nodeAdapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/kit/vite';
+import preprocess from 'svelte-preprocess';
+import denoAdapter from 'sveltekit-adapter-deno';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -14,7 +15,7 @@ const config = {
 	],
 
 	kit: {
-		adapter: adapter(),
+		adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter(),
 		alias: {
 			$src: './src',
 			$db: './src/lib/db',

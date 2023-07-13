@@ -2,7 +2,7 @@ import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely
 import type { DB } from '../types/data';
 import { db as mainDb } from './db';
 
-export async function migrateToLatest(db?: Kysely<DB>) {
+export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	if (!db) {
 		db = mainDb;
 	}
@@ -12,6 +12,17 @@ export async function migrateToLatest(db?: Kysely<DB>) {
 			const migrations: Record<string, Migration> = import.meta.glob('./migrations/**.ts', {
 				eager: true
 			});
+
+			if (migrationName) {
+				for (const key in migrations) {
+					if (key.includes(migrationName)) {
+						return { [key]: migrations[key] };
+					}
+				}
+
+				throw new Error(`Migration ${migrationName} not found`);
+			}
+
 			return migrations;
 		}
 	};
