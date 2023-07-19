@@ -50,8 +50,8 @@ devDependencies:
     specifier: ^1.1.109
     version: 1.1.109
   '@ngneat/falso':
-    specifier: ^6.4.0
-    version: 6.4.0
+    specifier: ^7.0.0
+    version: 7.0.0
   '@playwright/test':
     specifier: ^1.36.1
     version: 1.36.1
@@ -1885,8 +1885,8 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.15
     dev: true
 
-  /@ngneat/falso@6.4.0:
-    resolution: {integrity: sha512-f6r036h2fX/AoHw1eV2t8+qWQwrbSrozs3zXMhhwoO7SJBc+DGMxRWEhFeYIinfwx0uhUH8ggx5+PDLzYESLOA==}
+  /@ngneat/falso@7.0.0:
+    resolution: {integrity: sha512-zrGVn1MPgcghdq7sq+u9GUwoNCwjc0GdFC+2n1Pyhm2YluEOl6dnEkBxM614ry56mWo0nrY68Tfb8AgcCI2fqQ==}
     dependencies:
       seedrandom: 3.0.5
       uuid: 8.3.2
