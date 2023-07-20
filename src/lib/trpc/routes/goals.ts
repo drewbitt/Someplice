@@ -1,7 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
-import { sql, type QueryResult } from 'kysely';
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { processUpdateResults } from '../middleware/utils';
 import type { Goal } from '../types';
@@ -38,7 +38,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(z.number().nonnegative().lte(1).optional().default(1))
 		.query(async ({ input }) => {
-			const goalsWithDate = await sql<QueryResult<Goal>[]>`
+			const goalsWithDate = await sql<Goal>`
 				SELECT
 					goals.id,
 					goals.active,
