@@ -1,8 +1,10 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
+import { sql, type QueryResult } from 'kysely';
 import { z } from 'zod';
 import { processUpdateResults } from '../middleware/utils';
+import type { Goal } from '../types';
 
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
@@ -28,6 +30,37 @@ export const goals = t.router({
 				.where('active', '=', input)
 				.execute()
 		),
+	/**
+	 * Return goals sorted by their date they were started or stopped (the last/latest date in goal_logs)
+	 * @param {number} input - 0 (false) or 1 (true) to return inactive or active goals respectively
+	 */
+	listGoalsSortedByDate: t.procedure
+		.use(logger)
+		.input(z.number().nonnegative().lte(1).optional().default(1))
+		.query(async ({ input }) => {
+			const goalsWithDate = await sql<QueryResult<Goal>[]>`
+				SELECT
+					goals.id,
+					goals.active,
+					goals.orderNumber,
+					goals.title,
+					goals.description,
+					goals.color,
+					MAX(goal_logs.date) as date
+				FROM
+					goals
+				INNER JOIN
+					goal_logs ON goals.id = goal_logs.goalId
+				WHERE
+					goals.active = ${input}
+				GROUP BY
+					goals.id
+				ORDER BY
+					date DESC
+			`.execute(db);
+
+			return goalsWithDate.rows;
+		}),
 	add: t.procedure
 		.use(logger)
 		.input(
