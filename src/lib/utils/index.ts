@@ -4,6 +4,12 @@ export const localeCurrentDate = () => {
 	return new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
 };
 
+export const dayOfWeekFromDate = (date: Date) => {
+	const dayOfWeek = date.getDay();
+	const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	return daysOfWeek[dayOfWeek];
+};
+
 export const lighterHSLColor = (color: string): string => {
 	const [hue, saturation, lightness] = color
 		.slice(4, -1)

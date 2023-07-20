@@ -5,6 +5,7 @@
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
 	import { trpc } from '$src/lib/trpc/client';
+	import { dayOfWeekFromDate } from '$src/lib/utils';
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -12,23 +13,48 @@
 	export let data: PageServerData;
 	type Intentions = (typeof data.intentions)[0];
 
+	// let declarations grouped together
 	let intentions = data.intentions;
-	// $: intentions = data.intentions; // This is crashing the app
-	$: noGoals = data.goals.length === 0;
-	$: noIntentions = data.intentions.length === 0;
-	let intentionsFromServer: Intentions[] = data.intentions;
-
 	let additionalIntentions: Intentions[] = [];
-
 	let validIntentions: boolean;
 	let showValidIntentionsNotification = false;
 	let showAdditionalIntentionsTextArea = false;
 	let showDBErrorNotification = false;
+	let intentionsFromServer: Intentions[] = data.intentions;
+
+	// $: declarations grouped together
+	$: noGoals = data.goals.length === 0;
+	$: noIntentions = data.intentions.length === 0;
 	$: if (showDBErrorNotification) {
 		setTimeout(() => {
 			showDBErrorNotification = false;
 		}, 5000);
 	}
+
+	const addIntentions = async () => {
+		const addResult = await trpc($page).intentions.updateIntentions.mutate({
+			intentions: intentions
+		});
+		if (addResult?.length > 0) {
+			await invalidateAll();
+			intentions = data.intentions;
+			intentionsFromServer = data.intentions;
+		} else {
+			showDBErrorNotification = true;
+		}
+	};
+
+	const updateIntentions = async () => {
+		const updateResult = await handleUpdateIntentions();
+		if (updateResult?.length > 0) {
+			handleHideAdditionalIntentionsTextArea();
+			await invalidateAll();
+			intentions = data.intentions;
+			intentionsFromServer = data.intentions;
+		} else {
+			showDBErrorNotification = true;
+		}
+	};
 
 	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
@@ -36,36 +62,15 @@
 			return;
 		}
 
-		// Hack: Combine additionalIntentions with intentions while removing duplicate orderNumbers
 		const orderNumbers = intentions.map((intention) => intention.orderNumber);
 		const additionalIntentionsWithoutDuplicates = additionalIntentions.filter(
 			(intention) => !orderNumbers.includes(intention.orderNumber)
 		);
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
 
-		if (noIntentions) {
-			const addResult = await trpc($page).intentions.updateIntentions.mutate({
-				intentions: intentions
-			});
-			if (addResult?.length > 0) {
-				await invalidateAll();
-				intentions = data.intentions;
-				intentionsFromServer = data.intentions;
-			} else {
-				showDBErrorNotification = true;
-			}
-		} else {
-			const updateResult = await handleUpdateIntentions();
-			if (updateResult?.length > 0) {
-				handleHideAdditionalIntentionsTextArea();
-				await invalidateAll();
-				intentions = data.intentions;
-				intentionsFromServer = data.intentions;
-			} else {
-				showDBErrorNotification = true;
-			}
-		}
+		noIntentions ? addIntentions() : updateIntentions();
 	};
+
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
 		const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
 		if (
@@ -76,32 +81,21 @@
 		}
 		return updatedIntention;
 	};
+
 	const handleUpdateIntentions = async () => {
 		return await trpc($page).intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
 	};
+
 	const handleShowAdditionalIntentionsTextArea = () => {
 		showAdditionalIntentionsTextArea = true;
 	};
+
 	const handleHideAdditionalIntentionsTextArea = () => {
 		showValidIntentionsNotification = false;
 		additionalIntentions = [];
 		showAdditionalIntentionsTextArea = false;
-	};
-
-	const dayOfWeekFromDate = (date: Date) => {
-		const dayOfWeek = date.getDay();
-		const daysOfWeek = [
-			'Sunday',
-			'Monday',
-			'Tuesday',
-			'Wednesday',
-			'Thursday',
-			'Friday',
-			'Saturday'
-		];
-		return daysOfWeek[dayOfWeek];
 	};
 </script>
 
