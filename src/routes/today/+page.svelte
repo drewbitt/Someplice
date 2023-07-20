@@ -137,8 +137,7 @@
 			</Box>
 			{#if showValidIntentionsNotification}
 				<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
-					Error in intentions. Please check that your intentions are formatted correctly and have
-					valid goal numbers.
+					Please check that your intentions are formatted correctly and have valid goal numbers.
 				</Notification>
 			{/if}
 			<ActionsTextInput
@@ -162,8 +161,7 @@
 	{:else}
 		{#if showValidIntentionsNotification}
 			<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
-				Error in intentions. Please check that your intentions are formatted correctly and have
-				valid goal numbers.
+				Please check that your intentions are formatted correctly and have valid goal numbers.
 			</Notification>
 		{/if}
 		<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
