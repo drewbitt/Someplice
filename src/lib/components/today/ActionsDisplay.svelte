@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
-	import type { UpdateResultNormal } from '$src/lib/trpc/middleware/utils';
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
@@ -9,13 +8,14 @@
 	import Menu from '~icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
+	import type { UpdateResult } from 'kysely';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
 
-	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<UpdateResultNormal[]>;
+	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<UpdateResult[]>;
 
 	let showMousoverMenu = false;
 	let showMousoverIndex: number | null = null;

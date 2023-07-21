@@ -10,5 +10,6 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => ({
 		// Get today's date with times set to 00:00:00.000 and 23:59:59.999
 		startDate: localeCurrentDate().toISOString().split('T')[0],
 		endDate: localeCurrentDate().toISOString().split('T')[0] + 'T23:59:59.999Z'
-	})
+	}),
+	latestIntentions: router.createCaller(await createContext(event)).intentions.latestIntentions()
 });

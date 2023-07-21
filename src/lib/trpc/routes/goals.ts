@@ -3,7 +3,6 @@ import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { processUpdateResults } from '../middleware/utils';
 import type { Goal } from '../types';
 
 export const GoalSchema = z.object({
@@ -116,7 +115,7 @@ export const goals = t.router({
 		.input(GoalSchema)
 		.mutation(async ({ input }) => {
 			const result = await db.updateTable('goals').set(input).where('id', '=', input.id).execute();
-			return processUpdateResults(result);
+			return result;
 		}),
 	/**
 	 * Update all goals in DB with input goals
@@ -140,7 +139,7 @@ export const goals = t.router({
 								.set(goal)
 								.where('id', '=', goal.id)
 								.execute();
-							return processUpdateResults(result);
+							return result;
 						} else {
 							return await trx.insertInto('goals').values(goal).execute();
 						}
@@ -217,7 +216,7 @@ export const goals = t.router({
 						.execute();
 				}
 
-				return processUpdateResults(result);
+				return result;
 			});
 		}),
 	restore: t.procedure
@@ -266,7 +265,7 @@ export const goals = t.router({
 						.execute();
 				}
 
-				return processUpdateResults(result);
+				return result;
 			});
 		})
 });

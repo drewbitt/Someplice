@@ -3,7 +3,6 @@ import { t } from '$lib/trpc/t';
 import { db } from '$src/lib/db/db';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { processUpdateResults } from '../middleware/utils';
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -58,6 +57,32 @@ export const intentions = t.router({
 					.execute();
 			}
 		}),
+	latestIntentions: t.procedure.use(logger).query(async () => {
+		const maxDate = await db
+			.selectFrom('intentions')
+			.select(['id', 'date'])
+			.orderBy('date', 'desc')
+			.limit(1)
+			.execute();
+
+		if (maxDate && maxDate[0]?.date) {
+			return db
+				.selectFrom('intentions')
+				.select([
+					'id',
+					'goalId',
+					'orderNumber',
+					'completed',
+					'text',
+					'subIntentionQualifier',
+					'date'
+				])
+				.where('date', '=', maxDate[0].date)
+				.execute();
+		} else {
+			return [];
+		}
+	}),
 	/** Edit single intention */
 	edit: t.procedure
 		.use(logger)
@@ -74,7 +99,7 @@ export const intentions = t.router({
 				})
 				.where('id', '=', input.id)
 				.execute();
-			return processUpdateResults(result);
+			return result;
 		}),
 	appendText: t.procedure
 		.use(logger)
@@ -92,7 +117,7 @@ export const intentions = t.router({
 				})
 				.where('id', '=', input.id)
 				.execute();
-			return processUpdateResults(result);
+			return result;
 		}),
 	updateIntentions: t.procedure
 		.use(logger)
