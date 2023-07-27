@@ -13,7 +13,7 @@
 </script>
 
 {#if currentlyEditing && !isInactiveGoal}
-	<div class="goal-box-description-editable w-full">
+	<Box class="goal-box-description-editable w-full">
 		<Group position="apart">
 			<textarea
 				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
@@ -38,9 +38,9 @@
 				</button>
 			</Box>
 		</Group>
-	</div>
+	</Box>
 {:else if currentlyEditing && isInactiveGoal}
-	<div class="goal-box-description flex w-full justify-between">
+	<Box class="goal-box-description flex w-full justify-between">
 		<Text>{description ?? ''}</Text>
 		<button
 			id="goal-box-archive-button"
@@ -49,9 +49,9 @@
 		>
 			<ArchiveRestore class="text-white" />
 		</button>
-	</div>
+	</Box>
 {:else}
-	<div class="goal-box-description w-full">
+	<Box class="goal-box-description w-full">
 		<Text>{description ?? ''}</Text>
-	</div>
+	</Box>
 {/if}

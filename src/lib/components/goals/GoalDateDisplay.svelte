@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { evenLighterHSLColor } from '$src/lib/utils';
+	import { Box } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
 
@@ -27,7 +28,7 @@
 	});
 </script>
 
-<div
+<Box
 	class="goal-box-date-display mx-5 flex items-center justify-between px-1 py-1"
 	style="background-color: {evenLighterHSLColor(goal.color)}"
 >
@@ -37,4 +38,4 @@
 	<span class="goal-box-date-display-date">
 		End: {endDate.slice(0, 10)}
 	</span>
-</div>
+</Box>

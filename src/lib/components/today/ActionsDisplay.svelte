@@ -3,12 +3,12 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
+	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import Menu from '~icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	import type { UpdateResult } from 'kysely';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
 	export let goals: PageServerData['goals'];

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import './Editor.css';
+	import { Box } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
+	import './Editor.css';
 	// Props
 	export let highlight: (value: string) => string;
 	export let value: string;
@@ -19,7 +20,7 @@
 	});
 </script>
 
-<div class="goal__editor form-control">
+<Box class="goal__editor form-control">
 	<pre class="goal__editor__pre" aria-hidden="true" />
 	<textarea
 		class="goal__editor__textarea rounded-btn border border-base-content transition duration-200 ease-in-out"
@@ -28,4 +29,4 @@
 		bind:value
 		tabindex="0"
 	/>
-</div>
+</Box>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createStyles, Group, Input, Text } from '@svelteuidev/core';
+	import { Box, createStyles, Group, Input, Text } from '@svelteuidev/core';
 	import GoalColorPalette from './GoalColorPalette.svelte';
 
 	export let goalColor: string;
@@ -33,7 +33,7 @@
 		</div>
 	</Group>
 {:else}
-	<div class="goal-box-title w-1/2">
+	<Box class="goal-box-title w-1/2">
 		<Text class="text-3xl {getStyles()}">{title}</Text>
-	</div>
+	</Box>
 {/if}

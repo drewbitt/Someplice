@@ -5,9 +5,7 @@ export const localeCurrentDate = () => {
 };
 
 export const dayOfWeekFromDate = (date: Date) => {
-	const dayOfWeek = date.getDay();
-	const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-	return daysOfWeek[dayOfWeek];
+	return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
 
 export const lighterHSLColor = (color: string): string => {

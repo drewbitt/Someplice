@@ -85,7 +85,7 @@
 	$: ({ getStyles } = darkModeStyles());
 </script>
 
-<div role="listitem" class="mb-2.5">
+<Box role="listitem" class="mb-2.5">
 	<div
 		style="background-color: {goalColor}"
 		use:cssvariable={{ 'goal-color': goalColor }}
@@ -139,7 +139,7 @@
 	{#if isInactiveGoal}
 		<GoalDateDisplay {goal} />
 	{/if}
-</div>
+</Box>
 
 <style>
 	.goal-box {

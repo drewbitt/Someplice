@@ -38,6 +38,7 @@
 	$: if (noIntentions && !noGoals) {
 		isOldOutcomeOutstanding().then((result) => {
 			if (result) {
+				// if there is an outstanding outcome
 				hasOutstandingOutcome = true;
 				showPageLoadingSpinner = false;
 			}
@@ -73,11 +74,12 @@
 		}
 	};
 
-	/* check if the latest intentions have an outcome reviewed on the same day */
+	/**
+		Check if the latest intentions have an outcome reviewed on the same day
+	*/
 	const isOldOutcomeOutstanding = async () => {
 		const latestIntentionDate = new Date(latestIntentions[0].date);
 		const outcomes = await listOutcomesOnDate(latestIntentionDate);
-		console.log('🚀 ~ file: +page.svelte:65 ~ isOldOutcomeOutstanding ~ outcomes:', outcomes);
 		// if there are no outcomes on the same day as the latest intentions, or if it is reviewed = false
 		if (outcomes.length === 0 || !outcomes[0].reviewed) {
 			return true;
@@ -144,7 +146,7 @@
 {:else}
 	<Stack>
 		<GoalBadges goals={data.goals} />
-		{#if !(intentionsFromServer.length > 0)}
+		{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
 			<Title order={2}>Actions you'll take towards your goals today</Title>
 		{/if}
 		{#if noGoals}
@@ -157,6 +159,9 @@
 			>
 				You have no goals. Please add some goals first.
 			</Notification>
+			<!-- if there are no intentions set today -->
+		{:else if hasOutstandingOutcome}
+			<Review {latestIntentions} />
 			<!-- if there are intentions already set today -->
 		{:else if intentionsFromServer.length > 0}
 			<ActionsDisplay
@@ -194,9 +199,6 @@
 					</Button>
 				</Box>
 			{/if}
-			<!-- if there are no intentions set today -->
-		{:else if hasOutstandingOutcome}
-			<Review />
 		{:else}
 			{#if showValidIntentionsNotification}
 				<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">

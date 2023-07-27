@@ -60,6 +60,45 @@ export const goals = t.router({
 
 			return goalsWithDate.rows;
 		}),
+	/**
+	 * Return goals as they were on a specific date
+	 * @param {number} input.active - 0 (false) or 1 (true) to return inactive or active goals respectively
+	 * @param {date} input.date - Date to return goals as they were on
+	 */
+	listGoalsOnDate: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				active: z.number().nonnegative().lte(1).optional().default(1),
+				date: z.date()
+			})
+		)
+		.query(async ({ input }) => {
+			const goalsWithDate = await sql<Goal>`
+				SELECT
+					goals.id,
+					goals.active,
+					goals.orderNumber,
+					goals.title,
+					goals.description,
+					goals.color,
+					MAX(goal_logs.date) as date
+				FROM
+					goals
+				INNER JOIN
+					goal_logs ON goals.id = goal_logs.goalId
+				WHERE
+					goals.active = ${input.active}
+				AND
+					DATE(goal_logs.date) = DATE(${input.date.toISOString()})
+				GROUP BY
+					goals.id
+				ORDER BY
+					date DESC
+			`.execute(db);
+
+			return goalsWithDate.rows;
+		}),
 	add: t.procedure
 		.use(logger)
 		.input(
