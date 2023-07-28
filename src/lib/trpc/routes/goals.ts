@@ -52,6 +52,8 @@ export const goals = t.router({
 					goal_logs ON goals.id = goal_logs.goalId
 				WHERE
 					goals.active = ${input}
+				AND
+					(goal_logs.type = 'start' OR goal_logs.type = 'end')
 				GROUP BY
 					goals.id
 				ORDER BY
@@ -193,8 +195,28 @@ export const goals = t.router({
 		.input(z.number())
 		.mutation(async ({ input }) => {
 			return await db.transaction().execute(async (trx) => {
+				// Need to deal with references first
+
+				// find the intentionIds associated with the goal
+				const intentions = await trx
+					.selectFrom('intentions')
+					.select('id')
+					.where('goalId', '=', input)
+					.execute();
+
+				// delete from outcomes_intentions table
+				for (const intention of intentions) {
+					await trx
+						.deleteFrom('outcomes_intentions')
+						.where('intentionId', '=', intention.id)
+						.execute();
+				}
+
 				// delete from intentions table
 				await trx.deleteFrom('intentions').where('goalId', '=', input).execute();
+
+				// delete from goal_logs table
+				await trx.deleteFrom('goal_logs').where('goalId', '=', input).execute();
 
 				// delete from goals table
 				return await trx.deleteFrom('goals').where('id', '=', input).execute();
