@@ -18,6 +18,12 @@ Dockerfile
 .node-version
 justfile
 
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
 package-lock.json

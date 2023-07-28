@@ -63,14 +63,14 @@
 		You have reached the maximum number of 9 goals. Please delete a goal to add a new one.
 	</Notification>
 {/if}
-<Box class="goal-box-new mx-5 my-2.5 grid">
+<div class="goal-box-new mx-5 my-2.5 grid">
 	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
 	<Box className="goal-box-details">
 		<Box id="new-goal-button" root="button" on:click={addGoal}>
 			<Text class="text-3xl">New Goal</Text>
 		</Box>
 	</Box>
-</Box>
+</div>
 
 <style>
 	.goal-box-new {
