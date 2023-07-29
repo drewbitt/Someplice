@@ -154,7 +154,8 @@ export const goals = t.router({
 	 * Update a goal in getDb() with input goal by ID
 	 * @param {Goal} input - Goal to update
 	 * @param {number} input.id - ID of goal to update
-	 * @returns {UpdateResult[]}
+	 * @returns {UpdateResult}
+	 * @throws {NoResultError} If no goal with the provided ID exists in the database
 	 */
 	edit: t.procedure
 		.use(logger)
@@ -201,6 +202,11 @@ export const goals = t.router({
 
 			return results;
 		}),
+	/**
+	 * Delete a goal by its ID
+	 * @param {number} input - ID of the goal to delete
+	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 */
 	delete: t.procedure
 		.use(logger)
 		.input(z.number())
@@ -242,6 +248,12 @@ export const goals = t.router({
 					return await trx.deleteFrom('goals').where('id', '=', input).execute();
 				});
 		}),
+	/**
+	 * Archive a goal by its ID
+	 * @param {number} input - ID of the goal to archive
+	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 * @throws {Error} If the goal's orderNumber is undefined
+	 */
 	archive: t.procedure
 		.use(logger)
 		.input(z.number())
@@ -302,6 +314,12 @@ export const goals = t.router({
 					return result;
 				});
 		}),
+	/**
+	 * Restore a goal by its ID
+	 * @param {number} input - ID of the goal to restore
+	 * @throws {Error} If no goal with the provided ID exists in the database
+	 * @throws {Error} If the goal is already active
+	 */
 	restore: t.procedure
 		.use(logger)
 		.input(z.number())
