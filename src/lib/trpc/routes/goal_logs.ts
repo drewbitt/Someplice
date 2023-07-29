@@ -1,7 +1,9 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { db } from '$src/lib/db/db';
+import { DbInstance } from '$src/lib/db/db';
 import { z } from 'zod';
+
+const getDb = () => DbInstance.getInstance().db;
 
 export const GoalLogSchema = z.object({
 	id: z.number().nullable(),
@@ -15,7 +17,7 @@ export const goal_logs = t.router({
 		.use(logger)
 		.input(GoalLogSchema)
 		.mutation(async ({ input }) => {
-			return await db
+			return await getDb()
 				.insertInto('goal_logs')
 				.values({ ...input })
 				.execute();
@@ -24,14 +26,14 @@ export const goal_logs = t.router({
 		.use(logger)
 		.input(z.number())
 		.query(async ({ input }) => {
-			return await db
+			return await getDb()
 				.selectFrom('goal_logs')
 				.select(['type', 'date'])
 				.where('goalId', '=', input)
 				.execute();
 		}),
 	getAll: t.procedure.use(logger).query(async () => {
-		return await db.selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
+		return await getDb().selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
 	}),
 	// Just update logs - debugging purposes
 	reactivate: t.procedure
@@ -40,27 +42,29 @@ export const goal_logs = t.router({
 		.mutation(async ({ input }) => {
 			const goalId = input;
 
-			return await db.transaction().execute(async (trx) => {
-				const latestLog = await trx
-					.selectFrom('goal_logs')
-					.select(['type'])
-					.where('goalId', '=', goalId)
-					.orderBy('date', 'desc')
-					.limit(1)
-					.execute();
-
-				if (latestLog[0].type === 'end') {
-					return await trx
-						.insertInto('goal_logs')
-						.values({
-							goalId: goalId,
-							type: 'start',
-							date: new Date().toISOString()
-						})
+			return await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					const latestLog = await trx
+						.selectFrom('goal_logs')
+						.select(['type'])
+						.where('goalId', '=', goalId)
+						.orderBy('date', 'desc')
+						.limit(1)
 						.execute();
-				} else {
-					throw new Error('REACTIVATE_GOAL_ERROR: Goal is already active');
-				}
-			});
+
+					if (latestLog[0].type === 'end') {
+						return await trx
+							.insertInto('goal_logs')
+							.values({
+								goalId: goalId,
+								type: 'start',
+								date: new Date().toISOString()
+							})
+							.execute();
+					} else {
+						throw new Error('REACTIVATE_GOAL_ERROR: Goal is already active');
+					}
+				});
 		})
 });

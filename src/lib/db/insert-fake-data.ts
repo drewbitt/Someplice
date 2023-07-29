@@ -11,7 +11,9 @@ import {
 	randText,
 	randTextRange
 } from '@ngneat/falso';
-import { db } from './db';
+import { DbInstance } from './db';
+
+const db = DbInstance.getInstance().db;
 
 const numberOfGoals = 9;
 const incrementalNumberFactory = incrementalNumber();

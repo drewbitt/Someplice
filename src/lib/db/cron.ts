@@ -2,7 +2,9 @@ import { Cron } from 'croner';
 import type { ValueExpression } from 'kysely';
 import type { DB } from '../types/data';
 import { logger } from '../utils/logger';
-import { db } from './db';
+import { DbInstance } from './db';
+
+const db = DbInstance.getInstance().db;
 
 // Run functions at the interval defined by a cron expression
 // This seperates the creation of the cron jobs into a module

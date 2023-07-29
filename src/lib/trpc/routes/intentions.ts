@@ -1,8 +1,10 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { db } from '$src/lib/db/db';
+import { DbInstance } from '$src/lib/db/db';
 import { sql } from 'kysely';
 import { z } from 'zod';
+
+const getDb = () => DbInstance.getInstance().db;
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -27,7 +29,7 @@ export const intentions = t.router({
 		)
 		.query(({ input }) => {
 			if (input) {
-				return db
+				return getDb()
 					.selectFrom('intentions')
 					.select([
 						'id',
@@ -43,7 +45,7 @@ export const intentions = t.router({
 					.where('date', '<=', input.endDate)
 					.execute();
 			} else {
-				return db
+				return getDb()
 					.selectFrom('intentions')
 					.select([
 						'id',
@@ -58,7 +60,7 @@ export const intentions = t.router({
 			}
 		}),
 	latestIntentions: t.procedure.use(logger).query(async () => {
-		const maxDate = await db
+		const maxDate = await getDb()
 			.selectFrom('intentions')
 			.select(['id', 'date'])
 			.orderBy('date', 'desc')
@@ -66,7 +68,7 @@ export const intentions = t.router({
 			.execute();
 
 		if (maxDate && maxDate[0]?.date) {
-			return db
+			return getDb()
 				.selectFrom('intentions')
 				.select([
 					'id',
@@ -88,7 +90,7 @@ export const intentions = t.router({
 		.use(logger)
 		.input(IntentionsSchema)
 		.mutation(async ({ input }) => {
-			const result = await db
+			const result = await getDb()
 				.updateTable('intentions')
 				.set({
 					goalId: input.goalId,
@@ -110,7 +112,7 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const result = await db
+			const result = await getDb()
 				.updateTable('intentions')
 				.set({
 					text: sql`text || ${input.text}`
@@ -127,17 +129,19 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const results = await db.transaction().execute(async (trx) => {
-				return await Promise.all(
-					input.intentions.map((intention) => {
-						return sql<
-							typeof intention
-						>`INSERT OR REPLACE INTO intentions (id, goalId, orderNumber, completed, text, subIntentionQualifier, date)
+			const results = await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					return await Promise.all(
+						input.intentions.map((intention) => {
+							return sql<
+								typeof intention
+							>`INSERT OR REPLACE INTO intentions (id, goalId, orderNumber, completed, text, subIntentionQualifier, date)
 										 VALUES (${intention.id}, ${intention.goalId}, ${intention.orderNumber}, ${intention.completed},
 										${intention.text}, ${intention.subIntentionQualifier}, ${intention.date}) RETURNING *`.execute(trx);
-					})
-				);
-			});
+						})
+					);
+				});
 			return results;
 		})
 });

@@ -1,11 +1,9 @@
 import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
 import type { DB } from '../types/data';
-import { db as mainDb } from './db';
+import { DbInstance } from './db';
 
 export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
-	if (!db) {
-		db = mainDb;
-	}
+	db = db || DbInstance.getInstance().db;
 
 	const ViteMigrationProvider: MigrationProvider = {
 		async getMigrations() {
@@ -46,10 +44,14 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	if (error) {
 		console.error('failed to migrate');
 		console.error(error);
-		process.exit(1);
+		if (process.env.NODE_ENV !== 'test') {
+			process.exit(1);
+		}
 	}
 
-	await db.destroy();
+	if (process.env.NODE_ENV !== 'test') {
+		await db.destroy();
+	}
 }
 
 if (process.argv[2] === '--migration') {

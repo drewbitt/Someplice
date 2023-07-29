@@ -1,7 +1,9 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { db } from '$src/lib/db/db';
+import { DbInstance } from '$src/lib/db/db';
 import { z } from 'zod';
+
+const getDb = () => DbInstance.getInstance().db;
 
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),
@@ -21,20 +23,20 @@ export const outcomes = t.router({
 		.input(z.date().optional())
 		.query(({ input }) => {
 			if (input) {
-				return db
+				return getDb()
 					.selectFrom('outcomes')
 					.select(['id', 'reviewed', 'date'])
 					.where('date', '=', input.toISOString().split('T')[0])
 					.execute();
 			} else {
-				return db.selectFrom('outcomes').select(['id', 'reviewed', 'date']).execute();
+				return getDb().selectFrom('outcomes').select(['id', 'reviewed', 'date']).execute();
 			}
 		}),
 	listOutcomesIntentions: t.procedure
 		.use(logger)
 		.input(z.number())
 		.query(({ input }) => {
-			return db
+			return getDb()
 				.selectFrom('outcomes_intentions')
 				.select(['outcomeId', 'intentionId'])
 				.where('outcomeId', '=', input)
@@ -53,26 +55,28 @@ export const outcomes = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const result = await db.transaction().execute(async (trx) => {
-				const outcome = await trx
-					.insertInto('outcomes')
-					.values(input.outcome)
-					.returning('id')
-					.executeTakeFirst();
+			const result = await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					const outcome = await trx
+						.insertInto('outcomes')
+						.values(input.outcome)
+						.returning('id')
+						.executeTakeFirst();
 
-				if (!outcome || !outcome.id) {
-					throw new Error('Failed to insert outcome');
-				}
+					if (!outcome || !outcome.id) {
+						throw new Error('Failed to insert outcome');
+					}
 
-				for (const outcomesIntentionsInput of input.outcomesIntentions) {
-					await trx
-						.insertInto('outcomes_intentions')
-						.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
-						.execute();
-				}
+					for (const outcomesIntentionsInput of input.outcomesIntentions) {
+						await trx
+							.insertInto('outcomes_intentions')
+							.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
+							.execute();
+					}
 
-				return { outcomeId: outcome.id };
-			});
+					return { outcomeId: outcome.id };
+				});
 
 			return result;
 		})
