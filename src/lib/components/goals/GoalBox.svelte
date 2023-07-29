@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
+	import { logger } from '$src/lib/utils/logger';
 	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
@@ -40,9 +41,14 @@
 	};
 	const deleteGoal = async () => {
 		if (goal.id) {
-			const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
-			if (deleteResult.length > 0) {
-				await invalidateAll();
+			try {
+				const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
+				if (deleteResult.length > 0) {
+					await invalidateAll();
+				}
+			} catch (error) {
+				// TODO: Show error to user
+				logger.error(error);
 			}
 		}
 	};
@@ -54,9 +60,14 @@
 	};
 	const archiveGoal = async () => {
 		if (goal.id) {
-			const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
-			if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
-				await invalidateAll();
+			try {
+				const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
+				if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
+					await invalidateAll();
+				}
+			} catch (error) {
+				// TODO: Show error to user
+				logger.error(error);
 			}
 		}
 	};
@@ -68,9 +79,14 @@
 	};
 	const restoreGoal = async () => {
 		if (goal.id) {
-			const restoreResult = await trpc($page).goals.restore.mutate(goal.id);
-			if (restoreResult[0]?.numUpdatedRows !== undefined && restoreResult[0].numUpdatedRows > 0) {
-				await invalidateAll();
+			try {
+				const restoreResult = await trpc($page).goals.restore.mutate(goal.id);
+				if (restoreResult[0]?.numUpdatedRows !== undefined && restoreResult[0].numUpdatedRows > 0) {
+					await invalidateAll();
+				}
+			} catch (error) {
+				// TODO: Show error to user
+				logger.error(error);
 			}
 		}
 	};
@@ -99,7 +115,7 @@
 				bind:showModal={showDeletionPrompt}
 				bind:actionConfirmed={deletionConfirmed}
 				title="Delete Goal"
-				message="Are you sure you want to delete this goal? This action is irreversible."
+				message="Are you sure you want to delete this goal? This action is irreversible and will delete all associated history with this goal."
 				action="Delete"
 				actionButtonClass="daisy-btn daisy-btn-error"
 			/>
@@ -109,7 +125,7 @@
 				bind:showModal={showArchivePrompt}
 				bind:actionConfirmed={archiveConfirmed}
 				title="Archive Goal"
-				message="Are you sure you want to archive this goal? This action is reversible."
+				message="Are you sure you want to archive this goal?"
 				action="Archive"
 				actionButtonClass="daisy-btn daisy-btn-accent"
 			/>

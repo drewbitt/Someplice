@@ -108,14 +108,15 @@
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
-		const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
-		if (
-			updatedIntention[0]?.numUpdatedRows !== undefined &&
-			updatedIntention[0].numUpdatedRows <= 0
-		) {
+		try {
+			const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
+			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
+				showDBErrorNotification = true;
+			}
+			return updatedIntention;
+		} catch (error) {
 			showDBErrorNotification = true;
 		}
-		return updatedIntention;
 	};
 
 	const handleUpdateIntentions = async () => {

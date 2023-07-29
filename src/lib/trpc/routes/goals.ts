@@ -164,7 +164,7 @@ export const goals = t.router({
 				.updateTable('goals')
 				.set(input)
 				.where('id', '=', input.id)
-				.execute();
+				.executeTakeFirstOrThrow();
 			return result;
 		}),
 	/**
@@ -208,6 +208,13 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
+					// Check if goal exists
+					await trx
+						.selectFrom('goals')
+						.select('id')
+						.where('id', '=', input)
+						.executeTakeFirstOrThrow();
+
 					// Need to deal with references first
 
 					// find the intentionIds associated with the goal
@@ -247,7 +254,7 @@ export const goals = t.router({
 						.selectFrom('goals')
 						.select(['orderNumber'])
 						.where('id', '=', input)
-						.executeTakeFirst();
+						.executeTakeFirstOrThrow();
 					const archivedGoalOrder = archivedGoal?.orderNumber;
 					if (!archivedGoalOrder) {
 						throw new Error('ARCHIVE_GOAL_ERROR: archivedGoalOrder is undefined');
@@ -307,7 +314,7 @@ export const goals = t.router({
 						.selectFrom('goals')
 						.select(['orderNumber', 'active'])
 						.where('id', '=', input)
-						.executeTakeFirst();
+						.executeTakeFirstOrThrow();
 
 					if (restoreGoal?.active === 1) {
 						throw new Error('RESTORE_GOAL_ERROR: Goal is already active');
