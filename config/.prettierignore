@@ -23,6 +23,7 @@ justfile
 *.jpg
 *.jpeg
 *.gif
+*.ico
 
 # Ignore files for PNPM, NPM and YARN
 pnpm-lock.yaml
