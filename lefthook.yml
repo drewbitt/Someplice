@@ -3,6 +3,8 @@ pre-commit:
   commands:
     format:
       run: pnpm exec prettier --cache --ignore-path ./config/.prettierignore --write {staged_files} && git add {staged_files}
+    test:
+      run: npx vitest --run
 
 commit-msg:
   commands:
