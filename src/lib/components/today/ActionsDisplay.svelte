@@ -15,7 +15,9 @@
 	export let intentions: PageServerData['intentions'];
 	type Intention = (typeof intentions)[0];
 
-	export let handleUpdateSingleIntention: (intentions: Intention) => Promise<UpdateResult[]>;
+	export let handleUpdateSingleIntention: (
+		intentions: Intention
+	) => Promise<UpdateResult | undefined>;
 
 	let showMousoverMenu = false;
 	let showMousoverIndex: number | null = null;
@@ -70,8 +72,8 @@
 				intention = { ...intention, completed: target.checked ? 1 : 0 };
 				const updatedIntention = await handleUpdateSingleIntention(intention);
 				if (
-					updatedIntention[0]?.numUpdatedRows !== undefined &&
-					updatedIntention[0].numUpdatedRows > 0
+					updatedIntention?.numUpdatedRows !== undefined &&
+					updatedIntention?.numUpdatedRows > 0
 				) {
 					intentions = intentions.map((intention) => {
 						if (intention.id === parseInt(intentionId)) {

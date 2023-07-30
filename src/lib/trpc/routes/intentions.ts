@@ -3,6 +3,7 @@ import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
 import { sql } from 'kysely';
 import { z } from 'zod';
+import type { Intention } from '../types';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -59,16 +60,24 @@ export const intentions = t.router({
 					.execute();
 			}
 		}),
-	latestIntentions: t.procedure.use(logger).query(async () => {
+	/**
+	 * Get all the intentions for the latest date
+	 */
+	intentionsOnLatestDate: t.procedure.use(logger).query(async () => {
 		const maxDate = await getDb()
 			.selectFrom('intentions')
 			.select(['id', 'date'])
 			.orderBy('date', 'desc')
-			.limit(1)
-			.execute();
+			.executeTakeFirst();
 
-		if (maxDate && maxDate[0]?.date) {
-			return getDb()
+		if (maxDate) {
+			const startOfDate = new Date(maxDate.date);
+			startOfDate.setHours(0, 0, 0, 0);
+
+			const endOfDate = new Date(maxDate.date);
+			endOfDate.setHours(23, 59, 59, 999);
+
+			const result = await getDb()
 				.selectFrom('intentions')
 				.select([
 					'id',
@@ -79,13 +88,22 @@ export const intentions = t.router({
 					'subIntentionQualifier',
 					'date'
 				])
-				.where('date', '=', maxDate[0].date)
+				.where('date', '>=', startOfDate.toISOString())
+				.where('date', '<=', endOfDate.toISOString())
+				.orderBy('orderNumber', 'asc')
 				.execute();
+
+			return result;
 		} else {
-			return [];
+			return [] as Intention[];
 		}
 	}),
-	/** Edit single intention */
+	/**
+	 * Edit single intention
+	 * @param {IntentionsSchema} input - The intention to edit
+	 * @returns {UpdateResult}
+	 * @throws {NoResultError} If could not edit the intention
+	 */
 	edit: t.procedure
 		.use(logger)
 		.input(IntentionsSchema)
@@ -100,9 +118,15 @@ export const intentions = t.router({
 					subIntentionQualifier: input.subIntentionQualifier
 				})
 				.where('id', '=', input.id)
-				.execute();
+				.executeTakeFirstOrThrow();
 			return result;
 		}),
+	/**
+	 * Append text to an intention's text
+	 * @param { { id: number, text: string } } input - The intention to edit and the text to append
+	 * @returns {UpdateResult}
+	 * @throws {NoResultError} If could not edit the intention
+	 */
 	appendText: t.procedure
 		.use(logger)
 		.input(
@@ -118,9 +142,15 @@ export const intentions = t.router({
 					text: sql`text || ${input.text}`
 				})
 				.where('id', '=', input.id)
-				.execute();
+				.executeTakeFirstOrThrow();
 			return result;
 		}),
+	/**
+	 * Replace the intentions with the given intentions, based on the id
+	 * Also acts as an upsert - if the intention doesn't exist, it will be created
+	 * @param { { intentions: Intention[] } } input - The intentions to update
+	 * @returns {QueryResult<Intention>[]} - the rows parameter will always be defined, but empty since we're not returning anything
+	 */
 	updateIntentions: t.procedure
 		.use(logger)
 		.input(

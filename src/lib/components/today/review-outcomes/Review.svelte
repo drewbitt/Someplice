@@ -5,20 +5,20 @@
 	import { Box, createStyles } from '@svelteuidev/core';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 
-	export let latestIntentions: Intention[];
+	export let intentionsOnLatestDate: Intention[];
 
 	let showPageLoadingSpinner = true;
 	let daysAgo: number;
 	let goalsOnDate: Goal[];
 
 	$: {
-		listGoalsOnDate(new Date(latestIntentions[0].date)).then((result) => {
+		listGoalsOnDate(new Date(intentionsOnLatestDate[0].date)).then((result) => {
 			goalsOnDate = result;
 			showPageLoadingSpinner = false;
 		});
 
 		const currentDate = new Date();
-		const intentionDate = new Date(latestIntentions[0].date);
+		const intentionDate = new Date(intentionsOnLatestDate[0].date);
 		const timeDiff = Math.abs(currentDate.getTime() - intentionDate.getTime());
 		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
 	}
@@ -44,7 +44,7 @@
 <Box class="items-center p-4 {getStyles()}">
 	<section class="flex flex-col rounded-lg bg-white p-4 shadow-lg">
 		<h1 class="mb-5 text-center text-2xl">
-			Finish reviewing {new Date(latestIntentions[0].date).toLocaleDateString('en-US', {
+			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
 				weekday: 'long',
 				month: 'short',
 				day: 'numeric'

@@ -13,6 +13,12 @@ export const GoalLogSchema = z.object({
 });
 
 export const goal_logs = t.router({
+	/**
+	 * Create a new goal log
+	 * @param {GoalLogSchema} input - The goal log to create
+	 * @returns {InsertResult}
+	 * @throws {NoResultError} If could not create the goal log
+	 */
 	create: t.procedure
 		.use(logger)
 		.input(GoalLogSchema)
@@ -20,7 +26,7 @@ export const goal_logs = t.router({
 			return await getDb()
 				.insertInto('goal_logs')
 				.values({ ...input })
-				.execute();
+				.executeTakeFirstOrThrow();
 		}),
 	get: t.procedure
 		.use(logger)
@@ -35,7 +41,8 @@ export const goal_logs = t.router({
 	getAll: t.procedure.use(logger).query(async () => {
 		return await getDb().selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
 	}),
-	// Just update logs - debugging purposes
+	// Just update logs - for debugging purposes
+	// TODO: Remove this
 	reactivate: t.procedure
 		.use(logger)
 		.input(z.number())
@@ -50,10 +57,9 @@ export const goal_logs = t.router({
 						.select(['type'])
 						.where('goalId', '=', goalId)
 						.orderBy('date', 'desc')
-						.limit(1)
-						.execute();
+						.executeTakeFirstOrThrow();
 
-					if (latestLog[0].type === 'end') {
+					if (latestLog.type === 'end') {
 						return await trx
 							.insertInto('goal_logs')
 							.values({

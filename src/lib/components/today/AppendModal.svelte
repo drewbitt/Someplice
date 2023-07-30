@@ -4,6 +4,7 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import { logger } from '$src/lib/utils/logger';
 	import { Grid, Input, Modal } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 
@@ -20,11 +21,12 @@
 	};
 	let appendText = async (text: string) => {
 		if (intention.id != null) {
-			const result = await trpc($page).intentions.appendText.mutate({ id: intention.id, text });
-			if (result.length > 0) {
+			try {
+				await trpc($page).intentions.appendText.mutate({ id: intention.id, text });
 				closeAppendModal();
 				await invalidateAll();
-			} else {
+			} catch (error) {
+				logger.error(error);
 				showDBErrorNotification = true;
 			}
 		}

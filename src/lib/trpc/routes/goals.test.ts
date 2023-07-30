@@ -33,6 +33,7 @@ describe('goals', () => {
 
 	it('list goals for both active and inactive', async () => {
 		const activeStates = [1, 0];
+		// Loop through both active states
 		for (const activeState of activeStates) {
 			const added1 = await goals.add({
 				rawInput: TEST_GOAL,
@@ -41,6 +42,7 @@ describe('goals', () => {
 				ctx: {}
 			});
 			const id1 = Number((added1 as any)[0]?.insertId);
+			// Archive the goal to make it inactive
 			if (activeState === 0) {
 				await goals.archive({ rawInput: id1, path: 'archive', type: 'mutation', ctx: {} });
 			}

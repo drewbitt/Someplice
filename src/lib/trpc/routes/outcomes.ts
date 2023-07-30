@@ -54,6 +54,7 @@ export const outcomes = t.router({
 				)
 			})
 		)
+		// deepcode ignore Sqli: incorrectly reports sql injection
 		.query(async ({ input }) => {
 			const result = await getDb()
 				.transaction()
@@ -62,17 +63,15 @@ export const outcomes = t.router({
 						.insertInto('outcomes')
 						.values(input.outcome)
 						.returning('id')
-						.executeTakeFirst();
+						.executeTakeFirstOrThrow();
 
-					if (!outcome || !outcome.id) {
-						throw new Error('Failed to insert outcome');
-					}
+					if (!outcome.id) throw new Error('Outcome id is null');
 
 					for (const outcomesIntentionsInput of input.outcomesIntentions) {
 						await trx
 							.insertInto('outcomes_intentions')
 							.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
-							.execute();
+							.executeTakeFirstOrThrow();
 					}
 
 					return { outcomeId: outcome.id };
