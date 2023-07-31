@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { evenLighterHSLColor } from '$src/lib/utils';
-	import { logger } from '$src/lib/utils/logger';
+	import { appLogger } from '$src/lib/utils/logger';
 	import { Box } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
@@ -29,7 +29,7 @@
 			}
 		} catch (error) {
 			// TODO: handle error
-			logger.error(error);
+			appLogger.error(error);
 		}
 	});
 </script>

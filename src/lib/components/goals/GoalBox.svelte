@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
-	import { logger } from '$src/lib/utils/logger';
+	import { appLogger } from '$src/lib/utils/logger';
 	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
@@ -48,7 +48,7 @@
 				}
 			} catch (error) {
 				// TODO: Show error to user
-				logger.error(error);
+				appLogger.error(error);
 			}
 		}
 	};
@@ -67,7 +67,7 @@
 				}
 			} catch (error) {
 				// TODO: Show error to user
-				logger.error(error);
+				appLogger.error(error);
 			}
 		}
 	};
@@ -84,7 +84,7 @@
 				await invalidateAll();
 			} catch (error) {
 				// TODO: Show error to user
-				logger.error(error);
+				appLogger.error(error);
 			}
 		}
 	};

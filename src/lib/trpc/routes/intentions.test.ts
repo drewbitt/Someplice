@@ -246,14 +246,6 @@ describe('intentions', () => {
 		} catch (e) {
 			error = e;
 		}
-		// debug - lets print the list
-		const result = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
-		console.log(result);
 		expect(error).toBeDefined();
 	});
 

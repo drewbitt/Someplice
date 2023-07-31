@@ -1,8 +1,8 @@
 import { Cron } from 'croner';
 import type { ValueExpression } from 'kysely';
 import type { DB } from '../types/data';
-import { logger } from '../utils/logger';
 import { DbInstance } from './db';
+import { cronLogger } from '../utils/logger';
 
 const db = DbInstance.getInstance().db;
 
@@ -46,7 +46,7 @@ export function createCronJobs() {
 		// associate the intentions with the outcome
 		for (const intention of intentions) {
 			await db.transaction().execute(async (db) => {
-				logger.info(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+				cronLogger.info(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 
 				// Check if the pair already exists in the table
 				const existingPair = await db
@@ -58,7 +58,7 @@ export function createCronJobs() {
 
 				// If the pair does not exist, insert it
 				if (existingPair.length === 0) {
-					logger.info(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+					cronLogger.info(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 					await db
 						.insertInto('outcomes_intentions')
 						.values({
@@ -73,7 +73,7 @@ export function createCronJobs() {
 }
 
 export async function checkMissingOutcomes() {
-	logger.info('Checking for missing outcomes from past days when the application is restarted');
+	cronLogger.info('Checking for missing outcomes from past days when the application is restarted');
 	const intentions = await db.selectFrom('intentions').selectAll().execute();
 
 	for (const intention of intentions) {
@@ -87,7 +87,7 @@ export async function checkMissingOutcomes() {
 
 		if (!outcomeId) {
 			// if there's no outcome for the intention's date, create one and associate it with the intention
-			logger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+			cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 			await db.transaction().execute(async (db) => {
 				const newOutcome = await db
 					.insertInto('outcomes')
@@ -109,7 +109,7 @@ export async function checkMissingOutcomes() {
 
 			// If the pair does not exist, insert it
 			if (existingPair.length === 0) {
-				logger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+				cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 				await db
 					.insertInto('outcomes_intentions')
 					.values({
@@ -120,7 +120,7 @@ export async function checkMissingOutcomes() {
 			}
 		});
 	}
-	logger.info(
+	cronLogger.info(
 		'Finished checking for missing outcomes from past days when the application is restarted'
 	);
 }

@@ -12,6 +12,7 @@ import {
 	randTextRange
 } from '@ngneat/falso';
 import { DbInstance } from './db';
+import { dbLogger } from '$src/lib/utils/logger';
 
 const db = DbInstance.getInstance().db;
 
@@ -158,7 +159,7 @@ async function insertFakeData() {
 		await db.insertInto('outcomes_intentions').values(outcomesIntentions).execute();
 		await db.insertInto('goal_logs').values(goal_logs).execute();
 	});
-	console.log(
+	dbLogger.info(
 		`Inserted ${numberOfGoals} goals, 50 intentions, 20 outcomes, 40 outcomes_intentions, and ${numberOfGoals} start dates.`
 	);
 }

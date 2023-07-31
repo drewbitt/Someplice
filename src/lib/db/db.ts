@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { DB } from '../types/data';
-import { logger } from '../utils/logger';
+import { dbLogger } from '$src/lib/utils/logger';
 
 let fileDbInstance: Kysely<DB> | null = null;
 
@@ -29,7 +29,7 @@ export class DbInstance {
 	}
 
 	private initDb(betterSqlite3: InstanceType<typeof Database>): Kysely<DB> {
-		logger.info('Initializing db instance');
+		dbLogger.info('Initializing db instance');
 		// Define REGEXP function
 		betterSqlite3.function('regexp', { deterministic: true }, (regex: unknown, text: unknown) => {
 			if (typeof regex === 'string' && typeof text === 'string') {
@@ -54,7 +54,7 @@ export class DbInstance {
 
 	setNewTestDb() {
 		if (process.env.NODE_ENV === 'test') {
-			logger.info('Setting new test db');
+			dbLogger.info('Setting new test db');
 			const betterSqlite3 = new Database(':memory:');
 			this._db = this.initDb(betterSqlite3);
 		}

@@ -1,5 +1,6 @@
 import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
 import type { DB } from '../types/data';
+import { dbLogger } from '$src/lib/utils/logger';
 import { DbInstance } from './db';
 
 export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
@@ -34,12 +35,12 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 
 	results?.forEach((it) => {
 		if (it.status === 'Success') {
-			console.log(`migration "${it.migrationName}" was executed successfully`);
+			dbLogger.debug(`migration "${it.migrationName}" was executed successfully`);
 		} else if (it.status === 'Error') {
 			console.error(`failed to execute migration "${it.migrationName}"`);
 		}
 	});
-	console.log(`Ran ${results?.length} migrations`);
+	dbLogger.info(`Ran ${results?.length} migrations`);
 
 	if (error) {
 		console.error('failed to migrate');

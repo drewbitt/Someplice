@@ -4,7 +4,7 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import { logger } from '$src/lib/utils/logger';
+	import { appLogger } from '$src/lib/utils/logger';
 	import { Grid, Input, Modal } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 
@@ -26,7 +26,7 @@
 				closeAppendModal();
 				await invalidateAll();
 			} catch (error) {
-				logger.error(error);
+				appLogger.error(error);
 				showDBErrorNotification = true;
 			}
 		}
