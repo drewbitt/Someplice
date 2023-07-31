@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { evenLighterHSLColor } from '$src/lib/utils';
+	import { logger } from '$src/lib/utils/logger';
 	import { Box } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
@@ -13,17 +14,22 @@
 	onMount(async () => {
 		if (!goal.id) return;
 
-		const goalLogs = await trpc($page).goal_logs.get.query(goal.id);
-		if (goalLogs.length > 0) {
-			// filter 'start' and 'end' dates and sort them in descending order
-			const startDates = goalLogs
-				.filter((log) => log.type === 'start')
-				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-			const endDates = goalLogs
-				.filter((log) => log.type === 'end')
-				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-			startDate = startDates[0]?.date ?? '';
-			endDate = endDates[0]?.date ?? '';
+		try {
+			const goalLogs = await trpc($page).goal_logs.getAllForGoal.query(goal.id);
+			if (goalLogs.length > 0) {
+				// filter 'start' and 'end' dates and sort them in descending order
+				const startDates = goalLogs
+					.filter((log) => log.type === 'start')
+					.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+				const endDates = goalLogs
+					.filter((log) => log.type === 'end')
+					.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+				startDate = startDates[0]?.date ?? '';
+				endDate = endDates[0]?.date ?? '';
+			}
+		} catch (error) {
+			// TODO: handle error
+			logger.error(error);
 		}
 	});
 </script>

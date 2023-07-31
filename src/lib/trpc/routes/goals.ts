@@ -326,7 +326,8 @@ export const goals = t.router({
 	/**
 	 * Restore a goal by its ID
 	 * @param {number} input - ID of the goal to restore
-	 * @throws {Error} If no goal with the provided ID exists in the database
+	 * @returns {UpdateResult}
+	 * @throws {NoResultError} If no goal with the provided ID exists in the database
 	 * @throws {Error} If the goal is already active
 	 */
 	restore: t.procedure
@@ -374,7 +375,7 @@ export const goals = t.router({
 								type: 'start',
 								date: new Date().toISOString()
 							})
-							.execute();
+							.executeTakeFirst();
 					}
 
 					return result;

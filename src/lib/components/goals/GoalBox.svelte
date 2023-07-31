@@ -80,10 +80,8 @@
 	const restoreGoal = async () => {
 		if (goal.id) {
 			try {
-				const restoreResult = await trpc($page).goals.restore.mutate(goal.id);
-				if (restoreResult[0]?.numUpdatedRows !== undefined && restoreResult[0].numUpdatedRows > 0) {
-					await invalidateAll();
-				}
+				await trpc($page).goals.restore.mutate(goal.id);
+				await invalidateAll();
 			} catch (error) {
 				// TODO: Show error to user
 				logger.error(error);

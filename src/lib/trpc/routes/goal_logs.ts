@@ -28,15 +28,29 @@ export const goal_logs = t.router({
 				.values({ ...input })
 				.executeTakeFirstOrThrow();
 		}),
-	get: t.procedure
+	/**
+	 * Get all goal logs for a goal
+	 * @param {number} input - The goal ID
+	 * @returns {GoalLog[]}
+	 * @throws {NoResultError} If could not find any goal logs for the goal
+	 */
+	getAllForGoal: t.procedure
 		.use(logger)
 		.input(z.number())
 		.query(async ({ input }) => {
-			return await getDb()
+			// Check if goal exists and throw error if not
+			await getDb()
+				.selectFrom('goals')
+				.select(['id'])
+				.where('id', '=', input)
+				.executeTakeFirstOrThrow();
+
+			const result = await getDb()
 				.selectFrom('goal_logs')
-				.select(['type', 'date'])
+				.selectAll()
 				.where('goalId', '=', input)
 				.execute();
+			return result;
 		}),
 	getAll: t.procedure.use(logger).query(async () => {
 		return await getDb().selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
