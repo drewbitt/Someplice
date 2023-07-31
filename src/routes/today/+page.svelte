@@ -16,7 +16,7 @@
 
 	// let declarations grouped together
 	let intentions = data.intentions;
-	let latestIntentions = data.latestIntentions;
+	let intentionsOnLatestDate = data.intentionsOnLatestDate;
 	let additionalIntentions: Intentions[] = [];
 	let validIntentions: boolean;
 	let showValidIntentionsNotification = false;
@@ -78,7 +78,7 @@
 		Check if the latest intentions have an outcome reviewed on the same day
 	*/
 	const isOldOutcomeOutstanding = async () => {
-		const latestIntentionDate = new Date(latestIntentions[0].date);
+		const latestIntentionDate = new Date(intentionsOnLatestDate[0].date);
 		const outcomes = await listOutcomesOnDate(latestIntentionDate);
 		// if there are no outcomes on the same day as the latest intentions, or if it is reviewed = false
 		if (outcomes.length === 0 || !outcomes[0].reviewed) {
@@ -162,7 +162,7 @@
 			</Notification>
 			<!-- if there are no intentions set today -->
 		{:else if hasOutstandingOutcome}
-			<Review {latestIntentions} />
+			<Review {intentionsOnLatestDate} />
 			<!-- if there are intentions already set today -->
 		{:else if intentionsFromServer.length > 0}
 			<ActionsDisplay

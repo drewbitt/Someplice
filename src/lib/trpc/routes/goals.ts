@@ -1,7 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
-import { sql } from 'kysely';
+import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Goal } from '../types';
 
@@ -79,6 +79,11 @@ export const goals = t.router({
 			})
 		)
 		.query(async ({ input }) => {
+			const startOfDate = new Date(input.date);
+			startOfDate.setHours(0, 0, 0, 0);
+			const endOfDate = new Date(input.date);
+			endOfDate.setHours(23, 59, 59, 999);
+
 			const goalsWithDate = await sql<Goal>`
 				SELECT
 					goals.id,
@@ -95,7 +100,9 @@ export const goals = t.router({
 				WHERE
 					goals.active = ${input.active}
 				AND
-					DATE(goal_logs.date) = DATE(${input.date.toISOString()})
+					goal_logs.date >= ${startOfDate.toISOString()}
+				AND 
+					goal_logs.date <= ${endOfDate.toISOString()}
 				GROUP BY
 					goals.id
 				ORDER BY
@@ -161,11 +168,13 @@ export const goals = t.router({
 		.use(logger)
 		.input(GoalSchema)
 		.mutation(async ({ input }) => {
-			const result = await getDb()
-				.updateTable('goals')
-				.set(input)
-				.where('id', '=', input.id)
-				.executeTakeFirstOrThrow();
+			const query = getDb().updateTable('goals').set(input).where('id', '=', input.id);
+			const result = await query.executeTakeFirst();
+			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
+			// Manual throw
+			if (Number(result?.numUpdatedRows) === 0) {
+				throw new NoResultError(query.toOperationNode());
+			}
 			return result;
 		}),
 	/**

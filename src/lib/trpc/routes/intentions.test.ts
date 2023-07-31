@@ -87,6 +87,7 @@ describe('intentions', () => {
 			orderNumber: 3
 		};
 
+		// Add second intention
 		const added2 = await intentions.updateIntentions({
 			rawInput: {
 				intentions: [TEST_INTENTION_2]
@@ -97,6 +98,7 @@ describe('intentions', () => {
 		});
 		expect(added2).toBeDefined();
 
+		// Check that the second intention is returned
 		const result = (await intentions.intentionsOnLatestDate({
 			rawInput: undefined,
 			path: 'intentionsOnLatestDate',
@@ -107,7 +109,8 @@ describe('intentions', () => {
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(expect.objectContaining(TEST_INTENTION_2));
-		// Add another intention with the same latest date and make sure it is returned
+
+		// Add another intention with the same latest date, but later id
 		const added3 = await intentions.updateIntentions({
 			rawInput: {
 				intentions: [TEST_INTENTION_3]
@@ -127,6 +130,7 @@ describe('intentions', () => {
 
 		expect(result2).toBeInstanceOf(Array);
 		expect(result2).toHaveLength(2);
+		// Ensure the smaller id is returned
 		expect(result2[0]).toEqual(expect.objectContaining(TEST_INTENTION_2));
 	});
 
@@ -162,6 +166,30 @@ describe('intentions', () => {
 		expect(result[0]).toEqual(expect.objectContaining(editedIntention));
 	});
 
+	it('edit with invalid id', async () => {
+		const added = (await intentions.updateIntentions({
+			rawInput: { intentions: [TEST_INTENTION] },
+			path: 'updateIntentions',
+			type: 'mutation',
+			ctx: {}
+		})) as QueryResult<Intention>[];
+		expect(added).toBeDefined();
+
+		const editedIntention = { ...TEST_INTENTION, id: 9999 }; // Invalid id
+		let error;
+		try {
+			(await intentions.edit({
+				rawInput: editedIntention,
+				path: 'edit',
+				type: 'mutation',
+				ctx: {}
+			})) as UpdateResult;
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+	});
+
 	it('appendText', async () => {
 		// Add a new intention
 		const added = (await intentions.updateIntentions({
@@ -195,6 +223,38 @@ describe('intentions', () => {
 		expect(result[0]).toEqual(
 			expect.objectContaining({ ...TEST_INTENTION, text: TEST_INTENTION.text + appendText })
 		);
+	});
+
+	it('appendText with invalid id', async () => {
+		const added = (await intentions.updateIntentions({
+			rawInput: { intentions: [TEST_INTENTION] },
+			path: 'updateIntentions',
+			type: 'mutation',
+			ctx: {}
+		})) as QueryResult<Intention>[];
+		expect(added).toBeDefined();
+
+		const appendText = '';
+		let error;
+		try {
+			(await intentions.appendText({
+				rawInput: { id: 9999, text: appendText }, // Invalid id
+				path: 'appendText',
+				type: 'mutation',
+				ctx: {}
+			})) as UpdateResult;
+		} catch (e) {
+			error = e;
+		}
+		// debug - lets print the list
+		const result = (await intentions.list({
+			rawInput: undefined,
+			path: 'list',
+			type: 'query',
+			ctx: {}
+		})) as Intention[];
+		console.log(result);
+		expect(error).toBeDefined();
 	});
 
 	it('updateIntentions', async () => {

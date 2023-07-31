@@ -1,7 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
-import { sql } from 'kysely';
+import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
 
@@ -108,7 +108,8 @@ export const intentions = t.router({
 		.use(logger)
 		.input(IntentionsSchema)
 		.mutation(async ({ input }) => {
-			const result = await getDb()
+			if (!input.id) throw new Error('No id provided');
+			const query = getDb()
 				.updateTable('intentions')
 				.set({
 					goalId: input.goalId,
@@ -117,8 +118,13 @@ export const intentions = t.router({
 					text: input.text,
 					subIntentionQualifier: input.subIntentionQualifier
 				})
-				.where('id', '=', input.id)
-				.executeTakeFirstOrThrow();
+				.where('id', '=', input.id);
+			const result = await query.executeTakeFirst();
+			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
+			// Manual throw
+			if (Number(result?.numUpdatedRows) === 0) {
+				throw new NoResultError(query.toOperationNode());
+			}
 			return result;
 		}),
 	/**
@@ -136,13 +142,19 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const result = await getDb()
+			if (!input.id) throw new Error('No id provided');
+			const query = getDb()
 				.updateTable('intentions')
 				.set({
 					text: sql`text || ${input.text}`
 				})
-				.where('id', '=', input.id)
-				.executeTakeFirstOrThrow();
+				.where('id', '=', input.id);
+			const result = await query.executeTakeFirst();
+			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
+			// Manual throw
+			if (Number(result?.numUpdatedRows) === 0) {
+				throw new NoResultError(query.toOperationNode());
+			}
 			return result;
 		}),
 	/**
