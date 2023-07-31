@@ -54,37 +54,5 @@ export const goal_logs = t.router({
 		}),
 	getAll: t.procedure.use(logger).query(async () => {
 		return await getDb().selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
-	}),
-	// Just update logs - for debugging purposes
-	// TODO: Remove this
-	reactivate: t.procedure
-		.use(logger)
-		.input(z.number())
-		.mutation(async ({ input }) => {
-			const goalId = input;
-
-			return await getDb()
-				.transaction()
-				.execute(async (trx) => {
-					const latestLog = await trx
-						.selectFrom('goal_logs')
-						.select(['type'])
-						.where('goalId', '=', goalId)
-						.orderBy('date', 'desc')
-						.executeTakeFirstOrThrow();
-
-					if (latestLog.type === 'end') {
-						return await trx
-							.insertInto('goal_logs')
-							.values({
-								goalId: goalId,
-								type: 'start',
-								date: new Date().toISOString()
-							})
-							.execute();
-					} else {
-						throw new Error('REACTIVATE_GOAL_ERROR: Goal is already active');
-					}
-				});
-		})
+	})
 });

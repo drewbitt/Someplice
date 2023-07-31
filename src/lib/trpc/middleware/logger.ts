@@ -7,7 +7,13 @@ export const logger = t.middleware(async ({ path, type, next }) => {
 	const ms = Date.now() - start;
 	trpcLogger.debug(`${result.ok ? 'OK' : 'ERR'} ${type} ${path} - ${ms}ms`);
 	if (!result.ok) {
-		trpcLogger.error(result.error);
+		if (process.env.NODE_ENV === 'test') {
+			trpcLogger.error(
+				`Got error in test environment. Message: ${result.error.message}, Code: ${result.error.code}`
+			);
+		} else {
+			trpcLogger.error(result.error);
+		}
 	}
 	return result;
 });
