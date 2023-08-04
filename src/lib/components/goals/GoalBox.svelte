@@ -99,11 +99,11 @@
 	$: ({ getStyles } = darkModeStyles());
 </script>
 
-<Box role="listitem" class="mb-2.5">
+<Box role="listitem">
 	<div
 		style="background-color: {goalColor}"
 		use:cssvariable={{ 'goal-color': goalColor }}
-		class="goal-box mx-5 mt-2.5 grid"
+		class="goal-box mx-5 grid"
 	>
 		<Box root="span" class="font-mono text-7xl {getStyles()} pl-2" className="goal-box-number">
 			{goal.active ? goal.orderNumber : 'X'}
