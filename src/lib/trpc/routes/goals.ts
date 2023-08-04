@@ -106,7 +106,7 @@ export const goals = t.router({
 				GROUP BY
 					goals.id
 				ORDER BY
-					date DESC
+					goals.orderNumber ASC
 			`.execute(getDb());
 
 			return goalsWithDate.rows;

@@ -89,14 +89,14 @@
 		}
 	};
 
-	const darkModeStyles = createStyles(() => ({
+	const useStyles = createStyles(() => ({
 		root: {
 			darkMode: {
 				color: 'white'
 			}
 		}
 	}));
-	$: ({ getStyles } = darkModeStyles());
+	$: ({ cx, getStyles } = useStyles());
 </script>
 
 <Box role="listitem">
@@ -105,7 +105,7 @@
 		use:cssvariable={{ 'goal-color': goalColor }}
 		class="goal-box mx-5 grid"
 	>
-		<Box root="span" class="font-mono text-7xl {getStyles()} pl-2" className="goal-box-number">
+		<Box root="span" class={cx('font-mono text-7xl pl-2', getStyles())} className="goal-box-number">
 			{goal.active ? goal.orderNumber : 'X'}
 		</Box>
 		{#if showDeletionPrompt}

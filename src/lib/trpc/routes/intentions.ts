@@ -18,6 +18,11 @@ export const IntentionsSchema = z.object({
 });
 
 export const intentions = t.router({
+	/**
+	 * List all intentions
+	 * @param { { startDate?: string, endDate?: string } } input - The start and end date to filter by (optional)
+	 * @returns {Intention[]} - The intentions
+	 */
 	list: t.procedure
 		.use(logger)
 		.input(

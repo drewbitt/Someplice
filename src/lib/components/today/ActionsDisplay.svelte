@@ -118,7 +118,7 @@
 		}
 	};
 
-	const darkModeStyles = createStyles(
+	const useStyles = createStyles(
 		(theme: {
 			fn: {
 				themeColor: (color: string, shade: number) => string;
@@ -136,7 +136,7 @@
 			}
 		})
 	);
-	$: ({ classes } = darkModeStyles());
+	$: ({ classes } = useStyles());
 </script>
 
 <Paper shadow="sm">

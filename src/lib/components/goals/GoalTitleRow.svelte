@@ -7,14 +7,14 @@
 	export let title: string;
 	export let isInactiveGoal = false;
 
-	const darkModeStyles = createStyles(() => ({
+	const useStyles = createStyles(() => ({
 		root: {
 			darkMode: {
 				color: 'white !important'
 			}
 		}
 	}));
-	$: ({ getStyles } = darkModeStyles());
+	$: ({ cx, getStyles } = useStyles());
 	// TODO: Change Input to TextInput (allowing for easy erroring) when you can set input classnames directly
 	// Not currently possible in svelteui.
 </script>
@@ -24,7 +24,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<Input
 				bind:value={title}
-				class="max-w-lg border-opacity-20 bg-transparent px-0 text-3xl {getStyles()}"
+				class={cx('max-w-lg border-opacity-20 bg-transparent px-0 text-3xl', getStyles())}
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
