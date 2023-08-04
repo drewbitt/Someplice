@@ -17,8 +17,9 @@ vite.config.ts.timestamp-*
 Dockerfile
 .node-version
 justfile
+.gitignore
 
-# Images
+# Ignore images
 *.png
 *.jpg
 *.jpeg
@@ -29,3 +30,7 @@ justfile
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+
+# Ignore devbox
+devbox.json
+devbox.lock

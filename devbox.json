@@ -1,8 +1,6 @@
 {
-	"packages": ["nodejs-18_x", "nodePackages.pnpm"],
-	"shell": {
-		"init_hook": null
-	},
+	"packages": ["nodePackages.pnpm", "nodejs@20"],
+	"shell": {},
 	"nixpkgs": {
 		"commit": "5eb98948b66de29f899c7fe27ae112a47964baf8"
 	}
