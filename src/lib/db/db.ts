@@ -1,7 +1,7 @@
+import { dbLogger } from '$src/lib/utils/logger';
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { DB } from '../types/data';
-import { dbLogger } from '$src/lib/utils/logger';
 
 let fileDbInstance: Kysely<DB> | null = null;
 
@@ -29,7 +29,7 @@ export class DbInstance {
 	}
 
 	private initDb(betterSqlite3: InstanceType<typeof Database>): Kysely<DB> {
-		dbLogger.info('Initializing db instance');
+		dbLogger.debug('Initializing db instance');
 		// Define REGEXP function
 		betterSqlite3.function('regexp', { deterministic: true }, (regex: unknown, text: unknown) => {
 			if (typeof regex === 'string' && typeof text === 'string') {
