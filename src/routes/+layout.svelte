@@ -4,6 +4,9 @@
 	import '../app.postcss';
 	import theme from '$lib/stores/theme';
 	import { derived } from 'svelte/store';
+	import { pwaInfo } from 'virtual:pwa-info';
+
+	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 
 	const isDark = derived(theme, ($theme) => $theme === 'dark');
 
@@ -11,6 +14,10 @@
 		theme.update((theme) => (theme === 'dark' ? 'light' : 'dark'));
 	}
 </script>
+
+<svelte:head>
+	{@html webManifestLink}
+</svelte:head>
 
 <SvelteUIProvider class="h-screen" themeObserver={$isDark ? 'dark' : 'light'} withGlobalStyles>
 	<AppShell
