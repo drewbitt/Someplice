@@ -9,7 +9,7 @@ export const trpcLogger = new Logger({
 	name: 'trpcLogger',
 	hideLogPositionForProduction: true,
 	prettyLogTemplate: '{{name}} ',
-	minLevel: process.env.NODE_ENV === 'test' ? 3 : 1
+	minLevel: import.meta.env.PROD || process.env.NODE_ENV === 'test' ? 4 : 1
 });
 export const cronLogger = new Logger({ name: 'cronLogger' });
 

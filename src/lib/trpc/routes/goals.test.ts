@@ -230,9 +230,15 @@ describe('goals', () => {
 
 	it('edit a non-existent goal', async () => {
 		const id = 99999; // Non-existing ID
+		const orderNumber = 1;
 		let error;
 		try {
-			await goals.edit({ rawInput: { ...TEST_GOAL, id }, path: 'edit', type: 'mutation', ctx: {} });
+			await goals.edit({
+				rawInput: { ...TEST_GOAL, id, orderNumber },
+				path: 'edit',
+				type: 'mutation',
+				ctx: {}
+			});
 		} catch (e) {
 			error = e;
 		}
