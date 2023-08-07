@@ -3,7 +3,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/drewbitt/Someplice">
-    <img src="src/lib/assets/someplice-compressed-logo-2023-01-21.svg" alt="Logo" width="150" height="150">
+    <img src="src/lib/assets/someplice-compressed-logo-2023-01-21-no-padding.svg" alt="Logo" width="100" height="100">
   </a>
 
 <h3 align="center">Someplice</h3>
@@ -11,9 +11,9 @@
   <p align="center">
     🎯📈 Someplice is a self-hosted application that helps you achieve your goals. Built with SvelteKit and SQLite, it lets you set daily intentions and track your progress effectively.
     <br />
-    <a href="https://github.com/github_username/repo_name/issues">Report Bug</a>
+    <a href="https://github.com/drewbitt/Someplice/issues">Report Bug</a>
     ·
-    <a href="https://github.com/github_username/repo_name/issues">Request Feature</a>
+    <a href="https://github.com/drewbitt/Someplice/issues">Request Feature</a>
   </p>
 </div>
 
