@@ -27,7 +27,7 @@
 		"devalue": "^4.3.2",
 		"kysely": "^0.26.1",
 		"trpc-sveltekit": "^3.5.20",
-		"tslog": "4.8.2",
+		"tslog": "^4.8.7",
 		"vite-node": "^0.34.1",
 		"zod": "^3.21.4"
 	},
@@ -41,8 +41,8 @@
 		"@sveltejs/kit": "^1.22.4",
 		"@types/better-sqlite3": "^7.6.4",
 		"@types/node": "^20.4.8",
-		"@typescript-eslint/eslint-plugin": "^6.2.1",
-		"@typescript-eslint/parser": "^6.2.1",
+		"@typescript-eslint/eslint-plugin": "^6.3.0",
+		"@typescript-eslint/parser": "^6.3.0",
 		"@vite-pwa/sveltekit": "^0.2.5",
 		"autoprefixer": "^10.4.14",
 		"cross-env": "^7.0.3",
@@ -65,7 +65,7 @@
 		"tslib": "^2.6.1",
 		"typescript": "^5.1.6",
 		"unplugin-icons": "^0.16.5",
-		"vite": "^4.4.8",
+		"vite": "^4.4.9",
 		"vite-plugin-pwa": "^0.16.4",
 		"vitest": "^0.34.1"
 	},
