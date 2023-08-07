@@ -46,7 +46,7 @@ export function createCronJobs() {
 		// associate the intentions with the outcome
 		for (const intention of intentions) {
 			await db.transaction().execute(async (db) => {
-				cronLogger.info(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+				cronLogger.debug(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 
 				// Check if the pair already exists in the table
 				const existingPair = await db
@@ -58,7 +58,7 @@ export function createCronJobs() {
 
 				// If the pair does not exist, insert it
 				if (existingPair.length === 0) {
-					cronLogger.info(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+					cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 					await db
 						.insertInto('outcomes_intentions')
 						.values({
@@ -120,7 +120,4 @@ export async function checkMissingOutcomes() {
 			}
 		});
 	}
-	cronLogger.info(
-		'Finished checking for missing outcomes from past days when the application is restarted'
-	);
 }

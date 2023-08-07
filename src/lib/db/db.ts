@@ -2,6 +2,7 @@ import { dbLogger } from '$src/lib/utils/logger';
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { DB } from '../types/data';
+import fs from 'node:fs';
 
 let fileDbInstance: Kysely<DB> | null = null;
 
@@ -21,6 +22,10 @@ export class DbInstance {
 			this._db = this.initDb(betterSqlite3);
 		} else {
 			if (!fileDbInstance) {
+				const dbPath = './src/lib/db/db.sqlite';
+				if (!fs.existsSync(dbPath)) {
+					dbLogger.info('No db instance found, creating new one');
+				}
 				betterSqlite3 = new Database('./src/lib/db/db.sqlite');
 				fileDbInstance = this.initDb(betterSqlite3);
 			}
