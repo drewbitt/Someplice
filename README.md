@@ -1,25 +1,68 @@
-# Someplice
+<a name="readme-top"></a>
 
-🎯📈 Someplice is a self-hosted application built with SvelteKit and a SQLite backend for achieving your goals by setting daily intentions and tracking your progress.
+<br />
+<div align="center">
+  <a href="https://github.com/drewbitt/Someplice">
+    <img src="src/lib/assets/someplice-compressed-logo-2023-01-21.svg" alt="Logo" width="150" height="150">
+  </a>
 
-## Table of Contents
+<h3 align="center">Someplice</h3>
 
-- [Features](#features)
-- [Installation](#installation)
-- [Contributing](#contributing)
+  <p align="center">
+    🎯📈 Someplice is a self-hosted application that helps you achieve your goals. Built with SvelteKit and SQLite, it lets you set daily intentions and track your progress effectively.
+    <br />
+    <a href="https://github.com/github_username/repo_name/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/github_username/repo_name/issues">Request Feature</a>
+  </p>
+</div>
 
-## Features
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+  </ol>
+</details>
+
+## About The Project
 
 - 🎯 Set and manage multiple goals
 - 📅 Set daily intentions for each goal
 - ✅ Mark intentions as complete
+- 🧐 Review and reflect on your past intentions
 - ☀️/🌙 Toggle between light and dark mode
 
-## Installation
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-🚀 There are three ways to install Someplice: with pnpm, nix, or Docker. Choose the method that best suits your needs.
+### Built With
 
-### Option 1: pnpm
+- [SvelteKit](https://kit.svelte.dev/)
+- SQLite
+- [kysely](https://github.com/kysely-org/kysely)
+- [TRPC](https://trpc.io/) and [Zod](https://zod.dev/)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Getting Started
+
+There are three ways to install Someplice: with pnpm, nix, or Docker. Choose the method that best suits your needs.
+
+### Installation
+
+#### Option 1: pnpm
 
 1. Clone the repository
 2. Install dependencies
@@ -41,45 +84,35 @@ pnpm run db:migrate
 pnpm run dev
 ```
 
-### Option 2: Devbox/nix
+#### Option 2: Devbox/nix
 
 1. Ensure you have [devbox](https://www.jetpack.io/devbox/docs/installing_devbox/) installed.
 2. Clone the repository
-3. Run `devbox shell` in the root of the repository. This will open a shell with all the dependencies installed (node and pnpm)
+3. Run `devbox install` followed by `devbox shell` in the root of the repository. This will open a shell with all the dependencies installed (node and pnpm)
 4. Follow pnpm instructions above to install dependencies, run migrations, and start the application
 
-### Option 3: Docker
+#### Option 3: Docker
 
-1. Clone the repository
-2. Build the Docker image
+Docker is WIP and will not work as expected.
 
-```bash
-docker build -t someplice .
-```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-3. Run the Docker image
-
-```bash
-docker run -p 3000:3000 someplice
-```
-
-4. Run migrations to create DB
-
-```bash
-docker exec -it someplice pnpm run db:migrate
-```
 
 ## Contributing
 
-🙌 Contributions are always welcome! If you'd like to contribute to Someplice, please follow these steps:
+When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an .env file with your database connection string:
+yml
 
-1. Fork the repository
-2. Create a new branch for your feature or bug fix
-3. When making DB changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To setup, create an .env file with your database connection string:
-
-```yml
+```bash
 # SQLite
-DATABASE_URL=YOUR_ABSOLUTE_PATH_TO/Someplice/src/lib/db/db.sqlite
+DATABASE_URL=YOUR_ABSOLUTE_PATH_TO/Someplice/src/lib/db/
 ```
 
-4. Make your changes and commit them with a descriptive message. Use [lefthook](https://github.com/evilmartians/lefthook) pre-commit formatting (`lefthook install`) with Prettier to ensure consistency, or run `pnpm run format` to format all files.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## License
+
+Distributed under the MIT License. See `LICENSE.txt` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>

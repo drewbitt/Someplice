@@ -155,6 +155,9 @@
 				</Title>
 			</span>
 		{/if}
+		<!-- browser complains about non-passive event violation. in svelte-dnd-action, see
+			 https://github.com/isaacHagoel/svelte-dnd-action/issues/367
+		-->
 		<section
 			role="list"
 			class="overflow-hidden"
