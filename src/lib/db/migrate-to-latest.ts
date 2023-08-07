@@ -4,6 +4,9 @@ import { dbLogger } from '$src/lib/utils/logger';
 import { DbInstance } from './db';
 
 export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
+	if (process.env.NODE_ENV !== 'test') {
+		process.env.NODE_ENV = 'migration';
+	}
 	db = db || DbInstance.getInstance().db;
 
 	const ViteMigrationProvider: MigrationProvider = {
@@ -40,7 +43,11 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 			console.error(`failed to execute migration "${it.migrationName}"`);
 		}
 	});
-	dbLogger.info(`Ran ${results?.length} migrations`);
+	if (results?.length === 0) {
+		dbLogger.info('No new migrations to run.');
+	} else {
+		dbLogger.info(`Ran ${results?.length} migrations`);
+	}
 
 	if (error) {
 		console.error('failed to migrate');

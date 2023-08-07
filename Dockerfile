@@ -6,16 +6,18 @@ COPY pnpm-lock.yaml .
 COPY tsconfig.json .
 COPY svelte.config.js .
 COPY vite.config.ts .
-COPY src/app.html ./src/app.html
+COPY src/app.html src/app.html
 
 RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile --ignore-scripts --prod
-# Vite is a dev dependency, but we need it to build the app
-# We'll install it globally to make it easier to find
-RUN VITE_VERSION=$(awk -F: '/"vite":/ {print $2}' package.json | tr -d ' ",^') && npm install -g vite@$VITE_VERSION 
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
-RUN vite build
+
+RUN pnpm rebuild
+# Check if SQLite database exists, if not, run migrations
+RUN if [ ! -f /data/db.sqlite ]; then pnpm run db:migrate; fi
+
+RUN pnpm run build
 
 EXPOSE 3000
 CMD ["node", "build/index.js"]

@@ -1,5 +1,5 @@
 reset-db:
-        rm ./src/lib/db/db.sqlite
+        if [ -f ./data/db.sqlite ]; then rm ./data/db.sqlite; fi
         pnpm run db:migrate
         pnpm run db:codegen
 

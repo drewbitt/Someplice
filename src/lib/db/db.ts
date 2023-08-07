@@ -22,14 +22,39 @@ export class DbInstance {
 			this._db = this.initDb(betterSqlite3);
 		} else {
 			if (!fileDbInstance) {
-				const dbPath = './src/lib/db/db.sqlite';
-				if (!fs.existsSync(dbPath)) {
-					dbLogger.info('No db instance found, creating new one');
+				const dbPath = './data/db.sqlite';
+				if (!fs.existsSync(dbPath) && process.env.NODE_ENV !== 'migration') {
+					dbLogger.fatal(new Error('No db instance found, run migrations first'));
 				}
-				betterSqlite3 = new Database('./src/lib/db/db.sqlite');
+
+				this.ensureDBDirectoryExists();
+
+				// Path checks for debugging
+				try {
+					fs.accessSync('./data/', fs.constants.W_OK);
+				} catch (err) {
+					dbLogger.error('No access to db path');
+					throw err;
+				}
+
+				betterSqlite3 = new Database('./data/db.sqlite');
 				fileDbInstance = this.initDb(betterSqlite3);
 			}
 			this._db = fileDbInstance!;
+		}
+	}
+
+	// Just in case the data directory is missing
+	private ensureDBDirectoryExists() {
+		const dirPath = './data/';
+
+		if (!fs.existsSync(dirPath)) {
+			try {
+				fs.mkdirSync(dirPath);
+				dbLogger.info('data directory created');
+			} catch (err) {
+				dbLogger.fatal(new Error('Failed to create data directory'), err);
+			}
 		}
 	}
 

@@ -93,7 +93,23 @@ pnpm run dev
 
 #### Option 3: Docker
 
-Docker is WIP and will not work as expected.
+The Docker public image build is WIP. For now, you can build the image locally:
+
+```bash
+docker build -t someplice .
+```
+
+Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database.
+
+```bash
+docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest sh -c "pnpm run db:migrate && node build/index.js"
+```
+
+Running the db migrations is only required the first time you run the container. After that, you can just run:
+
+```bash
+docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
