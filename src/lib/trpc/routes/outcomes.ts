@@ -42,39 +42,141 @@ export const outcomes = t.router({
 				.where('outcomeId', '=', input)
 				.execute();
 		}),
+	/**
+	 * Create a new outcome
+	 * @param input {
+	 *   outcome: OutcomeSchema,
+	 *   outcomesIntentions: [ {intentionId: number } ]
+	 * } - The outcome and the intentions to associate with it
+	 * @returns { outcomeId: number } - The id of the created outcome
+	 */
 	create: t.procedure
 		.use(logger)
 		.input(
 			z.object({
-				outcome: OutcomeSchema,
+				outcome: OutcomeSchema.omit({ id: true }),
+				outcomesIntentions: z.array(OutcomeIntentionSchema.pick({ intentionId: true }))
+			})
+		)
+		// deepcode ignore Sqli: incorrectly reports sql injection
+		.mutation(async ({ input }) => {
+			const result = await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					// First, check if there's an outcome, as outcome dates are unique
+					const existingOutcome = await trx
+						.selectFrom('outcomes')
+						.selectAll()
+						.where('date', '=', input.outcome.date)
+						.executeTakeFirst();
+
+					if (existingOutcome) {
+						// Just update the reviewed of the outcome
+						const updatedOutcome = await trx
+							.updateTable('outcomes')
+							.set({ reviewed: input.outcome.reviewed })
+							.where('id', '=', existingOutcome.id)
+							.returning('id')
+							.executeTakeFirstOrThrow();
+
+						return { outcomeId: updatedOutcome.id };
+					} else {
+						const outcome = await trx
+							.insertInto('outcomes')
+							.values(input.outcome)
+							.returning('id')
+							.executeTakeFirstOrThrow();
+
+						if (!outcome.id) throw new Error('Outcome id is null');
+
+						for (const outcomesIntentionsInput of input.outcomesIntentions) {
+							await trx
+								.insertInto('outcomes_intentions')
+								.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
+								.executeTakeFirstOrThrow();
+						}
+
+						return { outcomeId: outcome.id };
+					}
+				});
+
+			return result;
+		}),
+	/**
+	 * Create a new outcome and update the completion value of the intentions
+	 * We are doing this together because we want to make sure that both are successful,
+	 * and they often are related to each other
+	 */
+	createAndUpdateIntentions: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				outcome: OutcomeSchema.omit({ id: true }),
 				outcomesIntentions: z.array(
 					z.object({
-						intentionId: z.number()
+						intentionId: z.number(),
+						completed: z.number()
 					})
 				)
 			})
 		)
-		// deepcode ignore Sqli: incorrectly reports sql injection
-		.query(async ({ input }) => {
+		.mutation(async ({ input }) => {
 			const result = await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const outcome = await trx
-						.insertInto('outcomes')
-						.values(input.outcome)
-						.returning('id')
-						.executeTakeFirstOrThrow();
+					// First, check if there's an outcome, as outcome dates are unique
+					const existingOutcome = await trx
+						.selectFrom('outcomes')
+						.selectAll()
+						.where('date', '=', input.outcome.date)
+						.executeTakeFirst();
 
-					if (!outcome.id) throw new Error('Outcome id is null');
-
-					for (const outcomesIntentionsInput of input.outcomesIntentions) {
-						await trx
-							.insertInto('outcomes_intentions')
-							.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
+					if (existingOutcome) {
+						// Just update the reviewed of the outcome and the intentions,
+						// not the outcome-intentions association
+						const updatedOutcome = await trx
+							.updateTable('outcomes')
+							.set({ reviewed: input.outcome.reviewed })
+							.where('id', '=', existingOutcome.id)
+							.returning('id')
 							.executeTakeFirstOrThrow();
-					}
 
-					return { outcomeId: outcome.id };
+						for (const outcomesIntentionsInput of input.outcomesIntentions) {
+							await trx
+								.updateTable('intentions')
+								.set({ completed: outcomesIntentionsInput.completed })
+								.where('id', '=', outcomesIntentionsInput.intentionId)
+								.returning('id')
+								.executeTakeFirstOrThrow();
+						}
+
+						return { outcomeId: updatedOutcome.id };
+					} else {
+						const outcome = await trx
+							.insertInto('outcomes')
+							.values(input.outcome)
+							.returning('id')
+							.executeTakeFirstOrThrow();
+
+						if (!outcome.id) throw new Error('Outcome id is null');
+
+						for (const outcomesIntentionsInput of input.outcomesIntentions) {
+							await trx
+								.insertInto('outcomes_intentions')
+								.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
+								.returning(['outcomeId', 'intentionId'])
+								.executeTakeFirstOrThrow();
+
+							await trx
+								.updateTable('intentions')
+								.set({ completed: outcomesIntentionsInput.completed })
+								.where('id', '=', outcomesIntentionsInput.intentionId)
+								.returning('id')
+								.executeTakeFirstOrThrow();
+						}
+
+						return { outcomeId: outcome.id };
+					}
 				});
 
 			return result;

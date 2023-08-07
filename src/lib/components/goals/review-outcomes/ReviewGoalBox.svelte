@@ -15,7 +15,7 @@
 	id="goal-review-item"
 	class="flex flex-col items-center w-full max-w-screen-2xl"
 >
-	<div class="flex flex-col w-4/5 min-w-min" id="goal-review-item-content">
+	<div class="flex flex-col w-4/5 min-w-min goal-review-item-content">
 		<div id="goal-review-item-info">
 			<span class="flex">
 				<span
@@ -42,7 +42,6 @@
 						<input
 							type="checkbox"
 							id="intention-{intention.id}"
-							name="intention-{intention.id}"
 							value={intention.id}
 							checked={Boolean(intention.completed)}
 							class="mr-2 daisy-checkbox-md"

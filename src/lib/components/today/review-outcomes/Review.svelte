@@ -1,20 +1,23 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import { Box, Button, colorScheme, createStyles } from '@svelteuidev/core';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
+	import { appLogger } from '$src/lib/utils/logger';
+	import { invalidateAll } from '$app/navigation';
 
 	export let intentionsOnLatestDate: Intention[];
+	export let setHasOutstandingOutcome: (value: boolean) => void;
 
+	const intentionDate = new Date(intentionsOnLatestDate[0].date);
 	let showPageLoadingSpinner = true;
 	let daysAgo: number;
 	let goalsOnDate: Goal[];
 	let intentionsOnDate: Intention[];
 
 	$: {
-		const intentionDate = new Date(intentionsOnLatestDate[0].date);
 		const currentDate = localeCurrentDate();
 		const timeDiff = Math.abs(currentDate.getTime() - intentionDate.getTime());
 		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
@@ -41,6 +44,45 @@
 			endDate: date.toISOString().split('T')[0] + 'T23:59:59.999Z'
 		});
 		return intentions;
+	};
+	const handleSaveReview = async () => {
+		// Get the values of the intention checkboxes
+		const checkboxIntentions = Array.from(
+			document.querySelectorAll<HTMLInputElement>(
+				'.goal-review-item-content input[type="checkbox"]'
+			)
+		).map((checkbox) => {
+			return { intentionId: Number(checkbox.value), completed: Number(checkbox.checked) };
+		});
+		console.log(
+			'%c [ checkedIntentionIds ]-49',
+			'font-size:13px; background:pink; color:#bf2c9f;',
+			checkboxIntentions
+		);
+
+		const outcomeToInsert: Omit<Outcome, 'id'> = {
+			date: intentionDate.toISOString().split('T')[0],
+			reviewed: 1
+		};
+		console.log(
+			'%c [ outcomeToInsert ]-49',
+			'font-size:13px; background:pink; color:#bf2c9f;',
+			outcomeToInsert
+		);
+
+		try {
+			// Both update intentions and create outcome
+			await trpc($page).outcomes.createAndUpdateIntentions.mutate({
+				outcome: outcomeToInsert,
+				outcomesIntentions: checkboxIntentions
+			});
+			setHasOutstandingOutcome(false);
+			// TODO: show success toast or notification
+			await invalidateAll();
+		} catch (error) {
+			// TODO: Show error to user
+			appLogger.error(error);
+		}
 	};
 
 	const useStyles = createStyles(() => ({
@@ -89,7 +131,7 @@
 	<!-- TODO: fix conditional mr padding as ReviewGoalBox is doing something funky I'm just trying to mimic-->
 	<Box class="flex flex-col items-center w-full max-w-screen-2xl mr-6 md:mr-6 2xl:mr-0">
 		<Box class="flex justify-end w-4/5 gap-2 min-w-min max-w-full">
-			<Button>Save Review</Button>
+			<Button on:click={handleSaveReview}>Save</Button>
 		</Box>
 	</Box>
 </Box>

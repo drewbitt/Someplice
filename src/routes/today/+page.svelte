@@ -35,19 +35,24 @@
 		}, 5000);
 	}
 	// if no intentions today, check for old outstanding outcomes
-	$: if (noIntentions && !noGoals) {
+	$: if (noIntentions && !hasOutstandingOutcome && !noGoals) {
+		showPageLoadingSpinner = true;
 		isOldOutcomeOutstanding().then((result) => {
 			if (result) {
 				// if there is an outstanding outcome
 				hasOutstandingOutcome = true;
 				showPageLoadingSpinner = false;
+			} else {
+				showPageLoadingSpinner = false;
 			}
 		});
+	} else if (!noIntentions || hasOutstandingOutcome || noGoals) {
+		showPageLoadingSpinner = false;
 	}
-	// show loading spinner if noIntentions is true and we are waiting for the outcome check
-	$: if (noIntentions && !hasOutstandingOutcome && !noGoals) {
-		showPageLoadingSpinner = true;
-	}
+
+	const setHasOutstandingOutcome = (value: boolean) => {
+		hasOutstandingOutcome = value;
+	};
 
 	const addIntentions = async () => {
 		const addResult = await trpc($page).intentions.updateIntentions.mutate({
@@ -162,7 +167,7 @@
 			</Notification>
 			<!-- if there are no intentions set today -->
 		{:else if hasOutstandingOutcome}
-			<Review {intentionsOnLatestDate} />
+			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
 			<!-- if there are intentions already set today -->
 		{:else if intentionsFromServer.length > 0}
 			<ActionsDisplay
