@@ -63,7 +63,7 @@
 
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
-		const intentionId = target.dataset.id;
+		const intentionId = target.id.split('-')[1];
 		if (intentionId) {
 			let intention = intentions.find((intention) => {
 				return intention.id === parseInt(intentionId);
@@ -168,7 +168,6 @@
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
 						''}) {intention.text}"
-					data-id={intention.id}
 					class={'flex items-center pl-3' +
 						(intention.completed ? ' line-through' : '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
@@ -225,7 +224,8 @@
 					{/if}
 					<input
 						tabindex={-1}
-						data-id={intention.id}
+						id="intention-{intention.id}"
+						aria-labelledby="intention-{intention.id}"
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
 							? 'daisy-checkbox-md'

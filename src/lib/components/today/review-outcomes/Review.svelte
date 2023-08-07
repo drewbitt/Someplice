@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { Box, colorScheme, createStyles } from '@svelteuidev/core';
+	import { Box, Button, colorScheme, createStyles } from '@svelteuidev/core';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
 
@@ -54,10 +54,15 @@
 	$: ({ cx, getStyles } = useStyles());
 </script>
 
-<Box class={cx('items-center p-4', getStyles())} id="review-goals-form">
-	<section
-		class={cx('items-center p-4', darkMode ? 'shadow shadow-black' : 'shadow-xl', getStyles())}
-	>
+<Box
+	class={cx(
+		'items-center p-4 flex flex-col',
+		darkMode ? 'shadow shadow-black' : 'shadow-xl',
+		getStyles()
+	)}
+	id="review-goals-form"
+>
+	<section class={'items-center p-4 pb-6 2xl:pb-7 w-full'}>
 		<h1 class="mb-5 text-center text-2xl">
 			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
 				weekday: 'long',
@@ -73,11 +78,18 @@
 				<span class="daisy-loading daisy-loading-spinner daisy-loading-lg" />
 			</div>
 		{:else}
-			<div role="list" id="goal-outcome-list-container" class="max-w-screen-xl grid gap-6">
+			<div role="list" id="goal-outcome-list-container" class="grid gap-6 place-items-center">
 				{#each goalsOnDate as goal}
 					<ReviewGoalBox {goal} intentions={intentionsOnDate} />
 				{/each}
 			</div>
 		{/if}
 	</section>
+	<!-- Mimic the styling of ReviewGoalBox so the Save button aligns properly -->
+	<!-- TODO: fix conditional mr padding as ReviewGoalBox is doing something funky I'm just trying to mimic-->
+	<Box class="flex flex-col items-center w-full max-w-screen-2xl mr-6 md:mr-6 2xl:mr-0">
+		<Box class="flex justify-end w-4/5 gap-2 min-w-min max-w-full">
+			<Button>Save Review</Button>
+		</Box>
+	</Box>
 </Box>

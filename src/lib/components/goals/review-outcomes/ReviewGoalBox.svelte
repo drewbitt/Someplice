@@ -10,7 +10,11 @@
 	};
 </script>
 
-<div role="listitem" id="goal-review-item" class="flex flex-col justify-center items-end">
+<div
+	role="listitem"
+	id="goal-review-item"
+	class="flex flex-col items-center w-full max-w-screen-2xl"
+>
 	<div class="flex flex-col w-4/5 min-w-min" id="goal-review-item-content">
 		<div id="goal-review-item-info">
 			<span class="flex">
