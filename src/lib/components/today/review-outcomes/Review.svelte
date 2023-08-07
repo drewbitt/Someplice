@@ -54,21 +54,11 @@
 		).map((checkbox) => {
 			return { intentionId: Number(checkbox.value), completed: Number(checkbox.checked) };
 		});
-		console.log(
-			'%c [ checkedIntentionIds ]-49',
-			'font-size:13px; background:pink; color:#bf2c9f;',
-			checkboxIntentions
-		);
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
 			date: intentionDate.toISOString().split('T')[0],
 			reviewed: 1
 		};
-		console.log(
-			'%c [ outcomeToInsert ]-49',
-			'font-size:13px; background:pink; color:#bf2c9f;',
-			outcomeToInsert
-		);
 
 		try {
 			// Both update intentions and create outcome

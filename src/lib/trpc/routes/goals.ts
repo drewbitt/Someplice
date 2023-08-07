@@ -79,10 +79,14 @@ export const goals = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const startOfDate = new Date(input.date);
-			startOfDate.setHours(0, 0, 0, 0);
-			const endOfDate = new Date(input.date);
-			endOfDate.setHours(23, 59, 59, 999);
+			const startOfDate = new Date(
+				Date.UTC(input.date.getUTCFullYear(), input.date.getUTCMonth(), input.date.getUTCDate())
+			);
+			startOfDate.setUTCHours(0, 0, 0, 0);
+			const endOfDate = new Date(
+				Date.UTC(input.date.getUTCFullYear(), input.date.getUTCMonth(), input.date.getUTCDate())
+			);
+			endOfDate.setUTCHours(23, 59, 59, 999);
 
 			const goalsWithDate = await sql<Goal>`
 				SELECT
@@ -100,13 +104,17 @@ export const goals = t.router({
 				WHERE
 					goals.active = ${input.active}
 				AND
-					goal_logs.date >= ${startOfDate.toISOString()}
-				AND 
 					goal_logs.date <= ${endOfDate.toISOString()}
+				AND
+					(
+						(goal_logs.type = 'start' AND goal_logs.date <= ${endOfDate.toISOString()})
+						OR
+						(goal_logs.type = 'end' AND goal_logs.date > ${endOfDate.toISOString()})
+					)
 				GROUP BY
 					goals.id
 				ORDER BY
-					goals.orderNumber ASC
+					goals.orderNumber ASC		
 			`.execute(getDb());
 
 			return goalsWithDate.rows;

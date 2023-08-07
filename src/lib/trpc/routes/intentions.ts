@@ -76,11 +76,24 @@ export const intentions = t.router({
 			.executeTakeFirst();
 
 		if (maxDate) {
-			const startOfDate = new Date(maxDate.date);
-			startOfDate.setHours(0, 0, 0, 0);
+			const maxDateObject = new Date(maxDate.date);
+			const startOfDate = new Date(
+				Date.UTC(
+					maxDateObject.getUTCFullYear(),
+					maxDateObject.getUTCMonth(),
+					maxDateObject.getUTCDate()
+				)
+			);
+			startOfDate.setUTCHours(0, 0, 0, 0);
 
-			const endOfDate = new Date(maxDate.date);
-			endOfDate.setHours(23, 59, 59, 999);
+			const endOfDate = new Date(
+				Date.UTC(
+					maxDateObject.getUTCFullYear(),
+					maxDateObject.getUTCMonth(),
+					maxDateObject.getUTCDate()
+				)
+			);
+			endOfDate.setUTCHours(23, 59, 59, 999);
 
 			const result = await getDb()
 				.selectFrom('intentions')
