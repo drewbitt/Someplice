@@ -97,17 +97,14 @@ Docker is WIP and will not work as expected.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
 ## Contributing
 
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an .env file with your database connection string:
-yml
 
 ```bash
 # SQLite
 DATABASE_URL=YOUR_ABSOLUTE_PATH_TO/Someplice/src/lib/db/
 ```
-
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
