@@ -18,6 +18,11 @@ export const OutcomeIntentionSchema = z.object({
 });
 
 export const outcomes = t.router({
+	/**
+	 * List all outcomes
+	 * @param { Date } input - The date to filter by (optional)
+	 * @returns {Outcome[]} - The outcomes
+	 */
 	list: t.procedure
 		.use(logger)
 		.input(z.date().optional())
@@ -32,6 +37,11 @@ export const outcomes = t.router({
 				return getDb().selectFrom('outcomes').select(['id', 'reviewed', 'date']).execute();
 			}
 		}),
+	/**
+	 * List all intentions associated with an outcome
+	 * @param { number } input - The outcome id
+	 * @returns {OutcomeIntention[]} - The outcome intentions
+	 */
 	listOutcomesIntentions: t.procedure
 		.use(logger)
 		.input(z.number())
@@ -49,6 +59,8 @@ export const outcomes = t.router({
 	 *   outcomesIntentions: [ {intentionId: number } ]
 	 * } - The outcome and the intentions to associate with it
 	 * @returns { outcomeId: number } - The id of the created outcome
+	 * @throws { NoResultError } - If the outcome could not be created or updated
+	 * @throws { NoResultError } - If the outcome_intentions could not be created
 	 */
 	create: t.procedure
 		.use(logger)
@@ -106,6 +118,12 @@ export const outcomes = t.router({
 	 * Create a new outcome and update the completion value of the intentions
 	 * We are doing this together because we want to make sure that both are successful,
 	 * and they often are related to each other
+	 * @param input {
+	 *  outcome: OutcomeSchema,
+	 * 	outcomesIntentions: [ {intentionId: number, completed: number } ]
+	 * } - The outcome and the intentions to associate with it
+	 * @returns { outcomeId: number } - The id of the created outcome
+	 * @throws { NoResultError } - If the outcome, intentions, or outcome_intentions could not be created or updated
 	 */
 	createAndUpdateIntentions: t.procedure
 		.use(logger)

@@ -31,10 +31,9 @@ export class DbInstance {
 
 				// Path checks for debugging
 				try {
-					fs.accessSync('./data/', fs.constants.W_OK);
+					fs.accessSync('./data/', fs.constants.R_OK | fs.constants.W_OK);
 				} catch (err) {
-					dbLogger.error('No access to db path');
-					throw err;
+					dbLogger.fatal(new Error('No read/write access to data directory'), err);
 				}
 
 				betterSqlite3 = new Database('./data/db.sqlite');

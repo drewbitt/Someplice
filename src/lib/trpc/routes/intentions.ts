@@ -66,7 +66,8 @@ export const intentions = t.router({
 			}
 		}),
 	/**
-	 * Get all the intentions for the latest date
+	 * Retrieve all the intentions for the latest date
+	 * @returns {Intention[]} - The intentions for the latest date, or an empty array if there are no intentions
 	 */
 	intentionsOnLatestDate: t.procedure.use(logger).query(async () => {
 		const maxDate = await getDb()
