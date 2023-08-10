@@ -178,10 +178,12 @@
 		{/each}
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>
-	<Title>Inactive Goals</Title>
-	<section role="list" id="goals-list-container" class="overflow-hidden grid gap-2.5 mt-2.5">
-		{#each data.inactiveGoals as goal (goal)}
-			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} isInactiveGoal={true} />
-		{/each}
-	</section>
+	{#if data.goals.length > 0}
+		<Title>Inactive Goals</Title>
+		<section role="list" id="goals-list-container" class="overflow-hidden grid gap-2.5 mt-2.5">
+			{#each data.inactiveGoals as goal (goal)}
+				<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} isInactiveGoal={true} />
+			{/each}
+		</section>
+	{/if}
 </div>

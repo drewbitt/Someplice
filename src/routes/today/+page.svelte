@@ -83,11 +83,14 @@
 		Check if the latest intentions have an outcome reviewed on the same day
 	*/
 	const isOldOutcomeOutstanding = async () => {
-		const latestIntentionDate = new Date(intentionsOnLatestDate[0].date);
-		const outcomes = await listOutcomesOnDate(latestIntentionDate);
-		// if there are no outcomes on the same day as the latest intentions, or if it is reviewed = false
-		if (outcomes.length === 0 || !outcomes[0].reviewed) {
-			return true;
+		if (intentionsOnLatestDate && intentionsOnLatestDate.length > 0) {
+			const latestIntentionDate = new Date(intentionsOnLatestDate[0].date);
+			const outcomes = await listOutcomesOnDate(latestIntentionDate);
+			// if there are no outcomes on the same day as the latest intentions, or if it is reviewed = false
+			if (outcomes.length === 0 || !outcomes[0].reviewed) {
+				return true;
+			}
+			return false;
 		}
 		return false;
 	};

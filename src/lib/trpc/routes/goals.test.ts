@@ -139,7 +139,6 @@ describe('goals', () => {
 
 		// Get today's date
 		const today = new Date();
-		today.setHours(0, 0, 0, 0);
 
 		// Retrieve active goals for the current date
 		const activeGoals = (await goals.listGoalsOnDate({
