@@ -5,9 +5,9 @@ module.exports = {
 		'eslint:recommended',
 		'plugin:@typescript-eslint/recommended',
 		'plugin:@typescript-eslint/stylistic',
-		'prettier',
 		'plugin:svelte/recommended',
-		'plugin:svelte/prettier'
+		'plugin:svelte/prettier',
+		'prettier'
 	],
 	plugins: ['@typescript-eslint'],
 	ignorePatterns: ['*.cjs'],
@@ -15,6 +15,7 @@ module.exports = {
 		{
 			files: ['*.svelte'],
 			parser: 'svelte-eslint-parser',
+			// Parse the `<script>` in `.svelte` as TypeScript by adding the following:
 			parserOptions: {
 				parser: '@typescript-eslint/parser'
 			}
