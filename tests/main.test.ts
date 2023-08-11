@@ -5,6 +5,7 @@ test('index page has expected h1', async ({ page }) => {
 	expect(await page.textContent('h1')).toBe('Someplice');
 });
 
+/* TODO: Update as this expects an empty DB */
 test('Today page shows text when no goals are set', async ({ page }) => {
 	await page.goto('/today');
 	expect(await page.textContent('#no-goals-notification > div > div')).toBe(
@@ -17,6 +18,7 @@ test('GoalBox contains New goal button', async ({ page }) => {
 	expect(await page.textContent('#new-goal-button > div')).toBe('New Goal');
 });
 
+/* TODO: Update as this expects an empty DB */
 test('Pressing New Goal button adds a new goal', async ({ page }) => {
 	await page.goto('/goals');
 	await page.click('#new-goal-button');
