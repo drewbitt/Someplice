@@ -168,7 +168,7 @@
 	<section
 		role="list"
 		id="goals-list-container"
-		class="overflow-hidden grid gap-2.5 mt-2.5"
+		class="mt-2.5 grid gap-2.5 overflow-hidden"
 		use:dndzone={{ items: data.goals, dragDisabled }}
 		on:consider={handleDndConsider}
 		on:finalize={handleDndFinalize}
@@ -178,9 +178,9 @@
 		{/each}
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>
-	{#if data.goals.length > 0}
+	{#if data.goals.length > 0 || data.inactiveGoals.length > 0}
 		<Title>Inactive Goals</Title>
-		<section role="list" id="goals-list-container" class="overflow-hidden grid gap-2.5 mt-2.5">
+		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
 			{#each data.inactiveGoals as goal (goal)}
 				<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} isInactiveGoal={true} />
 			{/each}

@@ -119,16 +119,15 @@ export const goals = t.router({
 
 			return goalsWithDate.rows;
 		}),
+	/**
+	 * @param {GoalSchema.omit({id: true, orderNumber: true})} input - Goal to add
+	 * @throws NoResultError - if there was a problem inserting the goal
+	 * @throws Error - if the maximum number of goals was reached
+	 * @returns {id: number} - id of the goal inserted
+	 */
 	add: t.procedure
 		.use(logger)
-		.input(
-			z.object({
-				active: z.number(),
-				title: z.string(),
-				description: z.string().optional(),
-				color: z.string()
-			})
-		)
+		.input(GoalSchema.omit({ id: true, orderNumber: true }))
 		.mutation(async ({ input }) => {
 			return await getDb()
 				.transaction()
@@ -139,27 +138,39 @@ export const goals = t.router({
 						.selectFrom('goals')
 						.select('orderNumber')
 						.orderBy('orderNumber', 'desc')
-						.limit(1)
-						.execute();
+						.executeTakeFirst()
+						.then((res) => res?.orderNumber)
+						// catch is not needed
+						.catch((err) => {
+							throw new Error(err);
+						});
+
+					if (maxOrderNumber && maxOrderNumber >= 9) {
+						throw new Error(`You have reached the maximum number of 9 goals. 
+						Please delete or archive a goal to add a new one.`);
+					}
+
 					// If no goals, set orderNumber to 1
-					const orderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
+					const orderNumber = maxOrderNumber ? maxOrderNumber + 1 : 1;
 
 					const result = await trx
 						.insertInto('goals')
 						.values({ ...input, orderNumber })
-						.execute();
+						.returning('id')
+						.executeTakeFirstOrThrow();
 
 					// Insert into goal_logs after the goal is added
-					if (result) {
+					if (result.id) {
 						const date = new Date().toISOString();
 						await trx
 							.insertInto('goal_logs')
 							.values({
-								goalId: Number(result[0]?.insertId),
+								goalId: result.id,
 								type: 'start',
 								date: date
 							})
-							.execute();
+							.returning('id')
+							.executeTakeFirstOrThrow();
 					}
 
 					return result;
@@ -169,8 +180,8 @@ export const goals = t.router({
 	 * Update a goal in getDb() with input goal by ID
 	 * @param {Goal} input - Goal to update
 	 * @param {number} input.id - ID of goal to update
-	 * @returns {UpdateResult}
-	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 * @returns UpdateResult
+	 * @throws NoResultError If no goal with the provided ID exists in the database
 	 */
 	edit: t.procedure
 		.use(logger)
@@ -179,6 +190,7 @@ export const goals = t.router({
 			const query = getDb().updateTable('goals').set(input).where('id', '=', input.id);
 			const result = await query.executeTakeFirst();
 			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
+			// Don't want to return the id of the updated row as we would lose UpdateResult like numUpdatedRows
 			// Manual throw
 			if (Number(result?.numUpdatedRows) === 0) {
 				throw new NoResultError(query.toOperationNode());
@@ -336,6 +348,7 @@ export const goals = t.router({
 	 * @param {number} input - ID of the goal to restore
 	 * @returns {UpdateResult}
 	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 * @throws {Error} If the maximum number of goals has been reached
 	 * @throws {Error} If the goal is already active
 	 */
 	restore: t.procedure
@@ -345,6 +358,24 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
+					// Let's check if we can restore the goal
+					const maxOrderNumber = await trx
+						.selectFrom('goals')
+						.select('orderNumber')
+						.orderBy('orderNumber', 'desc')
+						.executeTakeFirst()
+						.then((res) => res?.orderNumber)
+						// catch is not needed
+						.catch((err) => {
+							throw new Error(err);
+						});
+
+					// Can't restore if there are already 9 goals
+					if (maxOrderNumber && maxOrderNumber >= 9) {
+						throw new Error(`You have reached the maximum number of 9 goals. 
+						Please delete or archive a goal first to restore a goal.`);
+					}
+
 					// Retrieve goal to be restored
 					const restoreGoal = await trx
 						.selectFrom('goals')
@@ -356,16 +387,7 @@ export const goals = t.router({
 						throw new Error('RESTORE_GOAL_ERROR: Goal is already active');
 					}
 
-					// Get max orderNumber from active goals
-					const maxOrderNumber = await trx
-						.selectFrom('goals')
-						.select('orderNumber')
-						.where('active', '=', 1)
-						.orderBy('orderNumber', 'desc')
-						.limit(1)
-						.execute();
-
-					const restoredOrderNumber = maxOrderNumber.length ? maxOrderNumber[0].orderNumber + 1 : 1;
+					const restoredOrderNumber = maxOrderNumber ? maxOrderNumber + 1 : 1;
 
 					// Set the restored goal as active, with orderNumber as maxOrderNumber + 1
 					const result = await trx

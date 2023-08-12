@@ -10,6 +10,7 @@
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
+	import { goalPageError } from '$src/lib/stores/errors';
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
@@ -46,9 +47,11 @@
 				if (deleteResult.length > 0) {
 					await invalidateAll();
 				}
-			} catch (error) {
-				// TODO: Show error to user
-				appLogger.error(error);
+			} catch (error: unknown) {
+				if (error instanceof Error) {
+					// set goalPageError for 6 seconds, then revert it back to null
+					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+				}
 			}
 		}
 	};
@@ -65,9 +68,11 @@
 				if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
 					await invalidateAll();
 				}
-			} catch (error) {
-				// TODO: Show error to user
-				appLogger.error(error);
+			} catch (error: unknown) {
+				if (error instanceof Error) {
+					// set goalPageError for 6 seconds, then revert it back to null
+					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+				}
 			}
 		}
 	};
@@ -82,9 +87,11 @@
 			try {
 				await trpc($page).goals.restore.mutate(goal.id);
 				await invalidateAll();
-			} catch (error) {
-				// TODO: Show error to user
-				appLogger.error(error);
+			} catch (error: unknown) {
+				if (error instanceof Error) {
+					// set goalPageError for 6 seconds, then revert it back to null
+					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+				}
 			}
 		}
 	};
@@ -105,7 +112,7 @@
 		use:cssvariable={{ 'goal-color': goalColor }}
 		class="goal-box mx-5 grid"
 	>
-		<Box root="span" class={cx('font-mono text-7xl pl-2', getStyles())} className="goal-box-number">
+		<Box root="span" class={cx('pl-2 font-mono text-7xl', getStyles())} className="goal-box-number">
 			{goal.active ? goal.orderNumber : 'X'}
 		</Box>
 		{#if showDeletionPrompt}
