@@ -358,30 +358,27 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					// Let's check if we can restore the goal
-					const maxOrderNumber = await trx
-						.selectFrom('goals')
-						.select('orderNumber')
-						.orderBy('orderNumber', 'desc')
-						.executeTakeFirst()
-						.then((res) => res?.orderNumber)
-						// catch is not needed
-						.catch((err) => {
-							throw new Error(err);
-						});
+					// Retrieve the max order number and the goal to be restored in a single query
+					const [maxOrderResult, restoreGoal] = await Promise.all([
+						trx
+							.selectFrom('goals')
+							.select('orderNumber')
+							.orderBy('orderNumber', 'desc')
+							.executeTakeFirst(),
+						trx
+							.selectFrom('goals')
+							.select(['orderNumber', 'active'])
+							.where('id', '=', input)
+							.executeTakeFirstOrThrow()
+					]);
+
+					const maxOrderNumber = maxOrderResult?.orderNumber;
 
 					// Can't restore if there are already 9 goals
 					if (maxOrderNumber && maxOrderNumber >= 9) {
 						throw new Error(`You have reached the maximum number of 9 goals. 
 						Please delete or archive a goal first to restore a goal.`);
 					}
-
-					// Retrieve goal to be restored
-					const restoreGoal = await trx
-						.selectFrom('goals')
-						.select(['orderNumber', 'active'])
-						.where('id', '=', input)
-						.executeTakeFirstOrThrow();
 
 					if (restoreGoal?.active === 1) {
 						throw new Error('RESTORE_GOAL_ERROR: Goal is already active');
