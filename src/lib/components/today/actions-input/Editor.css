@@ -1,50 +1,47 @@
 .goal__editor {
 	position: relative;
-	text-align: left;
+	font-size: 16px;
+	line-height: 1.4;
 	box-sizing: border-box;
-	padding: 1rem 0.25rem;
-	height: 10rem;
-	/* Only scroll inside elems*/
-	overflow: hidden;
+	min-height: 160px;
+	height: 170px;
+	width: 80%; /* Limit the width */
 }
-.goal__editor__pre {
-	position: absolute;
-	pointer-events: none;
-	border: transparent;
-	padding: 1rem 0.25rem;
-	left: auto;
-	display: block;
-	/* Be behind */
-	z-index: 0;
-}
+
+/* Shared styles for .goal__editor__pre and .goal__editor__textarea */
+.goal__editor__pre,
 .goal__editor__textarea {
-	/* Having problems with left padding, having to match pre but also not be on edge of border */
-	left: 2px;
-	position: relative;
-	height: 100%;
+	position: absolute;
+	box-sizing: border-box;
+	padding: 8px 12px;
+	font-size: 17px; /* Increased font size to match the scale */
+	line-height: 1.467;
+	font-weight: bold;
+	top: 0;
 	width: 100%;
-	resize: none;
+	height: 100%;
+	text-rendering: geometricPrecision;
+	-webkit-font-smoothing: subpixel-antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	-webkit-font-smoothing: antialiased;
-	-webkit-text-fill-color: transparent; /* sets just the text color, not caret */
-	/* Be in front */
+	letter-spacing: normal;
+	font-family: 'Open Sans', 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji',
+		'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+.goal__editor__pre {
+	border: 2px solid transparent;
 	z-index: 1;
 }
-/* Shared so text is on top of each other */
-.goal__editor__textarea,
-.goal__editor__pre {
-	top: 0;
-	margin: 0;
-	background: none;
-	box-sizing: inherit;
-	font-size: inherit;
-	line-height: inherit;
-	word-break: keep-all;
-	white-space: pre-wrap;
-	overflow-wrap: break-word;
-	font-family: sans-serif;
-	font-weight: bold;
+
+.goal__editor__textarea {
+	border: 2px solid #bdc3c7;
+	z-index: 2;
+	background: transparent;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	resize: none;
 }
+
 .goal__editor__span {
 	font-weight: bold;
 }
