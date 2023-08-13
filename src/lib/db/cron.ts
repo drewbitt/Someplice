@@ -1,17 +1,24 @@
-import { Cron } from 'croner';
+import { Cron, scheduledJobs } from 'croner';
 import type { ValueExpression } from 'kysely';
 import type { DB } from '../types/data';
 import { DbInstance } from './db';
 import { cronLogger } from '../utils/logger';
 
 const db = DbInstance.getInstance().db;
+const jobName = 'outcomeCron';
 
 // Run functions at the interval defined by a cron expression
 // This seperates the creation of the cron jobs into a module
 export function createCronJobs() {
+	// Don't create the cron job if it already exists, which happens in dev mode upon hot reload
+	const existingJob = scheduledJobs.find((j) => j.name === jobName);
+	if (existingJob) {
+		return;
+	}
+
 	// Run at 00:00 every day
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const outcomeCron = Cron('0 0 * * *', async () => {
+	const outcomeCron = Cron('0 0 * * *', { name: jobName }, async () => {
 		const today = new Date().toISOString().slice(0, 10); // get today's date in YYYY-MM-DD format
 
 		// check if there's an outcome for today
@@ -73,6 +80,15 @@ export function createCronJobs() {
 }
 
 export async function checkMissingOutcomes() {
+	// Hooks.server.ts is run every time the application is restarted and does not preserve state.
+	// So, a hack is needed to check for missing outcomes from past days when the application is restarted.
+	// We can look if the cron, which is also started in hooks.server.ts, has already been established.
+	// This requires checkMissingOutcomes to be called first in hooks.server.ts, so it runs at least once before createCronJobs.
+	const existingJob = scheduledJobs.find((j) => j.name === jobName);
+	if (existingJob) {
+		return;
+	}
+
 	cronLogger.info('Checking for missing outcomes from past days when the application is restarted');
 	const intentions = await db.selectFrom('intentions').selectAll().execute();
 
@@ -85,7 +101,7 @@ export async function checkMissingOutcomes() {
 
 		let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
 
-		if (!outcomeId) {
+		if (outcomeId === null) {
 			// if there's no outcome for the intention's date, create one and associate it with the intention
 			cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 			await db.transaction().execute(async (db) => {

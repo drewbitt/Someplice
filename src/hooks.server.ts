@@ -21,8 +21,15 @@ export const sveltuiHandle = prepareStylesSSR;
 
 export const handle = sequence(trpcHandle, sveltuiHandle);
 
-// Check for missing outcomes from past days when the application is restarted
-checkMissingOutcomes();
+function initializeServerHooks() {
+	// Check for missing outcomes from past days when the application is restarted.
+	// The order of these function calls is critical. The checkMissingOutcomes function uses the presence
+	// or absence of the cron job (set up in createCronJobs) as an indicator of whether it should run or not.
+	// Therefore, checkMissingOutcomes MUST always be called before createCronJobs to ensure correct behavior.
+	checkMissingOutcomes();
 
-// Start cron jobs
-createCronJobs();
+	// Start cron jobs
+	createCronJobs();
+}
+
+initializeServerHooks();
