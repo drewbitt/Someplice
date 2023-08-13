@@ -103,14 +103,18 @@ export async function checkMissingOutcomes() {
 
 		if (outcomeId === null) {
 			// if there's no outcome for the intention's date, create one and associate it with the intention
-			cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+			cronLogger.debug(`Creating outcome for intentionId: ${intention.id}`); // Log the ids
 			await db.transaction().execute(async (db) => {
 				const newOutcome = await db
 					.insertInto('outcomes')
 					.values({ reviewed: 0, date: intention.date.slice(0, 10) })
 					.returning('id')
-					.execute();
-				outcomeId = newOutcome[0].id;
+					.executeTakeFirst();
+				if (newOutcome === undefined) {
+					cronLogger.error('Could not create outcome');
+					return;
+				}
+				outcomeId = newOutcome.id;
 			});
 		}
 
@@ -124,7 +128,7 @@ export async function checkMissingOutcomes() {
 				.execute();
 
 			// If the pair does not exist, insert it
-			if (existingPair.length === 0) {
+			if (existingPair.length === 0 && outcomeId !== null && intention.id !== null) {
 				cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 				await db
 					.insertInto('outcomes_intentions')
