@@ -20,41 +20,50 @@
 		})
 		.join('\n');
 
-	$: intentions = intentionsString
-		.split('\n')
-		.map((line: string, index) => {
-			const regex = /^([1-9])([a-z]{0,3})?\)\s*(.*)/;
-			const match = line.match(regex);
-			if (match) {
-				const [_, number, subintention, text] = match;
+	function parseLine(line: string): [number, string | null, string] | null {
+		const regex = /^([1-9])([a-z]{0,3})?\)\s*(.*)/;
+		const match = line.match(regex);
+		if (match) {
+			const [_, orderNumber, subIntention, text] = match;
+			return [parseInt(orderNumber), subIntention || null, text];
+		}
+		return null;
+	}
 
-				const goal = goals.find((goal: Goal) => goal.orderNumber === parseInt(number));
-				if (goal && goal?.id) {
-					valid = true;
-					const newIntention: Intention = {
-						id: null,
-						goalId: goal.id,
-						orderNumber: index + maxOrderNumber + 1,
-						completed: 0,
-						subIntentionQualifier: subintention || null,
-						text: text,
-						date: localeCurrentDate().toISOString()
-					};
-					return newIntention;
-				}
-			}
-			valid = false;
+	function buildIntention(
+		parsedData: [number, string | null, string],
+		index: number
+	): Intention | null {
+		const [orderNumber, subIntention, text] = parsedData;
+		const goal = goals.find((goal: Goal) => goal.orderNumber === orderNumber);
+		if (goal && goal.id) {
 			return {
 				id: null,
-				goalId: -1,
-				orderNumber: -1,
-				completed: -1,
-				subIntentionQualifier: '',
-				text: line,
+				goalId: goal.id,
+				orderNumber: index + maxOrderNumber + 1,
+				completed: 0,
+				subIntentionQualifier: subIntention,
+				text: text,
 				date: localeCurrentDate().toISOString()
 			};
-		})
-		.filter((intention: Intention) => intention.goalId != -1 && intention !== undefined);
+		}
+		return null;
+	}
+
+	$: intentions = intentionsString.split('\n').reduce((acc: Intention[], line, index) => {
+		const parsedData = parseLine(line);
+		if (parsedData) {
+			const intention = buildIntention(parsedData, index);
+			if (intention) {
+				valid = true;
+				acc.push(intention);
+				return acc;
+			}
+		}
+
+		valid = false; // If it reaches here, the line is invalid.
+		return acc; // Return the accumulator unchanged for invalid lines.
+	}, []);
 
 	$: intentions = [...(existingIntentions || []), ...intentions];
 
