@@ -9,11 +9,10 @@
 	packageRules: [
 		{
 			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
-			automerge: true
-		},
-		{
-			matchDatasources: ['npm'],
-			stabilityDays: 1
+			automerge: true,
+			timezone: 'America/New_York',
+			schedule: ['after 5:00pm on Monday'],
+			requiredStatusChecks: ['Run Tests']
 		},
 		{
 			matchUpdateTypes: ['major'],
