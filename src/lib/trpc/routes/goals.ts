@@ -4,6 +4,7 @@ import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Goal } from '../types';
+import { localeCurrentDate } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -104,10 +105,10 @@ export const goals = t.router({
 				WHERE
 					goals.active = ${input.active}
 				AND
-					goal_logs.date <= ${endOfDate.toISOString()}
+					goal_logs.date BETWEEN ${startOfDate.toISOString()} AND ${endOfDate.toISOString()}
 				AND
 					(
-						(goal_logs.type = 'start' AND goal_logs.date <= ${endOfDate.toISOString()})
+						(goal_logs.type = 'start')
 						OR
 						(goal_logs.type = 'end' AND goal_logs.date > ${endOfDate.toISOString()})
 					)
@@ -115,7 +116,7 @@ export const goals = t.router({
 					goals.id
 				ORDER BY
 					goals.orderNumber ASC		
-			`.execute(getDb());
+		`.execute(getDb());
 
 			return goalsWithDate.rows;
 		}),
@@ -161,7 +162,7 @@ export const goals = t.router({
 
 					// Insert into goal_logs after the goal is added
 					if (result.id) {
-						const date = new Date().toISOString();
+						const date = localeCurrentDate().toISOString();
 						await trx
 							.insertInto('goal_logs')
 							.values({
@@ -329,7 +330,7 @@ export const goals = t.router({
 
 					// Update the goal_logs when a goal is archived
 					if (result) {
-						const endDate = new Date().toISOString();
+						const endDate = localeCurrentDate().toISOString();
 						await trx
 							.insertInto('goal_logs')
 							.values({
@@ -400,7 +401,7 @@ export const goals = t.router({
 							.values({
 								goalId: input,
 								type: 'start',
-								date: new Date().toISOString()
+								date: localeCurrentDate().toISOString()
 							})
 							.executeTakeFirst();
 					}

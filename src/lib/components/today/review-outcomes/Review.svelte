@@ -22,13 +22,16 @@
 		const timeDiff = Math.abs(currentDate.getTime() - intentionDate.getTime());
 		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-		Promise.all([listGoalsOnDate(intentionDate), listIntentionsOnDate(intentionDate)]).then(
-			([goalsResult, intentionsResult]) => {
+		Promise.all([listGoalsOnDate(intentionDate), listIntentionsOnDate(intentionDate)])
+			.then(([goalsResult, intentionsResult]) => {
 				goalsOnDate = goalsResult;
 				intentionsOnDate = intentionsResult;
 				showPageLoadingSpinner = false; // turn off loading spinner when all promises are resolved
-			}
-		);
+			})
+			.catch((error) => {
+				appLogger.error(error);
+				showPageLoadingSpinner = false;
+			});
 	}
 
 	const listGoalsOnDate = async (date: Date) => {
@@ -88,13 +91,13 @@
 
 <Box
 	class={cx(
-		'items-center p-4 flex flex-col',
+		'flex flex-col items-center p-4',
 		darkMode ? 'shadow shadow-black' : 'shadow-xl',
 		getStyles()
 	)}
 	id="review-goals-form"
 >
-	<section class={'items-center p-4 pb-6 2xl:pb-7 w-full'}>
+	<section class={'w-full items-center p-4 pb-6 2xl:pb-7'}>
 		<h1 class="mb-5 text-center text-2xl">
 			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
 				weekday: 'long',
@@ -110,7 +113,7 @@
 				<span class="daisy-loading daisy-loading-spinner daisy-loading-lg" />
 			</div>
 		{:else}
-			<div role="list" id="goal-outcome-list-container" class="grid gap-6 place-items-center">
+			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
 				{#each goalsOnDate as goal}
 					<ReviewGoalBox {goal} intentions={intentionsOnDate} />
 				{/each}
@@ -119,8 +122,8 @@
 	</section>
 	<!-- Mimic the styling of ReviewGoalBox so the Save button aligns properly -->
 	<!-- TODO: fix conditional mr padding as ReviewGoalBox is doing something funky I'm just trying to mimic-->
-	<Box class="flex flex-col items-center w-full max-w-screen-2xl mr-6 md:mr-6 2xl:mr-0">
-		<Box class="flex justify-end w-4/5 gap-2 min-w-min max-w-full">
+	<Box class="mr-6 flex w-full max-w-screen-2xl flex-col items-center md:mr-6 2xl:mr-0">
+		<Box class="flex w-4/5 min-w-min max-w-full justify-end gap-2">
 			<Button on:click={handleSaveReview}>Save</Button>
 		</Box>
 	</Box>
