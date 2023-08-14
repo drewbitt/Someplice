@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import { Grid, Modal } from '@svelteuidev/core';
+	import { Grid, Modal, colorScheme } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 	import TextCursorInput from '~icons/lucide/text-cursor-input';
 	import AppendModal from './AppendModal.svelte';
@@ -13,18 +13,6 @@
 	let intentionsModalOpened = opened; // local opened state to control modal
 	$: modalTitle = goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text;
 	let showAppendModal = false;
-
-	const closeIntentionsModal = () => {
-		if (!showAppendModal) {
-			opened = false;
-		} else {
-			intentionsModalOpened = false;
-		}
-	};
-	const closeAppendModal = () => {
-		showAppendModal = false;
-		opened = false; // close modal in parent
-	};
 
 	onMount(() => {
 		// Set css variable directly as a workaround for cssvariable not working in a parent div
@@ -41,6 +29,20 @@
 			);
 		}
 	});
+
+	const closeIntentionsModal = () => {
+		if (!showAppendModal) {
+			opened = false;
+		} else {
+			intentionsModalOpened = false;
+		}
+	};
+	const closeAppendModal = () => {
+		showAppendModal = false;
+		opened = false; // close modal in parent
+	};
+
+	$: darkMode = $colorScheme === 'dark';
 </script>
 
 {#if intentionsModalOpened}
@@ -61,6 +63,8 @@
 							role="button"
 							tabindex="0"
 							class="grid"
+							class:focus:text-slate-200={darkMode}
+							class:focus:text-slate-900={!darkMode}
 							style="grid-template-columns: 0.5rem auto;"
 							on:click={() => {
 								showAppendModal = true;
