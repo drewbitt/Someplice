@@ -148,8 +148,8 @@ export const goals = t.router({
 		}),
 	/**
 	 * @param {GoalSchema.omit({id: true, orderNumber: true})} input - Goal to add
-	 * @throws NoResultError - if there was a problem inserting the goal
-	 * @throws Error - if the maximum number of goals was reached
+	 * @throws {NoResultError} - if there was a problem inserting the goal
+	 * @throws {Error} - if the maximum number of goals was reached
 	 * @returns {id: number} - id of the goal inserted
 	 */
 	add: t.procedure
@@ -207,8 +207,8 @@ export const goals = t.router({
 	 * Update a goal in getDb() with input goal by ID
 	 * @param {Goal} input - Goal to update
 	 * @param {number} input.id - ID of goal to update
-	 * @returns UpdateResult
-	 * @throws NoResultError If no goal with the provided ID exists in the database
+	 * @returns {UpdateResult}
+	 * @throws {NoResultError} If no goal with the provided ID exists in the database
 	 */
 	edit: t.procedure
 		.use(logger)

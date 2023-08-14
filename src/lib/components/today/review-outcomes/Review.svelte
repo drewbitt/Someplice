@@ -43,8 +43,8 @@
 	};
 	const listIntentionsOnDate = async (date: Date) => {
 		const intentions = await trpc($page).intentions.list.query({
-			startDate: date.toISOString().split('T')[0] + 'T00:00:00.000Z',
-			endDate: date.toISOString().split('T')[0] + 'T23:59:59.999Z'
+			startDate: date,
+			endDate: date
 		});
 		return intentions;
 	};

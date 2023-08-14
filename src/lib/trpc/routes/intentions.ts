@@ -28,13 +28,31 @@ export const intentions = t.router({
 		.input(
 			z
 				.object({
-					startDate: z.string(),
-					endDate: z.string()
+					startDate: z.date(),
+					endDate: z.date()
 				})
 				.optional()
 		)
 		.query(({ input }) => {
 			if (input) {
+				const startDate = new Date(
+					Date.UTC(
+						input.startDate.getUTCFullYear(),
+						input.startDate.getUTCMonth(),
+						input.startDate.getUTCDate()
+					)
+				);
+				startDate.setUTCHours(0, 0, 0, 0);
+
+				const endDate = new Date(
+					Date.UTC(
+						input.endDate.getUTCFullYear(),
+						input.endDate.getUTCMonth(),
+						input.endDate.getUTCDate()
+					)
+				);
+				endDate.setUTCHours(23, 59, 59, 999);
+
 				return getDb()
 					.selectFrom('intentions')
 					.select([
@@ -47,8 +65,8 @@ export const intentions = t.router({
 						'date'
 					])
 					.orderBy('orderNumber', 'asc')
-					.where('date', '>=', input.startDate)
-					.where('date', '<=', input.endDate)
+					.where('date', '>=', startDate.toISOString())
+					.where('date', '<=', endDate.toISOString())
 					.execute();
 			} else {
 				return getDb()
