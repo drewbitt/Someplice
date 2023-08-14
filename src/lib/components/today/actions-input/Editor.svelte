@@ -9,20 +9,17 @@
 	// State
 	let input: HTMLTextAreaElement;
 
-	onMount(() => {
-		input.focus();
-		const highlighted = highlight(input.value);
-
-		// Run on initial mount once (in case anything in localStorage etc), then run on input
-		if (input.previousElementSibling) {
+	// Reactive statement to watch for changes in the value prop and highlight
+	// value comes from the parent and the textarea is also bound to it
+	$: {
+		if (input && input.previousElementSibling) {
+			const highlighted = highlight(value);
 			input.previousElementSibling.innerHTML = highlighted;
 		}
-		input.addEventListener('input', () => {
-			const highlighted = highlight(input.value);
-			if (input.previousElementSibling) {
-				input.previousElementSibling.innerHTML = highlighted;
-			}
-		});
+	}
+
+	onMount(() => {
+		input.focus();
 	});
 
 	const useStyles = createStyles((theme: any) => ({
@@ -35,7 +32,7 @@
 		textarea: {
 			caretColor: 'black', // light mode caret color as default
 			darkMode: {
-				caretColor: 'white' // dark mode caret color
+				caretColor: 'white'
 			}
 		}
 	}));

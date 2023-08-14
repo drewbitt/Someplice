@@ -10,7 +10,7 @@
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
-	import { goalPageError } from '$src/lib/stores/errors';
+	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
 	export let goal: PageServerData['goals'][0];
 	export let currentlyEditing: boolean;
@@ -49,8 +49,9 @@
 				}
 			} catch (error: unknown) {
 				if (error instanceof Error) {
-					// set goalPageError for 6 seconds, then revert it back to null
-					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+					// set goalPageErrorStore for 6 seconds, then revert it back to null
+					goalPageErrorStore.set(error.message),
+						setTimeout(() => goalPageErrorStore.set(null), 6000);
 				}
 			}
 		}
@@ -70,8 +71,9 @@
 				}
 			} catch (error: unknown) {
 				if (error instanceof Error) {
-					// set goalPageError for 6 seconds, then revert it back to null
-					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+					// set goalPageErrorStore for 6 seconds, then revert it back to null
+					goalPageErrorStore.set(error.message),
+						setTimeout(() => goalPageErrorStore.set(null), 6000);
 				}
 			}
 		}
@@ -89,8 +91,9 @@
 				await invalidateAll();
 			} catch (error: unknown) {
 				if (error instanceof Error) {
-					// set goalPageError for 6 seconds, then revert it back to null
-					goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+					// set goalPageErrorStore for 6 seconds, then revert it back to null
+					goalPageErrorStore.set(error.message),
+						setTimeout(() => goalPageErrorStore.set(null), 6000);
 				}
 			}
 		}

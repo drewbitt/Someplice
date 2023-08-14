@@ -1,3 +1,3 @@
 import { writable } from 'svelte/store';
 
-export const goalPageError = writable<string | null>(null);
+export const goalPageErrorStore = writable<string | null>(null);

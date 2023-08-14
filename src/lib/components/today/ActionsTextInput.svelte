@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { localeCurrentDate } from '$src/lib/utils';
+	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
+	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
 
 	export let goals: PageServerData['goals'];
 	export let intentions: PageServerData['intentions'];
@@ -12,13 +14,47 @@
 
 	export let valid = true;
 
-	let intentionsString = intentions
-		.map((intention: Intention) => {
-			return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${
-				intention.text
-			}`.trim();
-		})
-		.join('\n');
+	let intentionsString = '';
+
+	onMount(() => {
+		todaysIntentionsStore.initialize();
+
+		if ($todaysIntentionsStore && $todaysIntentionsStore.trim() !== '') {
+			intentionsString = $todaysIntentionsStore;
+		} else {
+			intentionsString = intentions
+				.map((intention: Intention) => {
+					return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${
+						intention.text
+					}`.trim();
+				})
+				.join('\n');
+		}
+	});
+
+	// Save to store whenever intentionsString changes
+	$: {
+		if (intentionsString) {
+			todaysIntentionsStore.updateValue(intentionsString);
+		}
+	}
+
+	// Parse intentionsString into intentions to give them to parent component
+	// For each intentionsString line, if it is valid (from parseLine), build an intention and add it to the intentions array.
+	$: intentions = intentionsString.split('\n').reduce((acc: Intention[], line, index) => {
+		const parsedData = parseLine(line);
+		if (parsedData) {
+			const intention = buildIntention(parsedData, index);
+			if (intention) {
+				valid = true;
+				acc.push(intention);
+				return acc;
+			}
+		}
+
+		valid = false; // If it reaches here, the line is invalid.
+		return acc; // Return the accumulator unchanged for invalid lines.
+	}, []);
 
 	function parseLine(line: string): [number, string | null, string] | null {
 		const regex = /^([1-9])([a-z]{0,3})?\)\s*(.*)/;
@@ -49,23 +85,6 @@
 		}
 		return null;
 	}
-
-	$: intentions = intentionsString.split('\n').reduce((acc: Intention[], line, index) => {
-		const parsedData = parseLine(line);
-		if (parsedData) {
-			const intention = buildIntention(parsedData, index);
-			if (intention) {
-				valid = true;
-				acc.push(intention);
-				return acc;
-			}
-		}
-
-		valid = false; // If it reaches here, the line is invalid.
-		return acc; // Return the accumulator unchanged for invalid lines.
-	}, []);
-
-	$: intentions = [...(existingIntentions || []), ...intentions];
 
 	let maxOrderNumber = 0;
 	if (existingIntentions) {

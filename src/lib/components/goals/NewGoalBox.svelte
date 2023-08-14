@@ -4,7 +4,7 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { Box, Text } from '@svelteuidev/core';
 	import { colors } from './colors';
-	import { goalPageError } from '$src/lib/stores/errors';
+	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
 	export let addedGoal: boolean;
 
@@ -38,8 +38,8 @@
 			}
 		} catch (error: unknown) {
 			if (error instanceof Error) {
-				// set goalPageError for 6 seconds, then revert it back to null
-				goalPageError.set(error.message), setTimeout(() => goalPageError.set(null), 6000);
+				// set goalPageErrorStore for 6 seconds, then revert it back to null
+				goalPageErrorStore.set(error.message), setTimeout(() => goalPageErrorStore.set(null), 6000);
 			}
 		}
 	};

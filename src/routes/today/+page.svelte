@@ -10,6 +10,8 @@
 	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
+	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
+	import { onMount } from 'svelte';
 
 	export let data: PageServerData;
 	type Intentions = (typeof data.intentions)[0];
@@ -25,6 +27,16 @@
 	let intentionsFromServer: Intentions[] = data.intentions;
 	let hasOutstandingOutcome = false;
 	let showPageLoadingSpinner = false;
+
+	onMount(() => {
+		// Initialize the store from local storage
+		todaysIntentionsStore.initialize();
+
+		// Open the additional intentions text area if there are intentions stored in localStorage
+		if ($todaysIntentionsStore) {
+			showAdditionalIntentionsTextArea = true;
+		}
+	});
 
 	// $: declarations grouped together
 	$: noGoals = data.goals.length === 0;
@@ -100,6 +112,11 @@
 		return outcomes;
 	};
 
+	/*
+		Manages saving intentions. Verifies validity. Ensures not saving any duplicate orderNumbers.
+		Decides between adding new intentions or updating existing intentions.
+		Clears localStorage of todays intentions.
+	*/
 	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
 		if (!validIntentions) {
@@ -112,7 +129,9 @@
 		);
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
 
-		noIntentions ? addIntentions() : updateIntentions();
+		noIntentions ? await addIntentions() : await updateIntentions();
+		// clear localStorage
+		todaysIntentionsStore.clear();
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
@@ -168,17 +187,18 @@
 			>
 				You have no goals. Please add some goals first.
 			</Notification>
-			<!-- if there are no intentions set today -->
+			<!-- if there are no intentions set today, show Review -->
 		{:else if hasOutstandingOutcome}
 			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
-			<!-- if there are intentions already set today -->
+			<!-- if there are intentions already set today, show ActionsDisplay -->
 		{:else if intentionsFromServer.length > 0}
 			<ActionsDisplay
 				bind:intentions={data.intentions}
 				{handleUpdateSingleIntention}
 				goals={data.goals}
 			/>
-			<!-- if user presses "Add more intentions" button -->
+			<!-- if there are intentions today and the user presses "Add more intentions" button,
+			show additional ActionsTextInput -->
 			{#if showAdditionalIntentionsTextArea}
 				<Box class="flex items-center">
 					<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>
