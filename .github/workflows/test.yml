@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  cache-and-install:
+  test-workflow:
     runs-on: ubuntu-latest
 
     steps:
