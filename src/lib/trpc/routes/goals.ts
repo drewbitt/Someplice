@@ -89,36 +89,62 @@ export const goals = t.router({
 			);
 			endOfDate.setUTCHours(23, 59, 59, 999);
 
-			const goalsWithDate = await sql<Goal>`
-				SELECT
-					goals.id,
-					goals.active,
-					goals.orderNumber,
-					goals.title,
-					goals.description,
-					goals.color,
-					MAX(goal_logs.date) as date
-				FROM
-					goals
-				INNER JOIN
-					goal_logs ON goals.id = goal_logs.goalId
-				WHERE
-					goals.active = ${input.active}
-				AND
-					goal_logs.date BETWEEN ${startOfDate.toISOString()} AND ${endOfDate.toISOString()}
-				AND
-					(
-						(goal_logs.type = 'start')
-						OR
-						(goal_logs.type = 'end' AND goal_logs.date > ${endOfDate.toISOString()})
-					)
-				GROUP BY
-					goals.id
-				ORDER BY
-					goals.orderNumber ASC		
-		`.execute(getDb());
+			if (input.active === 1) {
+				const activeGoalsWithDate = await sql<Goal>`
+					SELECT
+						goals.id,
+						goals.active,
+						goals.orderNumber,
+						goals.title,
+						goals.description,
+						goals.color,
+						MAX(goal_logs.date) as date
+					FROM
+						goals
+					INNER JOIN
+						goal_logs ON goals.id = goal_logs.goalId
+					WHERE
+						goal_logs.date BETWEEN ${startOfDate.toISOString()} AND ${endOfDate.toISOString()}
+					AND
+						(
+							(goal_logs.type = 'start')
+							OR
+							(goal_logs.type = 'end' AND goal_logs.date > ${endOfDate.toISOString()})
+						)
+					GROUP BY
+						goals.id
+					ORDER BY
+						goals.orderNumber ASC		
+			`.execute(getDb());
 
-			return goalsWithDate.rows;
+				return activeGoalsWithDate.rows;
+			} else {
+				// Gets latest goal_log for each goal and ensures it is 'end'
+				const inactiveGoalsOnDate = await sql<Goal>`
+					SELECT
+						goals.id,
+						goals.orderNumber,
+						goals.title,
+						goals.description,
+						goals.color
+					FROM
+						goals
+					INNER JOIN
+						goal_logs ON goals.id = goal_logs.goalId
+					WHERE
+						goal_logs.date = (
+							SELECT MAX(date) 
+							FROM goal_logs 
+							WHERE goalId = goals.id AND date <= ${endOfDate.toISOString()}
+						)
+					AND
+						goal_logs.type = 'end'
+					ORDER BY
+						goals.orderNumber ASC
+				`.execute(getDb());
+
+				return inactiveGoalsOnDate.rows;
+			}
 		}),
 	/**
 	 * @param {GoalSchema.omit({id: true, orderNumber: true})} input - Goal to add
