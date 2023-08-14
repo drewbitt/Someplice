@@ -104,7 +104,8 @@
 				if (goal) {
 					return `<span class="goal__editor__span" style="color: ${goal.color}">${line}</span>`;
 				}
-				return line;
+				// If no goal matches, add a dashed underline
+				return `<span class="border-b-2 border-dashed border-blue-600">${line}</span>`;
 			}
 			return line;
 		});

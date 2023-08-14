@@ -22,6 +22,15 @@
 		input.focus();
 	});
 
+	function handleInput(event: Event) {
+		const textarea = event.target as HTMLTextAreaElement;
+		if (textarea.value.match(/^\d $/m)) {
+			// If the value ends with a number and space
+			value = textarea.value.replace(/(\d) $/, '$1) '); // This will update the Svelte-bound value
+			textarea.value = value; // Reflect the change in the actual textarea
+		}
+	}
+
 	const useStyles = createStyles((theme: any) => ({
 		root: {
 			color: theme.fn.themeColor('gray', 9),
@@ -51,5 +60,6 @@
 		contenteditable="true"
 		bind:value
 		tabindex="0"
+		on:input={handleInput}
 	/>
 </Box>
