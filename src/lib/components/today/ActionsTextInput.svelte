@@ -56,8 +56,16 @@
 		return acc; // Return the accumulator unchanged for invalid lines.
 	}, []);
 
+	// If the number of intentions is the same as the number of lines in intentionsString, then it is valid.
+	// Otherwise, it is invalid. This is due to the reduce function.
+	$: if (intentions.length === intentionsString.split('\n').filter((line) => line.trim()).length) {
+		valid = true;
+	} else {
+		valid = false;
+	}
+
 	function parseLine(line: string): [number, string | null, string] | null {
-		const regex = /^([1-9])([a-z]{0,3})?\)\s*(.*)/;
+		const regex = /^([1-9])([a-z]{0,3})?\)\s*(\S.*)$/;
 		const match = line.match(regex);
 		if (match) {
 			const [_, orderNumber, subIntention, text] = match;
@@ -92,7 +100,9 @@
 	}
 
 	const highlight = (value: string) => {
-		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\).*$/g;
+		// Match lines that start with a number followed by a letter or letters and a closing parenthesis
+		// Don't match when the parenthesis is followed by a letter/number without a space in between
+		const regex = /^[0-9](?:[a-zA-Z]{1,3})?\)(?![a-zA-Z0-9]).*$/g;
 		const lines = value.split('\n');
 		const highlightedLines = lines.map((line) => {
 			const matches = line.match(regex);
