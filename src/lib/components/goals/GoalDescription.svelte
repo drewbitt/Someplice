@@ -40,15 +40,27 @@
 		</Group>
 	</Box>
 {:else if currentlyEditing && isInactiveGoal}
-	<Box class="goal-box-description flex w-full justify-between">
-		<Text>{description ?? ''}</Text>
-		<button
-			id="goal-box-archive-button"
-			class="daisy-btn-sm mr-3.5 rounded-lg bg-blue-600 p-1.5"
-			on:click={handleRestoreGoal}
-		>
-			<ArchiveRestore class="text-white" />
-		</button>
+	<Box class="goal-box-description w-full">
+		<Group position="apart">
+			<Text>{description ?? ''}</Text>
+			<Box class="flex">
+				<button
+					id="goal-box-archive-button"
+					class="daisy-btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
+					on:click={handleRestoreGoal}
+				>
+					<ArchiveRestore class="text-white" />
+				</button>
+				<button
+					id="goal-box-delete-button"
+					aria-haspopup="true"
+					class="daisy-btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
+					on:click={handleDeleteGoal}
+				>
+					<Trash class="text-white" />
+				</button>
+			</Box>
+		</Group>
 	</Box>
 {:else}
 	<Box class="goal-box-description w-full">
