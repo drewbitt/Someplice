@@ -91,30 +91,34 @@ export const goals = t.router({
 
 			if (input.active === 1) {
 				const activeGoalsWithDate = await sql<Goal>`
-					SELECT
-						goals.id,
-						goals.active,
-						goals.orderNumber,
-						goals.title,
-						goals.description,
-						goals.color,
-						MAX(goal_logs.date) as date
-					FROM
-						goals
-					INNER JOIN
-						goal_logs ON goals.id = goal_logs.goalId
-					WHERE
-						goal_logs.date BETWEEN ${startOfDate.toISOString()} AND ${endOfDate.toISOString()}
-					AND
-						(
-							(goal_logs.type = 'start')
-							OR
-							(goal_logs.type = 'end' AND goal_logs.date > ${endOfDate.toISOString()})
-						)
-					GROUP BY
-						goals.id
-					ORDER BY
-						goals.orderNumber ASC		
+				SELECT
+					goals.id,
+					goals.active,
+					goals.orderNumber,
+					goals.title,
+					goals.description,
+					goals.color,
+					MAX(goal_logs.date) as date
+				FROM
+					goals
+				INNER JOIN
+					goal_logs ON goals.id = goal_logs.goalId
+				WHERE
+					goal_logs.date <= ${endOfDate.toISOString()}
+				AND
+					goal_logs.type = 'start'
+				AND
+					NOT EXISTS (
+						SELECT 1 
+						FROM goal_logs AS g2 
+						WHERE g2.goalId = goals.id 
+						AND g2.type = 'end' 
+						AND g2.date BETWEEN goal_logs.date AND ${endOfDate.toISOString()}
+					)
+				GROUP BY
+					goals.id
+				ORDER BY
+					goals.orderNumber ASC		
 			`.execute(getDb());
 
 				return activeGoalsWithDate.rows;
