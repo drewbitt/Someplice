@@ -84,6 +84,18 @@ export const intentions = t.router({
 			}
 		}),
 	/**
+	 * Add new intentions
+	 * @returns {(number | null)[]} - The ids of the created intentions.
+	 */
+	addMany: t.procedure
+		.use(logger)
+		.input(z.array(IntentionsSchema.omit({ id: true })))
+		.mutation(async ({ input }) => {
+			const result = await getDb().insertInto('intentions').values(input).returning('id').execute();
+
+			return result;
+		}),
+	/**
 	 * Retrieve all the intentions for the latest date
 	 * @returns {Intention[]} - The intentions for the latest date, or an empty array if there are no intentions
 	 */

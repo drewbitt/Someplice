@@ -64,6 +64,19 @@ describe('intentions', () => {
 		expect(result[0]).toEqual(expect.objectContaining(TEST_INTENTION));
 	});
 
+	it('addMany', async () => {
+		const added = (await intentions.addMany({
+			rawInput: [TEST_INTENTION],
+			path: 'addMany',
+			type: 'mutation',
+			ctx: {}
+		})) as { id: number }[];
+		expect(added).toBeDefined();
+		expect(added).toHaveLength(1);
+		expect(added[0].id).toBeDefined();
+		expect(added[0].id).toBeGreaterThan(0);
+	});
+
 	it('latestIntentions', async () => {
 		const added1 = await intentions.updateIntentions({
 			rawInput: { intentions: [TEST_INTENTION] },

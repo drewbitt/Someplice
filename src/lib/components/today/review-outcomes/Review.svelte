@@ -16,6 +16,7 @@
 	let daysAgo: number;
 	let goalsOnDate: Goal[];
 	let intentionsOnDate: Intention[];
+	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
 
 	$: {
 		const currentDate = localeCurrentDate();
@@ -50,7 +51,7 @@
 	};
 	const handleSaveReview = async () => {
 		// Get the values of the intention checkboxes
-		const checkboxIntentions = Array.from(
+		let checkboxIntentions = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
 				'.goal-review-item-content input[type="checkbox"]'
 			)
@@ -64,7 +65,28 @@
 		};
 
 		try {
-			// Both update intentions and create outcome
+			// First, insert any newly added outcomes to the intentions
+			if (newIntentionsToInsert.length > 0) {
+				let insertIds = await trpc($page).intentions.addMany.mutate(newIntentionsToInsert);
+
+				// Filter out any null ids
+				const validInsertIds = insertIds?.filter((id) => id !== null) || [];
+
+				// TODO: Show error to user, but is this even possible? Connection problems?
+				if (validInsertIds.length !== newIntentionsToInsert.length) {
+					appLogger.error("Some of the new intentions' ids were null.");
+				}
+
+				// Add the new intention ids to the checkboxIntentions array
+				checkboxIntentions = checkboxIntentions.concat(
+					validInsertIds.map((item) => ({
+						intentionId: item.id as number,
+						completed: 1
+					}))
+				);
+			}
+
+			// Actually create the outcome and update the intentions
 			await trpc($page).outcomes.createAndUpdateIntentions.mutate({
 				outcome: outcomeToInsert,
 				outcomesIntentions: checkboxIntentions
@@ -77,6 +99,36 @@
 			appLogger.error(error);
 		}
 	};
+
+	function handleNewOutcomeTextChanged(event: CustomEvent<{ goalId: number; texts: string[] }>) {
+		const { goalId, texts } = event.detail;
+
+		texts.forEach((text, index) => {
+			const existingIntentionIndex = newIntentionsToInsert.findIndex(
+				(intention) => intention.goalId === goalId && intention.orderNumber === 200 + index
+			);
+
+			if (existingIntentionIndex !== -1) {
+				if (text) {
+					// Update the existing intention
+					newIntentionsToInsert[existingIntentionIndex].text = text;
+				} else {
+					// Remove the intention if its text is the empty string
+					newIntentionsToInsert.splice(existingIntentionIndex, 1);
+				}
+			} else if (text) {
+				// Add a new intention
+				newIntentionsToInsert.push({
+					goalId: goalId,
+					text: text,
+					date: intentionDate.toISOString(),
+					completed: 1,
+					subIntentionQualifier: null,
+					orderNumber: 200 + index // make arbitrarily high so it gets sorted to the bottom
+				});
+			}
+		});
+	}
 
 	const useStyles = createStyles(() => ({
 		root: {
@@ -115,7 +167,11 @@
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
 				{#each goalsOnDate as goal}
-					<ReviewGoalBox {goal} intentions={intentionsOnDate} />
+					<ReviewGoalBox
+						{goal}
+						intentions={intentionsOnDate}
+						on:updateNewOutcomeTexts={handleNewOutcomeTextChanged}
+					/>
 				{/each}
 			</div>
 		{/if}

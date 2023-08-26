@@ -4,8 +4,8 @@
 	import { hotkey, useOs } from '@svelteuidev/composables';
 	import { ActionIcon, Box, Group, Text, Tooltip } from '@svelteuidev/core';
 	import { derived } from 'svelte/store';
-	import Moon from '~icons/lucide/moon';
-	import Sun from '~icons/lucide/sun-medium';
+	import Moon from 'virtual:icons/lucide/moon';
+	import Sun from 'virtual:icons/lucide/sun-medium';
 	import theme from '../stores/theme';
 
 	const os = useOs();

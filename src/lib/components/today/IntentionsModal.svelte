@@ -3,7 +3,7 @@
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
 	import { Grid, Modal, colorScheme } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
-	import TextCursorInput from '~icons/lucide/text-cursor-input';
+	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import AppendModal from './AppendModal.svelte';
 
 	export let goals: Goal[];

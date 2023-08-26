@@ -53,6 +53,7 @@
 - SQLite
 - [kysely](https://github.com/kysely-org/kysely)
 - [TRPC](https://trpc.io/) and [Zod](https://zod.dev/)
+- [SvelteUI](https://www.svelteui.org/) & Tailwind & [DaisyUI](https://daisyui.com/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

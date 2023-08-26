@@ -6,7 +6,7 @@
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
-	import Menu from '~icons/lucide/menu';
+	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
@@ -231,7 +231,7 @@
 						aria-labelledby="intention-{intention.id}"
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
-							? 'daisy-checkbox-md'
+							? 'daisy-checkbox-md ml-0.5'
 							: 'daisy-checkbox-sm ml-0.5'}
 						checked={Boolean(intention.completed)}
 						on:change={updateIntention}

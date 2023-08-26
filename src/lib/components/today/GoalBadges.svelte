@@ -7,10 +7,10 @@
 
 <Group>
 	{#each goals as goal}
-		<Badge size="lg" variant="filled" color={goal.color} class="border border-gray-200">
+		<Badge size="lg" variant="filled" color={goal.color} class="border border-gray-200 px-4">
 			{goal.title}
 			<svelte:fragment slot="leftSection">
-				<span class="pr-1">
+				<span class="pr-1 font-mono text-xl">
 					{goal.orderNumber}
 				</span>
 			</svelte:fragment>
