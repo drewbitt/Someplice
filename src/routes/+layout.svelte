@@ -23,6 +23,7 @@
 	<AppShell
 		override={{
 			main: {
+				paddingTop: '2rem !important',
 				bc: $isDark ? fns.themeColor('dark', 8) : fns.themeColor('gray', 0),
 				color: $isDark ? fns.themeColor('dark', 0) : 'black',
 				ml: '0px !important'
