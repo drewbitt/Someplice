@@ -19,7 +19,9 @@ export const GoalSchema = z.object({
 
 export const goals = t.router({
 	/**
-	 * @param {number} input - 0 (false) or 1 (true) to return inactive or active goals respectively
+	 * Return a list of goals either active or inactive.
+	 * @param input - 0 (false) or 1 (true) to return inactive or active goals respectively.
+	 * @returns An array of `Goal` objects.
 	 */
 	list: t.procedure
 		.use(logger)
@@ -34,8 +36,9 @@ export const goals = t.router({
 					.execute()
 		),
 	/**
-	 * Return goals sorted by their date they were started or stopped (the last/latest date in goal_logs)
-	 * @param {number} input - 0 (false) or 1 (true) to return inactive or active goals respectively
+	 * Return goals sorted by their date they were started or stopped (the last/latest date in goal_logs).
+	 * @param input - 0 (false) or 1 (true) to return inactive or active goals respectively.
+	 * @returns An array of `Goal` objects.
 	 */
 	listGoalsSortedByDate: t.procedure
 		.use(logger)
@@ -67,9 +70,10 @@ export const goals = t.router({
 			return goalsWithDate.rows;
 		}),
 	/**
-	 * Return goals as they were on a specific date
-	 * @param {number} input.active - 0 (false) or 1 (true) to return inactive or active goals respectively
-	 * @param {date} input.date - Date to return goals as they were on
+	 * Return goals as they were on a specific date.
+	 * @param input.active - 0 (false) or 1 (true) to return inactive or active goals respectively.
+	 * @param input.date - Date to return goals as they were on.
+	 * @returns An array of `Goal` objects.
 	 */
 	listGoalsOnDate: t.procedure
 		.use(logger)
@@ -151,10 +155,11 @@ export const goals = t.router({
 			}
 		}),
 	/**
-	 * @param {GoalSchema.omit({id: true, orderNumber: true})} input - Goal to add
-	 * @throws {NoResultError} - if there was a problem inserting the goal
-	 * @throws {Error} - if the maximum number of goals was reached
-	 * @returns {id: number} - id of the goal inserted
+	 * Add a new goal to the database.
+	 * @param input - Goal to add, omitting `id` and `orderNumber`.
+	 * @throws {NoResultError} - if there was a problem inserting the goal.
+	 * @throws {Error} - if the maximum number of goals was reached.
+	 * @returns An object containing the `id` of the goal inserted.
 	 */
 	add: t.procedure
 		.use(logger)
@@ -208,11 +213,11 @@ export const goals = t.router({
 				});
 		}),
 	/**
-	 * Update a goal in getDb() with input goal by ID
-	 * @param {Goal} input - Goal to update
-	 * @param {number} input.id - ID of goal to update
-	 * @returns {UpdateResult}
-	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 * Update a goal in the database with a given `Goal` object by `id`.
+	 * @param input - `Goal` object to update.
+	 * @param input.id - ID of the goal to update.
+	 * @returns An `UpdateResult` object.
+	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
 	 */
 	edit: t.procedure
 		.use(logger)
@@ -229,9 +234,9 @@ export const goals = t.router({
 			return result;
 		}),
 	/**
-	 * Update all goals in getDb() with input goals
-	 * @param {Goal[]} input - Array of goals to update
-	 * @returns { <QueryResult<typeof goal>> } - Array of now current goals
+	 * Update all goals in the database with an array of `Goal` objects.
+	 * @param input.goals - Array of `Goal` objects to update.
+	 * @returns An array of now current `Goal` objects.
 	 */
 	updateGoals: t.procedure
 		.use(logger)
@@ -263,9 +268,10 @@ export const goals = t.router({
 			return results;
 		}),
 	/**
-	 * Delete a goal by its ID
-	 * @param {number} input - ID of the goal to delete
-	 * @throws {NoResultError} If no goal with the provided ID exists in the database
+	 * Delete a goal by its `id`.
+	 * @param input - `id` of the goal to delete.
+	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
+	 * @returns A `DeleteResult` object.
 	 */
 	delete: t.procedure
 		.use(logger)
@@ -309,10 +315,11 @@ export const goals = t.router({
 				});
 		}),
 	/**
-	 * Archive a goal by its ID
-	 * @param {number} input - ID of the goal to archive
-	 * @throws {NoResultError} If no goal with the provided ID exists in the database
-	 * @throws {Error} If the goal's orderNumber is undefined
+	 * Archive a goal by its `id`.
+	 * @param input - `id` of the goal to archive.
+	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
+	 * @throws {Error} If the goal's `orderNumber` is undefined.
+	 * @returns An `UpdateResult` object.
 	 */
 	archive: t.procedure
 		.use(logger)
@@ -375,12 +382,12 @@ export const goals = t.router({
 				});
 		}),
 	/**
-	 * Restore a goal by its ID
-	 * @param {number} input - ID of the goal to restore
-	 * @returns {UpdateResult}
-	 * @throws {NoResultError} If no goal with the provided ID exists in the database
-	 * @throws {Error} If the maximum number of goals has been reached
-	 * @throws {Error} If the goal is already active
+	 * Restore a goal by its `id`.
+	 * @param input - `id` of the goal to restore.
+	 * @returns An `UpdateResult` object.
+	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
+	 * @throws {Error} If the maximum number of goals has been reached.
+	 * @throws {Error} If the goal is already active.
 	 */
 	restore: t.procedure
 		.use(logger)

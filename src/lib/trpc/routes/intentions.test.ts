@@ -64,6 +64,57 @@ describe('intentions', () => {
 		expect(result[0]).toEqual(expect.objectContaining(TEST_INTENTION));
 	});
 
+	it('listByDate', async () => {
+		await intentions.updateIntentions({
+			rawInput: { intentions: [TEST_INTENTION] },
+			path: 'updateIntentions',
+			type: 'mutation',
+			ctx: {}
+		});
+
+		const result = (await intentions.listByDate({
+			rawInput: {
+				startDate: new Date('2023-07-01'),
+				endDate: new Date('2023-07-01')
+			},
+			path: 'listByDate',
+			type: 'query',
+			ctx: {}
+		})) as Record<string, Intention[]>;
+
+		expect(result).toBeDefined();
+		expect(result['2023-07-01']).toBeInstanceOf(Array);
+		expect(result['2023-07-01']).toHaveLength(1);
+		expect(result['2023-07-01'][0]).toEqual(expect.objectContaining(TEST_INTENTION));
+	});
+
+	it('listUniqueDates', async () => {
+		await intentions.updateIntentions({
+			rawInput: { intentions: [TEST_INTENTION] },
+			path: 'updateIntentions',
+			type: 'mutation',
+			ctx: {}
+		});
+
+		const result = (await intentions.listUniqueDates({
+			rawInput: {
+				startDate: new Date('2023-07-01'),
+				endDate: new Date('2023-07-01')
+			},
+			path: 'listUniqueDates',
+			type: 'query',
+			ctx: {}
+		})) as { date: string }[];
+
+		expect(result).toBeDefined();
+		expect(result).toBeInstanceOf(Array);
+		expect(result).toHaveLength(1);
+		expect(result[0]).toBeInstanceOf(Object);
+		// Compare the YYYY-MM-DD part of the date
+		const date = new Date(result[0].date).toISOString().split('T')[0];
+		expect(date).toEqual('2023-07-01');
+	});
+
 	it('addMany', async () => {
 		const added = (await intentions.addMany({
 			rawInput: [TEST_INTENTION],

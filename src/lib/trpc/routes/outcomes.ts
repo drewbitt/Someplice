@@ -19,9 +19,9 @@ export const OutcomeIntentionSchema = z.object({
 
 export const outcomes = t.router({
 	/**
-	 * List all outcomes
-	 * @param { Date } input - The date to filter by (optional)
-	 * @returns {Outcome[]} - The outcomes
+	 * List all outcomes.
+	 * @param input - The date to filter by (optional).
+	 * @returns An array of `Outcome` objects.
 	 */
 	list: t.procedure
 		.use(logger)
@@ -38,9 +38,9 @@ export const outcomes = t.router({
 			}
 		}),
 	/**
-	 * List all intentions associated with an outcome
-	 * @param { number } input - The outcome id
-	 * @returns {OutcomeIntention[]} - The outcome intentions
+	 * List all intentions associated with an outcome.
+	 * @param input - The outcome id.
+	 * @returns An array of `OutcomeIntention` objects.
 	 */
 	listOutcomesIntentions: t.procedure
 		.use(logger)
@@ -53,14 +53,12 @@ export const outcomes = t.router({
 				.execute();
 		}),
 	/**
-	 * Create a new outcome
-	 * @param input {
-	 *   outcome: OutcomeSchema,
-	 *   outcomesIntentions: [ {intentionId: number } ]
-	 * } - The outcome and the intentions to associate with it
-	 * @returns { outcomeId: number } - The id of the created outcome
-	 * @throws { NoResultError } - If the outcome could not be created or updated
-	 * @throws { NoResultError } - If the outcome_intentions could not be created
+	 * Create a new outcome.
+	 * @param input.outcome - The `Outcome` object, omitting `id`.
+	 * @param input.outcomesIntentions - Array of objects containing `intentionId`.
+	 * @returns An object containing the `outcomeId` of the created outcome.
+	 * @throws {NoResultError} - If the outcome could not be created or updated.
+	 * @throws {NoResultError} - If the `outcome_intentions` could not be created.
 	 */
 	create: t.procedure
 		.use(logger)
@@ -115,15 +113,12 @@ export const outcomes = t.router({
 			return result;
 		}),
 	/**
-	 * Create a new outcome and update the completion value of the intentions
-	 * We are doing this together because we want to make sure that both are successful,
-	 * and they often are related to each other
-	 * @param input {
-	 *  outcome: OutcomeSchema,
-	 * 	outcomesIntentions: [ {intentionId: number, completed: number } ]
-	 * } - The outcome and the intentions to associate with it
-	 * @returns { outcomeId: number } - The id of the created outcome
-	 * @throws { NoResultError } - If the outcome, intentions, or outcome_intentions could not be created or updated
+	 * Create a new outcome and update the completion value of the intentions.
+	 * This is done together to ensure both are successful, as they often are related.
+	 * @param input.outcome - The `Outcome` object.
+	 * @param input.outcomesIntentions - Array of objects containing `intentionId` and `completed`.
+	 * @returns An object containing the `outcomeId` of the created outcome.
+	 * @throws {NoResultError} - If the outcome, intentions, or `outcome_intentions` could not be created or updated.
 	 */
 	createAndUpdateIntentions: t.procedure
 		.use(logger)

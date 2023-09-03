@@ -14,10 +14,10 @@ export const GoalLogSchema = z.object({
 
 export const goal_logs = t.router({
 	/**
-	 * Create a new goal log
-	 * @param {GoalLogSchema} input - The goal log to create
-	 * @returns {InsertResult}
-	 * @throws {NoResultError} If could not create the goal log
+	 * Create a new goal log.
+	 * @param input - The `GoalLog` object to create.
+	 * @returns An `InsertResult` object.
+	 * @throws {NoResultError} If could not create the goal log.
 	 */
 	create: t.procedure
 		.use(logger)
@@ -29,10 +29,10 @@ export const goal_logs = t.router({
 				.executeTakeFirstOrThrow();
 		}),
 	/**
-	 * Get all goal logs for a goal
-	 * @param {number} input - The goal ID
-	 * @returns {GoalLog[]}
-	 * @throws {NoResultError} If could not find any goal logs for the goal
+	 * Get all goal logs for a goal.
+	 * @param input - The goal ID.
+	 * @returns An array of `GoalLog` objects.
+	 * @throws {NoResultError} If could not find any goal logs for the goal.
 	 */
 	getAllForGoal: t.procedure
 		.use(logger)
@@ -52,7 +52,11 @@ export const goal_logs = t.router({
 				.execute();
 			return result;
 		}),
+	/**
+	 * Get all goal logs.
+	 * @returns An array of `GoalLog` objects.
+	 */
 	getAll: t.procedure.use(logger).query(async () => {
-		return await getDb().selectFrom('goal_logs').select(['type', 'date', 'goalId']).execute();
+		return await getDb().selectFrom('goal_logs').selectAll().execute();
 	})
 });

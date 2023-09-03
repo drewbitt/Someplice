@@ -1,5 +1,12 @@
 import { Logger } from 'tslog';
-
+/* Log levels
+0: Silly
+1: Trace
+2: Debug
+3: Info
+4: Warn
+5: Error
+6: Fatal */
 export const appLogger = new Logger({ name: 'appLogger' });
 export const dbLogger = new Logger({
 	name: 'dbLogger',
