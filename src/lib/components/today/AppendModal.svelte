@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { todayPageErrorStore } from '$src/lib/stores/errors';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
@@ -26,7 +27,10 @@
 				closeAppendModal();
 				await invalidateAll();
 			} catch (error) {
-				appLogger.error(error);
+				if (error instanceof Error) {
+					todayPageErrorStore.setError(error.message);
+				}
+
 				showDBErrorNotification = true;
 			}
 		}

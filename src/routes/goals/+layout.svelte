@@ -8,7 +8,7 @@
 		<div class="daisy-alert daisy-alert-error flex gap-2">
 			<button
 				class="daisy-btn daisy-btn-circle daisy-btn-sm"
-				on:click={() => goalPageErrorStore.set(null)}
+				on:click={() => goalPageErrorStore.setError(null)}
 			>
 				<X />
 			</button>

@@ -38,8 +38,7 @@
 			}
 		} catch (error: unknown) {
 			if (error instanceof Error) {
-				// set goalPageErrorStore for 6 seconds, then revert it back to null
-				goalPageErrorStore.set(error.message), setTimeout(() => goalPageErrorStore.set(null), 6000);
+				goalPageErrorStore.setError(error.message);
 			}
 		}
 	};

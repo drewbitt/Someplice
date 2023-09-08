@@ -7,6 +7,7 @@
 	import { localeCurrentDate } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
+	import { todayPageErrorStore } from '$src/lib/stores/errors';
 
 	export let intentionsOnLatestDate: Intention[];
 	export let setHasOutstandingOutcome: (value: boolean) => void;
@@ -30,7 +31,9 @@
 				showPageLoadingSpinner = false; // turn off loading spinner when all promises are resolved
 			})
 			.catch((error) => {
-				appLogger.error(error);
+				if (error instanceof Error) {
+					todayPageErrorStore.setError(error.message);
+				}
 				showPageLoadingSpinner = false;
 			});
 	}
@@ -95,8 +98,9 @@
 			// TODO: show success toast or notification
 			await invalidateAll();
 		} catch (error) {
-			// TODO: Show error to user
-			appLogger.error(error);
+			if (error instanceof Error) {
+				todayPageErrorStore.setError(error.message);
+			}
 		}
 	};
 
