@@ -4,7 +4,6 @@ import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
-import { trpcLogger } from '$src/lib/utils/logger';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -76,7 +75,7 @@ export const intentions = t.router({
 	 * @param input - The input object.
 	 * @param input.startDate - The start date to filter by.
 	 * @param input.endDate - The end date to filter by.
-	 * @param input.limit - The maximum number of results to return (optional).
+	 * @param input.limit - The maximum number of intentions to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @returns The intentions grouped by date.
 	 */
@@ -92,7 +91,6 @@ export const intentions = t.router({
 		)
 		.query(async ({ input }) => {
 			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
-			trpcLogger.debug('listByDate', { startDate, endDate });
 
 			let query = getDb()
 				.selectFrom('intentions')
@@ -105,7 +103,7 @@ export const intentions = t.router({
 					'subIntentionQualifier',
 					'date'
 				])
-				.orderBy('date', 'asc')
+				.orderBy('date', 'desc')
 				.orderBy('orderNumber', 'asc')
 				.where('date', '>=', startDate.toISOString())
 				.where('date', '<=', endDate.toISOString());
@@ -137,39 +135,53 @@ export const intentions = t.router({
 		}),
 	/**
 	 * List all unique dates that intentions exist for.
-	 * @param input - The input object.
-	 * @param input.startDate - The start date to filter by.
+	 * Primarily for understanding and controlling pagination based on unique dates,
+	 * or when you only want dates and not the intentions themselves.
+	 * @param input - The input object (optional)
+	 * @param input.startDate - The start date to filter by (optional)
 	 * @param input.endDate - The end date to filter by.
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
-	 * @returns The unique dates.
+	 * @returns The unique dates as strings, including the time (the time the last intention was added on that date)
 	 */
 	listUniqueDates: t.procedure
 		.use(logger)
 		.input(
-			z.object({
-				startDate: z.date(),
-				endDate: z.date(),
-				limit: z.number().optional(),
-				offset: z.number().optional()
-			})
+			z
+				.object({
+					startDate: z.date().optional(),
+					endDate: z.date().optional(),
+					limit: z.number().optional(),
+					offset: z.number().optional()
+				})
+				.refine((data) => Boolean(data.startDate) === Boolean(data.endDate), {
+					// TODO: Remove this requirement? Just that elsewhere they are always provided together.
+					message: 'Both startDate and endDate must be provided together.',
+					path: ['startDate', 'endDate']
+				})
+				.optional()
 		)
 		.query(async ({ input }) => {
-			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
-
 			let query = getDb()
 				.selectFrom('intentions')
 				.select('date')
 				.distinct()
-				.orderBy('date', 'asc')
-				.where('date', '>=', startDate.toISOString())
-				.where('date', '<=', endDate.toISOString());
-			if (input.limit) {
+				.orderBy('date', 'desc');
+
+			if (input?.startDate && input?.endDate) {
+				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
+				query = query
+					.where('date', '>=', startDate.toISOString())
+					.where('date', '<=', endDate.toISOString());
+			}
+
+			if (input?.limit) {
 				query = query.limit(input.limit);
 			}
-			if (input.offset) {
+			if (input?.offset) {
 				query = query.offset(input.offset);
 			}
+
 			const result = await query.execute();
 			return result;
 		}),
