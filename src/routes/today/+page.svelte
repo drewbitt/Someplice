@@ -33,7 +33,7 @@
 		todaysIntentionsStore.initialize();
 
 		// Open the additional intentions text area if there are intentions stored in localStorage
-		if ($todaysIntentionsStore) {
+		if ($todaysIntentionsStore && !noGoals && !noIntentions) {
 			showAdditionalIntentionsTextArea = true;
 		}
 	});
