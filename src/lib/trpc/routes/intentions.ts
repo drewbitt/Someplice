@@ -5,6 +5,7 @@ import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
 import { trpcLogger } from '$src/lib/utils/logger';
+import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -41,7 +42,7 @@ export const intentions = t.router({
 				.optional()
 		)
 		.query(async ({ input }) => {
-			const query = getDb()
+			let query = getDb()
 				.selectFrom('intentions')
 				.select([
 					'id',
@@ -55,32 +56,17 @@ export const intentions = t.router({
 				.orderBy('orderNumber', 'asc');
 
 			if (input) {
-				const startDate = new Date(
-					Date.UTC(
-						input.startDate.getUTCFullYear(),
-						input.startDate.getUTCMonth(),
-						input.startDate.getUTCDate()
-					)
-				);
-				startDate.setUTCHours(0, 0, 0, 0);
-				const endDate = new Date(
-					Date.UTC(
-						input.endDate.getUTCFullYear(),
-						input.endDate.getUTCMonth(),
-						input.endDate.getUTCDate()
-					)
-				);
-				endDate.setUTCHours(23, 59, 59, 999);
+				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 
-				query
+				query = query
 					.where('date', '>=', startDate.toISOString())
 					.where('date', '<=', endDate.toISOString());
 
 				if (input.limit) {
-					query.limit(input.limit);
+					query = query.limit(input.limit);
 				}
 				if (input.offset) {
-					query.offset(input.offset);
+					query = query.offset(input.offset);
 				}
 			}
 			return await query.execute();
@@ -105,25 +91,10 @@ export const intentions = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const startDate = new Date(
-				Date.UTC(
-					input.startDate.getUTCFullYear(),
-					input.startDate.getUTCMonth(),
-					input.startDate.getUTCDate()
-				)
-			);
-			startDate.setUTCHours(0, 0, 0, 0);
-			const endDate = new Date(
-				Date.UTC(
-					input.endDate.getUTCFullYear(),
-					input.endDate.getUTCMonth(),
-					input.endDate.getUTCDate()
-				)
-			);
-			endDate.setUTCHours(23, 59, 59, 999);
+			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 			trpcLogger.debug('listByDate', { startDate, endDate });
 
-			const query = getDb()
+			let query = getDb()
 				.selectFrom('intentions')
 				.select([
 					'id',
@@ -140,10 +111,10 @@ export const intentions = t.router({
 				.where('date', '<=', endDate.toISOString());
 
 			if (input.limit) {
-				query.limit(input.limit);
+				query = query.limit(input.limit);
 			}
 			if (input.offset) {
-				query.offset(input.offset);
+				query = query.offset(input.offset);
 			}
 
 			const intentions = await query.execute();
@@ -184,25 +155,9 @@ export const intentions = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const startDate = new Date(
-				Date.UTC(
-					input.startDate.getUTCFullYear(),
-					input.startDate.getUTCMonth(),
-					input.startDate.getUTCDate()
-				)
-			);
-			startDate.setUTCHours(0, 0, 0, 0);
+			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 
-			const endDate = new Date(
-				Date.UTC(
-					input.endDate.getUTCFullYear(),
-					input.endDate.getUTCMonth(),
-					input.endDate.getUTCDate()
-				)
-			);
-			endDate.setUTCHours(23, 59, 59, 999);
-
-			const query = getDb()
+			let query = getDb()
 				.selectFrom('intentions')
 				.select('date')
 				.distinct()
@@ -210,10 +165,10 @@ export const intentions = t.router({
 				.where('date', '>=', startDate.toISOString())
 				.where('date', '<=', endDate.toISOString());
 			if (input.limit) {
-				query.limit(input.limit);
+				query = query.limit(input.limit);
 			}
 			if (input.offset) {
-				query.offset(input.offset);
+				query = query.offset(input.offset);
 			}
 			const result = await query.execute();
 			return result;
@@ -231,23 +186,7 @@ export const intentions = t.router({
 
 		if (maxDate) {
 			const maxDateObject = new Date(maxDate.date);
-			const startOfDate = new Date(
-				Date.UTC(
-					maxDateObject.getUTCFullYear(),
-					maxDateObject.getUTCMonth(),
-					maxDateObject.getUTCDate()
-				)
-			);
-			startOfDate.setUTCHours(0, 0, 0, 0);
-
-			const endOfDate = new Date(
-				Date.UTC(
-					maxDateObject.getUTCFullYear(),
-					maxDateObject.getUTCMonth(),
-					maxDateObject.getUTCDate()
-				)
-			);
-			endOfDate.setUTCHours(23, 59, 59, 999);
+			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(maxDateObject, maxDateObject);
 
 			const result = await getDb()
 				.selectFrom('intentions')
@@ -260,8 +199,8 @@ export const intentions = t.router({
 					'subIntentionQualifier',
 					'date'
 				])
-				.where('date', '>=', startOfDate.toISOString())
-				.where('date', '<=', endOfDate.toISOString())
+				.where('date', '>=', startDate.toISOString())
+				.where('date', '<=', endDate.toISOString())
 				.orderBy('orderNumber', 'asc')
 				.execute();
 

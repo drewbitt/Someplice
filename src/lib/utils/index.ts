@@ -10,6 +10,27 @@ export const localePreviousDate = () => {
 	return currentDate;
 };
 
+export const adjustToUTCStartAndEndOfDay = (start: Date, end: Date) => {
+	const adjustDate = (
+		date: Date,
+		hours: number,
+		minutes: number,
+		seconds: number,
+		milliseconds: number
+	) => {
+		const newDate = new Date(
+			Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+		);
+		newDate.setUTCHours(hours, minutes, seconds, milliseconds);
+		return newDate;
+	};
+
+	return {
+		startDate: adjustDate(start, 0, 0, 0, 0),
+		endDate: adjustDate(end, 23, 59, 59, 999)
+	};
+};
+
 export const dayOfWeekFromDate = (date: Date) => {
 	return date.toLocaleDateString('en-US', { weekday: 'long' });
 };

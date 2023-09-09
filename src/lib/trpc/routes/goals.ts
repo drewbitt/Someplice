@@ -4,7 +4,7 @@ import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Goal } from '../types';
-import { localeCurrentDate } from '$src/lib/utils';
+import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -84,14 +84,7 @@ export const goals = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const startOfDate = new Date(
-				Date.UTC(input.date.getUTCFullYear(), input.date.getUTCMonth(), input.date.getUTCDate())
-			);
-			startOfDate.setUTCHours(0, 0, 0, 0);
-			const endOfDate = new Date(
-				Date.UTC(input.date.getUTCFullYear(), input.date.getUTCMonth(), input.date.getUTCDate())
-			);
-			endOfDate.setUTCHours(23, 59, 59, 999);
+			const { endDate } = adjustToUTCStartAndEndOfDay(input.date, input.date);
 
 			if (input.active === 1) {
 				const activeGoalsWithDate = await sql<Goal>`
@@ -108,7 +101,7 @@ export const goals = t.router({
 				INNER JOIN
 					goal_logs ON goals.id = goal_logs.goalId
 				WHERE
-					goal_logs.date <= ${endOfDate.toISOString()}
+					goal_logs.date <= ${endDate.toISOString()}
 				AND
 					goal_logs.type = 'start'
 				AND
@@ -117,7 +110,7 @@ export const goals = t.router({
 						FROM goal_logs AS g2 
 						WHERE g2.goalId = goals.id 
 						AND g2.type = 'end' 
-						AND g2.date BETWEEN goal_logs.date AND ${endOfDate.toISOString()}
+						AND g2.date BETWEEN goal_logs.date AND ${endDate.toISOString()}
 					)
 				GROUP BY
 					goals.id
@@ -143,7 +136,7 @@ export const goals = t.router({
 						goal_logs.date = (
 							SELECT MAX(date) 
 							FROM goal_logs 
-							WHERE goalId = goals.id AND date <= ${endOfDate.toISOString()}
+							WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
 						)
 					AND
 						goal_logs.type = 'end'
