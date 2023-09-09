@@ -3,6 +3,7 @@ import type { ValueExpression } from 'kysely';
 import type { DB } from '../types/data';
 import { DbInstance } from './db';
 import { cronLogger } from '../utils/logger';
+import { localePreviousDate } from '../utils';
 
 const db = DbInstance.getInstance().db;
 const jobName = 'outcomeCron';
@@ -19,40 +20,41 @@ export function createCronJobs() {
 	// Run at 00:00 every day
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const outcomeCron = Cron('0 0 * * *', { name: jobName }, async () => {
-		const today = new Date().toISOString().slice(0, 10); // get today's date in YYYY-MM-DD format
+		await db.transaction().execute(async (db) => {
+			const previousDay = localePreviousDate();
+			const previousDayString = previousDay.toISOString().slice(0, 10);
+			const startOfPreviousDay = previousDayString + 'T00:00:00.000Z';
+			const endOfPreviousDay = previousDayString + 'T23:59:59.999Z';
 
-		// check if there's an outcome for today
-		const outcomes = await db
-			.selectFrom('outcomes')
-			.selectAll()
-			.where('date', '=', today)
-			.execute();
+			// check if there's an outcome for today
+			const outcomes = await db
+				.selectFrom('outcomes')
+				.selectAll()
+				.where('date', '=', previousDayString)
+				.execute();
 
-		let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
+			let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
 
-		if (!outcomeId) {
-			// if there's no outcome for today, create one
-			const newOutcome = await db.transaction().execute(async (db) => {
-				return await db
+			if (!outcomeId) {
+				// if there's no outcome for today, create one
+				const newOutcome = await db
 					.insertInto('outcomes')
-					.values({ reviewed: 0, date: today })
+					.values({ reviewed: 0, date: previousDayString })
 					.returning('id')
 					.execute();
-			});
-			outcomeId = newOutcome[0].id;
-		}
+				outcomeId = newOutcome[0].id;
+			}
 
-		// get today's intentions
-		const intentions = await db
-			.selectFrom('intentions')
-			.selectAll()
-			.where('date', '>=', today)
-			.where('date', '<', today + 'T23:59:59.999Z')
-			.execute();
+			// get today's intentions
+			const intentions = await db
+				.selectFrom('intentions')
+				.selectAll()
+				.where('date', '>=', startOfPreviousDay)
+				.where('date', '<=', endOfPreviousDay)
+				.execute();
 
-		// associate the intentions with the outcome
-		for (const intention of intentions) {
-			await db.transaction().execute(async (db) => {
+			// associate the intentions with the outcome
+			for (const intention of intentions) {
 				cronLogger.debug(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
 
 				// Check if the pair already exists in the table
@@ -74,8 +76,8 @@ export function createCronJobs() {
 						})
 						.execute();
 				}
-			});
-		}
+			}
+		});
 	});
 }
 
@@ -89,36 +91,38 @@ export async function checkMissingOutcomes() {
 		return;
 	}
 
-	cronLogger.info('Checking for missing outcomes from past days when the application is restarted');
+	cronLogger.info(
+		'checkMissingOutcomes: Checking for missing outcomes from past days when the application is restarted'
+	);
+	let actionTaken = false;
 	const intentions = await db.selectFrom('intentions').selectAll().execute();
 
 	for (const intention of intentions) {
-		const outcomes = await db
-			.selectFrom('outcomes')
-			.selectAll()
-			.where('date', '=', intention.date.slice(0, 10))
-			.execute();
+		await db.transaction().execute(async (db) => {
+			const outcomes = await db
+				.selectFrom('outcomes')
+				.selectAll()
+				.where('date', '=', intention.date.slice(0, 10))
+				.execute();
 
-		let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
+			let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
 
-		if (outcomeId === null) {
-			// if there's no outcome for the intention's date, create one and associate it with the intention
-			cronLogger.debug(`Creating outcome for intentionId: ${intention.id}`); // Log the ids
-			await db.transaction().execute(async (db) => {
+			if (outcomeId === null) {
+				cronLogger.debug(`Creating outcome for intentionId: ${intention.id}`);
+				actionTaken = true;
 				const newOutcome = await db
 					.insertInto('outcomes')
 					.values({ reviewed: 0, date: intention.date.slice(0, 10) })
 					.returning('id')
 					.executeTakeFirst();
+
 				if (newOutcome === undefined) {
 					cronLogger.error('Could not create outcome');
 					return;
 				}
 				outcomeId = newOutcome.id;
-			});
-		}
+			}
 
-		await db.transaction().execute(async (db) => {
 			// Check if the pair already exists in the table
 			const existingPair = await db
 				.selectFrom('outcomes_intentions')
@@ -129,7 +133,8 @@ export async function checkMissingOutcomes() {
 
 			// If the pair does not exist, insert it
 			if (existingPair.length === 0 && outcomeId !== null && intention.id !== null) {
-				cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+				cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`);
+				actionTaken = true;
 				await db
 					.insertInto('outcomes_intentions')
 					.values({
@@ -139,5 +144,9 @@ export async function checkMissingOutcomes() {
 					.execute();
 			}
 		});
+	}
+
+	if (!actionTaken) {
+		cronLogger.debug('checkMissingOutcomes: No action was taken during the entire execution.');
 	}
 }

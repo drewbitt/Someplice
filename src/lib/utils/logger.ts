@@ -18,7 +18,10 @@ export const trpcLogger = new Logger({
 	prettyLogTemplate: '{{name}} ',
 	minLevel: import.meta.env.PROD || process.env.NODE_ENV === 'test' ? 4 : 1
 });
-export const cronLogger = new Logger({ name: 'cronLogger' });
+export const cronLogger = new Logger({
+	name: 'cronLogger',
+	minLevel: import.meta.env.PROD ? 3 : 1
+});
 
 // Default logger
 export const logger = new Logger({ name: 'logger' });

@@ -4,6 +4,12 @@ export const localeCurrentDate = () => {
 	return new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
 };
 
+export const localePreviousDate = () => {
+	const currentDate = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
+	currentDate.setDate(currentDate.getDate() - 1); // subtract one day
+	return currentDate;
+};
+
 export const dayOfWeekFromDate = (date: Date) => {
 	return date.toLocaleDateString('en-US', { weekday: 'long' });
 };
