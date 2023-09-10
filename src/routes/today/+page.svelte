@@ -164,7 +164,7 @@
 </script>
 
 <svelte:head>
-	<title>Today's Intentions</title>
+	<title>Someplice - Today's Intentions</title>
 </svelte:head>
 
 {#if showPageLoadingSpinner}

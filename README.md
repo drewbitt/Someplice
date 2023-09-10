@@ -116,17 +116,11 @@ docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
 
 ## Contributing
 
-When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an .env file with your database connection string:
+When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an `.env` file with your database connection string:
 
 ```bash
 # SQLite
 DATABASE_URL=YOUR_ABSOLUTE_PATH_TO/Someplice/src/lib/db/
 ```
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## License
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

@@ -18,6 +18,7 @@ Dockerfile
 .node-version
 justfile
 .gitignore
+.dccache
 
 # Ignore images
 *.png
