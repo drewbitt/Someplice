@@ -18,6 +18,8 @@
 	let goalsOnDate: Goal[];
 	let intentionsOnDate: Intention[];
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
+	let maxOrderNumber: number;
+	let hasBeenSaved = false;
 
 	$: {
 		const currentDate = localeCurrentDate();
@@ -36,6 +38,9 @@
 				}
 				showPageLoadingSpinner = false;
 			});
+	}
+	$: if (intentionsOnDate) {
+		maxOrderNumber = Math.max(...intentionsOnDate.map((intention) => intention.orderNumber), 0);
 	}
 
 	const listGoalsOnDate = async (date: Date) => {
@@ -94,6 +99,7 @@
 				outcome: outcomeToInsert,
 				outcomesIntentions: checkboxIntentions
 			});
+			hasBeenSaved = true;
 			setHasOutstandingOutcome(false);
 			// TODO: show success toast or notification
 			await invalidateAll();
@@ -108,8 +114,9 @@
 		const { goalId, texts } = event.detail;
 
 		texts.forEach((text, index) => {
+			const newOrderNumber = maxOrderNumber + 1 + index; // ensures that the new intention will be at the bottom of the list
 			const existingIntentionIndex = newIntentionsToInsert.findIndex(
-				(intention) => intention.goalId === goalId && intention.orderNumber === 200 + index
+				(intention) => intention.goalId === goalId && intention.orderNumber === newOrderNumber
 			);
 
 			if (existingIntentionIndex !== -1) {
@@ -128,7 +135,7 @@
 					date: intentionDate.toISOString(),
 					completed: 1,
 					subIntentionQualifier: null,
-					orderNumber: 200 + index // make arbitrarily high so it gets sorted to the bottom
+					orderNumber: newOrderNumber
 				});
 			}
 		});
@@ -173,6 +180,8 @@
 				{#each goalsOnDate as goal}
 					<ReviewGoalBox
 						{goal}
+						{hasBeenSaved}
+						showTitle={true}
 						intentions={intentionsOnDate}
 						on:updateNewOutcomeTexts={handleNewOutcomeTextChanged}
 					/>

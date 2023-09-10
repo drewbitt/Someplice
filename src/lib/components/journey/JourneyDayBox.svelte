@@ -8,7 +8,7 @@
 	export let intentions: Intention[];
 	export let outcomes: Outcome[];
 
-	let date = intentions[intentions.length - 1].date;
+	let date = intentions[intentions.length - 1]?.date;
 
 	const useStyles = createStyles(() => ({
 		root: {

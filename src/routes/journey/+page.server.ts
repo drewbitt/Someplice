@@ -5,28 +5,23 @@ import type { PageServerLoad } from '../today/$types';
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
-	const intentionsInRange = await getIntentionsWithPagination();
-
 	return {
 		goals: trpcLoad(event, (t) => t.goals.list(1)),
-		intentionsByDate: intentionsInRange,
+		intentionsByDate: getIntentionsByDate(),
+		// Gets limit of the most recent outcomes
 		outcomes: trpcLoad(event, (t) => t.outcomes.list({ limit: limit, order: 'desc' }))
 	};
 
-	/**
-	 * Paginate with listUniqueDates and load intentions in range with listByDate
-	 */
-	async function getIntentionsWithPagination() {
+	async function getIntentionsByDate() {
+		// Gets limit of the most recent unique dates
 		const uniqueDatesResult = await trpcLoad(event, (t) =>
-			t.intentions.listUniqueDates({
-				limit: limit
-			})
+			t.intentions.listUniqueDates({ limit: limit })
 		);
 		const uniqueDates = uniqueDatesResult.map((d) => d.date);
 
 		// If there are no unique dates, then there's nothing to paginate.
 		if (uniqueDates.length === 0) {
-			throw new Error('No unique dates received.'); // TODO: Handle this error case?
+			throw new Error('No unique dates received.');
 		}
 
 		const endDate = new Date(uniqueDates[0]);
@@ -34,15 +29,14 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 
 		// Ensure the dates are valid before proceeding.
 		if (Number.isNaN(endDate.getTime()) || Number.isNaN(startDate.getTime())) {
-			throw new Error('Invalid dates received.'); // TODO: Handle this error case?
+			throw new Error('Invalid dates received.');
 		}
 
-		const intentionsInRange = await trpcLoad(event, (t) =>
+		return trpcLoad(event, (t) =>
 			t.intentions.listByDate({
 				startDate: startDate,
 				endDate: endDate
 			})
 		);
-		return intentionsInRange;
 	}
 };

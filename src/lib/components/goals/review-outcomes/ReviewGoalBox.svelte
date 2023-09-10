@@ -7,15 +7,23 @@
 
 	export let goal: Goal;
 	export let intentions: Intention[];
+	export let showTitle: boolean;
+	export let hasBeenSaved: boolean;
+
 	const dispatch = createEventDispatcher();
 	let newOutcomeTexts: string[] = [];
+
+	$: if (hasBeenSaved) {
+		newOutcomeTexts = []; // to hide the new outcome text boxes
+	}
 
 	const lighterGoalColor = (color: string) => {
 		return evenEvenLighterHSLColor(color);
 	};
 
-	function showNewOutcomeTextBox() {
+	function handlePlusNewOutcome() {
 		newOutcomeTexts = [...newOutcomeTexts, ''];
+		dispatch('plusNewOutcomeButtonPressed', { goalId: goal.id });
 	}
 
 	function handleNewOutcomeTextChanged(event: CustomEvent<{ value: string; index: number }>) {
@@ -31,22 +39,24 @@
 	class="flex w-full max-w-screen-2xl flex-col items-center"
 >
 	<div class="goal-review-item-content flex w-4/5 min-w-min flex-col">
-		<div id="goal-review-item-info">
-			<span class="flex">
-				<span
-					style="background-color: {lighterGoalColor(goal.color)}; color: {goal.color}"
-					class="px-1.5 font-mono text-2xl font-bold leading-none"
-				>
-					{goal.orderNumber}
+		{#if showTitle}
+			<div id="goal-review-item-info">
+				<span class="flex">
+					<span
+						style="background-color: {lighterGoalColor(goal.color)}; color: {goal.color}"
+						class="px-1.5 font-mono text-2xl font-bold leading-none"
+					>
+						{goal.orderNumber}
+					</span>
+					<span
+						style="background-color: {goal.color}; font-size: 1.1rem;"
+						class="px-1.5 font-semibold leading-6 tracking-wider text-white"
+					>
+						{goal.title}
+					</span>
 				</span>
-				<span
-					style="background-color: {goal.color}; font-size: 1.1rem;"
-					class="px-1.5 font-semibold leading-6 tracking-wider text-white"
-				>
-					{goal.title}
-				</span>
-			</span>
-		</div>
+			</div>
+		{/if}
 		<div
 			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
 			style="border-color: {goal.color}"
@@ -54,8 +64,8 @@
 			{#if goal.description}
 				<p class="pl-5 font-mono text-lg tracking-wide text-gray-500">{goal.description}</p>
 			{/if}
-			{#if intentions.length && intentions[0].goalId === goal.id}
-				{#each intentions as intention}
+			{#if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
+				{#each intentions.filter((intention) => intention.goalId === goal.id) as intention (intention.id)}
 					<div class="flex">
 						<input
 							type="checkbox"
@@ -86,7 +96,7 @@
 				class="daisy-tooltip daisy-tooltip-right flex justify-self-start pb-1 pe-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
-				on:click={showNewOutcomeTextBox}
+				on:click={handlePlusNewOutcome}
 			>
 				<Plus class="h-5 w-5 hover:bg-gray-500" />
 			</button>
