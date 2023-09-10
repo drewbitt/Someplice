@@ -1,7 +1,7 @@
 <script lang="ts">
 	import JourneyDayBox from '$src/lib/components/journey/JourneyDayBox.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
-	import type { PageServerData } from './$types';
+	import type { PageServerData } from './[page]/$types';
 	export let data: PageServerData;
 	import { Title, colorScheme, createStyles } from '@svelteuidev/core';
 
@@ -9,21 +9,8 @@
 	let goals = data.goals;
 	let intentionsByDate = data.intentionsByDate;
 	let outcomes = data.outcomes;
-	// console.log(
-	// 	'%c [ intentionsByDate ]-8',
-	// 	'font-size:13px; background:pink; color:#bf2c9f;',
-	// 	intentionsByDate
-	// );
 
-	const useStyles = createStyles(() => ({
-		root: {
-			darkMode: {
-				color: 'black'
-			}
-		}
-	}));
 	$: darkMode = $colorScheme === 'dark';
-	$: ({ cx, getStyles } = useStyles());
 </script>
 
 <svelte:head>
@@ -37,10 +24,10 @@
 	</div>
 </div>
 
-<section class={cx(darkMode ? 'bg-gray-900' : 'bg-gray-200')}>
+<section class={darkMode ? 'bg-gray-900' : 'bg-gray-200'}>
 	<div class="mx-12 grid gap-4 py-6">
-		{#each Object.entries(intentionsByDate) as [date, intentions]}
-			<JourneyDayBox {intentions} {date} {goals} {outcomes} />
+		{#each Object.entries(intentionsByDate) as [ intentions]}
+			<JourneyDayBox {intentions} {goals} {outcomes} />
 		{/each}
 	</div>
 </section>

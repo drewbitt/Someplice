@@ -7,7 +7,8 @@
 	export let goals: Goal[];
 	export let intentions: Intention[];
 	export let outcomes: Outcome[];
-	export let date: string;
+
+	let date = intentions[intentions.length - 1].date;
 
 	const useStyles = createStyles(() => ({
 		root: {
@@ -41,6 +42,6 @@
 	</Title>
 	<div class="grid grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
-		<OutcomesBox {goals} {intentions} />
+		<OutcomesBox {goals} {intentions} {outcomes} />
 	</div>
 </div>
