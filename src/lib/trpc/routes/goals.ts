@@ -297,6 +297,9 @@ export const goals = t.router({
 							.execute();
 					}
 
+					// Handle the deletion of orphaned outcomes
+					await deleteOrphanedOutcomes(intentions);
+
 					// delete from intentions table
 					await trx.deleteFrom('intentions').where('goalId', '=', input).execute();
 
@@ -305,6 +308,39 @@ export const goals = t.router({
 
 					// delete from goals table
 					return await trx.deleteFrom('goals').where('id', '=', input).execute();
+
+					/**
+					 * Delete outcomes that have no associated intentions.
+					 * @param intentions - Array of intention objects with an `id` property.
+					 */
+					async function deleteOrphanedOutcomes(intentions: { id: number | null }[]) {
+						// 1. Use the intentions' IDs to find the associated outcome IDs
+						const intentionIds = intentions.map((intention) => intention.id);
+						const associatedOutcomes = await trx
+							.selectFrom('outcomes_intentions')
+							.select('outcomeId')
+							.where('intentionId', 'in', intentionIds)
+							.execute();
+						const associatedOutcomeIds = [
+							...new Set(associatedOutcomes.map((outcome) => outcome.outcomeId))
+						];
+
+						// 2. For each of these outcomes, check if there are any remaining intentions associated with them
+						for (const outcomeId of associatedOutcomeIds) {
+							const intentionsCountResult = await trx
+								.selectFrom('outcomes_intentions')
+								.select(({ fn }) => [fn.countAll<number>().as('count')])
+								.where('outcomeId', '=', outcomeId)
+								.execute();
+
+							const intentionsCount = intentionsCountResult[0]?.count || 0;
+
+							// 3. If an outcome does not have any associated intentions, delete the outcome
+							if (intentionsCount === 0) {
+								await trx.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
+							}
+						}
+					}
 				});
 		}),
 	/**
