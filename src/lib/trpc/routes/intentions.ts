@@ -34,8 +34,8 @@ export const intentions = t.router({
 		.input(
 			z
 				.object({
-					startDate: z.date(),
-					endDate: z.date(),
+					startDate: z.date().optional(),
+					endDate: z.date().optional(),
 					limit: z.number().optional(),
 					offset: z.number().optional(),
 					order: z
@@ -43,18 +43,29 @@ export const intentions = t.router({
 						.optional()
 						.default('asc')
 				})
+				.refine((data) => Boolean(data.startDate) === Boolean(data.endDate), {
+					// TODO: Remove this requirement? Just that elsewhere they are always provided together.
+					message: 'Both startDate and endDate must be provided together.',
+					path: ['startDate', 'endDate']
+				})
 				.optional()
 		)
 		.query(async ({ input }) => {
 			let query = getDb().selectFrom('intentions').selectAll();
 
 			if (input) {
-				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
+				query = query.orderBy('orderNumber', input.order);
 
-				query = query
-					.where('date', '>=', startDate.toISOString())
-					.where('date', '<=', endDate.toISOString())
-					.orderBy('orderNumber', input.order);
+				if (input.startDate && input.endDate) {
+					const { startDate, endDate } = adjustToUTCStartAndEndOfDay(
+						input.startDate,
+						input.endDate
+					);
+
+					query = query
+						.where('date', '>=', startDate.toISOString())
+						.where('date', '<=', endDate.toISOString());
+				}
 
 				if (input.limit) {
 					query = query.limit(input.limit);

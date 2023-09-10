@@ -108,7 +108,10 @@
 	};
 
 	const listOutcomesOnDate = async (date: Date) => {
-		const outcomes = await trpc($page).outcomes.list.query(date);
+		const outcomes = await trpc($page).outcomes.list.query({
+			startDate: date,
+			endDate: date
+		});
 		return outcomes;
 	};
 

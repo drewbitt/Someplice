@@ -21,7 +21,8 @@ export const outcomes = t.router({
 	/**
 	 * List all outcomes.
 	 * @param input - The input object (optional).
-	 * @param input.date - The date to filter by (optional).
+	 * @param input.startDate - The start date to filter by (optional).
+	 * @param input.endDate - The end date to filter by (optional).
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @param input.order - The order to sort the results by (asc or desc, default is asc).
@@ -32,7 +33,8 @@ export const outcomes = t.router({
 		.input(
 			z
 				.object({
-					date: z.date().optional(),
+					startDate: z.date().optional(),
+					endDate: z.date().optional(),
 					limit: z.number().optional(),
 					offset: z.number().optional(),
 					order: z
@@ -46,8 +48,11 @@ export const outcomes = t.router({
 			let query = getDb().selectFrom('outcomes').selectAll();
 
 			if (input) {
-				if (input.date) {
-					query = query.where('date', '=', input.date.toISOString().split('T')[0]);
+				if (input.startDate) {
+					query = query.where('date', '>=', input.startDate.toISOString().split('T')[0]);
+				}
+				if (input.endDate) {
+					query = query.where('date', '<=', input.endDate.toISOString().split('T')[0]);
 				}
 				if (input.limit) {
 					query = query.limit(input.limit);
