@@ -26,6 +26,7 @@ export const intentions = t.router({
 	 * @param input.endDate - The end date to filter by.
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
+	 * @param input.order - The order to sort the results by based on `orderNumber` (asc or desc, default is asc).
 	 * @returns The intentions.
 	 */
 	list: t.procedure
@@ -36,30 +37,24 @@ export const intentions = t.router({
 					startDate: z.date(),
 					endDate: z.date(),
 					limit: z.number().optional(),
-					offset: z.number().optional()
+					offset: z.number().optional(),
+					order: z
+						.union([z.literal('asc'), z.literal('desc')])
+						.optional()
+						.default('asc')
 				})
 				.optional()
 		)
 		.query(async ({ input }) => {
-			let query = getDb()
-				.selectFrom('intentions')
-				.select([
-					'id',
-					'goalId',
-					'orderNumber',
-					'completed',
-					'text',
-					'subIntentionQualifier',
-					'date'
-				])
-				.orderBy('orderNumber', 'asc');
+			let query = getDb().selectFrom('intentions').selectAll();
 
 			if (input) {
 				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 
 				query = query
 					.where('date', '>=', startDate.toISOString())
-					.where('date', '<=', endDate.toISOString());
+					.where('date', '<=', endDate.toISOString())
+					.orderBy('orderNumber', input.order);
 
 				if (input.limit) {
 					query = query.limit(input.limit);
@@ -67,9 +62,13 @@ export const intentions = t.router({
 				if (input.offset) {
 					query = query.offset(input.offset);
 				}
+			} else {
+				query = query.orderBy('orderNumber', 'asc');
 			}
+
 			return await query.execute();
 		}),
+
 	/**
 	 * List all intentions grouped by date.
 	 * @param input - The input object.
@@ -94,15 +93,7 @@ export const intentions = t.router({
 
 			let query = getDb()
 				.selectFrom('intentions')
-				.select([
-					'id',
-					'goalId',
-					'orderNumber',
-					'completed',
-					'text',
-					'subIntentionQualifier',
-					'date'
-				])
+				.selectAll()
 				.orderBy('date', 'desc')
 				.orderBy('orderNumber', 'asc')
 				.where('date', '>=', startDate.toISOString())
@@ -202,15 +193,7 @@ export const intentions = t.router({
 
 			const result = await getDb()
 				.selectFrom('intentions')
-				.select([
-					'id',
-					'goalId',
-					'orderNumber',
-					'completed',
-					'text',
-					'subIntentionQualifier',
-					'date'
-				])
+				.selectAll()
 				.where('date', '>=', startDate.toISOString())
 				.where('date', '<=', endDate.toISOString())
 				.orderBy('orderNumber', 'asc')

@@ -20,22 +20,47 @@ export const OutcomeIntentionSchema = z.object({
 export const outcomes = t.router({
 	/**
 	 * List all outcomes.
-	 * @param input - The date to filter by (optional).
+	 * @param input - The input object (optional).
+	 * @param input.date - The date to filter by (optional).
+	 * @param input.limit - The maximum number of results to return (optional).
+	 * @param input.offset - The offset to start returning results from (optional).
+	 * @param input.order - The order to sort the results by (asc or desc, default is asc).
 	 * @returns An array of `Outcome` objects.
 	 */
 	list: t.procedure
 		.use(logger)
-		.input(z.date().optional())
+		.input(
+			z
+				.object({
+					date: z.date().optional(),
+					limit: z.number().optional(),
+					offset: z.number().optional(),
+					order: z
+						.union([z.literal('asc'), z.literal('desc')])
+						.optional()
+						.default('asc')
+				})
+				.optional()
+		)
 		.query(({ input }) => {
+			let query = getDb().selectFrom('outcomes').selectAll();
+
 			if (input) {
-				return getDb()
-					.selectFrom('outcomes')
-					.select(['id', 'reviewed', 'date'])
-					.where('date', '=', input.toISOString().split('T')[0])
-					.execute();
+				if (input.date) {
+					query = query.where('date', '=', input.date.toISOString().split('T')[0]);
+				}
+				if (input.limit) {
+					query = query.limit(input.limit);
+				}
+				if (input.offset) {
+					query = query.offset(input.offset);
+				}
+				query = query.orderBy('id', input.order);
 			} else {
-				return getDb().selectFrom('outcomes').select(['id', 'reviewed', 'date']).execute();
+				query = query.orderBy('id', 'asc');
 			}
+
+			return query.execute();
 		}),
 	/**
 	 * List all intentions associated with an outcome.

@@ -30,7 +30,7 @@ export const goals = t.router({
 			async ({ input }) =>
 				await getDb()
 					.selectFrom('goals')
-					.select(['id', 'active', 'orderNumber', 'title', 'description', 'color'])
+					.selectAll()
 					.orderBy('orderNumber', 'asc')
 					.where('active', '=', input)
 					.execute()
