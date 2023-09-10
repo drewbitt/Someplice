@@ -262,6 +262,7 @@ export const goals = t.router({
 		}),
 	/**
 	 * Delete a goal by its `id`.
+	 * Handles deleting associated intentions and outcomes.
 	 * @param input - `id` of the goal to delete.
 	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
 	 * @returns A `DeleteResult` object.
@@ -282,14 +283,30 @@ export const goals = t.router({
 
 					// Need to deal with references first
 
-					// find the intentionIds associated with the goal
+					// Find the intentionIds associated with the goal
 					const intentions = await trx
 						.selectFrom('intentions')
 						.select('id')
 						.where('goalId', '=', input)
 						.execute();
 
-					// delete from outcomes_intentions table
+					// Fetch the associated outcomeIds before deleting the associations
+					// Used in the deleteOrphanedOutcomes function
+					const associatedOutcomes = await trx
+						.selectFrom('outcomes_intentions')
+						.select('outcomeId')
+						.where(
+							'intentionId',
+							'in',
+							intentions.map((i) => i.id)
+						)
+						.execute();
+
+					const associatedOutcomeIds = [
+						...new Set(associatedOutcomes.map((outcome) => outcome.outcomeId))
+					];
+
+					// Delete from outcomes_intentions table
 					for (const intention of intentions) {
 						await trx
 							.deleteFrom('outcomes_intentions')
@@ -298,34 +315,23 @@ export const goals = t.router({
 					}
 
 					// Handle the deletion of orphaned outcomes
-					await deleteOrphanedOutcomes(intentions);
+					await deleteOrphanedOutcomes(associatedOutcomeIds);
 
-					// delete from intentions table
+					// Delete from intentions table
 					await trx.deleteFrom('intentions').where('goalId', '=', input).execute();
 
-					// delete from goal_logs table
+					// Delete from goal_logs table
 					await trx.deleteFrom('goal_logs').where('goalId', '=', input).execute();
 
-					// delete from goals table
+					// Delete from goals table
 					return await trx.deleteFrom('goals').where('id', '=', input).execute();
 
 					/**
 					 * Delete outcomes that have no associated intentions.
-					 * @param intentions - Array of intention objects with an `id` property.
+					 * @param associatedOutcomeIds - Array of associated outcome IDs.
 					 */
-					async function deleteOrphanedOutcomes(intentions: { id: number | null }[]) {
-						// 1. Use the intentions' IDs to find the associated outcome IDs
-						const intentionIds = intentions.map((intention) => intention.id);
-						const associatedOutcomes = await trx
-							.selectFrom('outcomes_intentions')
-							.select('outcomeId')
-							.where('intentionId', 'in', intentionIds)
-							.execute();
-						const associatedOutcomeIds = [
-							...new Set(associatedOutcomes.map((outcome) => outcome.outcomeId))
-						];
-
-						// 2. For each of these outcomes, check if there are any remaining intentions associated with them
+					async function deleteOrphanedOutcomes(associatedOutcomeIds: number[]) {
+						// For each of these outcomes, check if there are any remaining intentions associated with them
 						for (const outcomeId of associatedOutcomeIds) {
 							const intentionsCountResult = await trx
 								.selectFrom('outcomes_intentions')
@@ -335,7 +341,7 @@ export const goals = t.router({
 
 							const intentionsCount = intentionsCountResult[0]?.count || 0;
 
-							// 3. If an outcome does not have any associated intentions, delete the outcome
+							// If an outcome does not have any associated intentions, delete the outcome
 							if (intentionsCount === 0) {
 								await trx.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
 							}
