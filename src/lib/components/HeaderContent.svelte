@@ -48,6 +48,14 @@
 							class:bg-primary-focus={$page.url.pathname === '/goals'}>Goals</a
 						>
 					</li>
+					<li>
+						<a
+							href="/journey"
+							class:daisy-active={$page.url.pathname === '/journey'}
+							class="rounded-md"
+							class:bg-primary-focus={$page.url.pathname === '/journey'}>Journey</a
+						>
+					</li>
 				</Box>
 			</Box>
 		</Group>
