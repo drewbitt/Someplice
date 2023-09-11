@@ -147,11 +147,16 @@
 					>{intentions.length} intentions for today,</Title
 				>
 				<Title order={2} class="{classes.intentionsDate} ml-5 font-bold text-gray-300">
-					{localeCurrentDate().toLocaleDateString('en-US', {
-						weekday: 'long',
-						month: 'short',
-						day: 'numeric'
-					})}
+					{(() => {
+						const dateObj = localeCurrentDate();
+						const formatter = new Intl.DateTimeFormat('en-US', {
+							weekday: 'long',
+							month: 'short',
+							day: 'numeric',
+							timeZone: 'UTC'
+						});
+						return formatter.format(dateObj);
+					})()}
 				</Title>
 			</span>
 		{/if}

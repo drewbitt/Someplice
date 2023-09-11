@@ -32,7 +32,11 @@ export const adjustToUTCStartAndEndOfDay = (start: Date, end: Date) => {
 };
 
 export const dayOfWeekFromDate = (date: Date) => {
-	return date.toLocaleDateString('en-US', { weekday: 'long' });
+	const formatter = new Intl.DateTimeFormat('en-US', {
+		weekday: 'long',
+		timeZone: 'UTC'
+	});
+	return formatter.format(date);
 };
 
 export const lighterHSLColor = (color: string): string => {

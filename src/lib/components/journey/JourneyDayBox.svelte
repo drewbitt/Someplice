@@ -31,14 +31,17 @@
 	)}
 >
 	<Title order={3} class={cx('ml-5 font-bold', darkMode ? 'text-gray-700' : 'text-gray-300')}>
-		{new Date(date)
-			.toLocaleDateString('en-US', {
+		{(() => {
+			const dateObj = new Date(date);
+			const formatter = new Intl.DateTimeFormat('en-US', {
 				weekday: 'long',
 				year: 'numeric',
 				month: '2-digit',
-				day: '2-digit'
-			})
-			.replace(/\//g, '-')}
+				day: '2-digit',
+				timeZone: 'UTC'
+			});
+			return formatter.format(dateObj).replace(/\//g, '-');
+		})()}
 	</Title>
 	<div class="grid grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
