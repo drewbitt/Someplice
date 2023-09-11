@@ -49,19 +49,20 @@ const generateSubIntentionQualifier = () => {
  * The rest of the intentions will be from the last 2 years.
  */
 const customDateMath = (i: number) => {
+	const now = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
 	return i < 10
 		? randBetweenDate({
-				from: new Date(Date.now() - 24 * 60 * 60 * 1000),
-				to: new Date()
+				from: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+				to: now
 		  }).toISOString()
 		: i < 20
 		? randBetweenDate({
-				from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-				to: new Date()
+				from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+				to: now
 		  }).toISOString()
 		: randBetweenDate({
-				from: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000),
-				to: new Date()
+				from: new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000),
+				to: now
 		  }).toISOString();
 };
 

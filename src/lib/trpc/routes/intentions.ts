@@ -144,7 +144,7 @@ export const intentions = t.router({
 	 * @param input.endDate - The end date to filter by.
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
-	 * @returns The unique dates as strings, including the time (the time the last intention was added on that date)
+	 * @returns An array of unique dates as strings in the format "YYYY-MM-DD"
 	 */
 	listUniqueDates: t.procedure
 		.use(logger)
@@ -157,7 +157,6 @@ export const intentions = t.router({
 					offset: z.number().optional()
 				})
 				.refine((data) => Boolean(data.startDate) === Boolean(data.endDate), {
-					// TODO: Remove this requirement? Just that elsewhere they are always provided together.
 					message: 'Both startDate and endDate must be provided together.',
 					path: ['startDate', 'endDate']
 				})
@@ -166,15 +165,16 @@ export const intentions = t.router({
 		.query(async ({ input }) => {
 			let query = getDb()
 				.selectFrom('intentions')
-				.select('date')
-				.distinct()
+				// Extract the date from the datetime column, group by it, and set alias to "date".
+				.select(sql<string>`DATE(date)`.as('date'))
+				.groupBy(sql`DATE(date)`)
 				.orderBy('date', 'desc');
 
 			if (input?.startDate && input?.endDate) {
 				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 				query = query
-					.where('date', '>=', startDate.toISOString())
-					.where('date', '<=', endDate.toISOString());
+					.where(sql`DATE(date)`, '>=', startDate.toISOString().split('T')[0]) // Extract just the date part
+					.where(sql`DATE(date)`, '<=', endDate.toISOString().split('T')[0]); // Extract just the date part
 			}
 
 			if (input?.limit) {
