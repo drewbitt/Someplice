@@ -2,7 +2,7 @@
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
-import type { Kysely, QueryResult, UpdateResult } from 'kysely';
+import { NoResultError, type Kysely, type QueryResult, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
 import { intentions } from './intentions';
@@ -334,5 +334,62 @@ describe('intentions', () => {
 		expect(listResult).toBeInstanceOf(Array);
 		expect(listResult).toHaveLength(1);
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
+	});
+
+	it('updateIntentionCompletionStatus', async () => {
+		await intentions.updateIntentions({
+			rawInput: { intentions: [TEST_INTENTION] },
+			path: 'updateIntentions',
+			type: 'mutation',
+			ctx: {}
+		});
+
+		// Update the completion status of the test intention
+		const newCompletionStatus = 1; // Assuming 1 represents completed
+		await intentions.updateIntentionCompletionStatus({
+			rawInput: [
+				{
+					intentionId: TEST_INTENTION.id,
+					completed: newCompletionStatus
+				}
+			],
+			path: 'updateIntentionCompletionStatus',
+			type: 'mutation',
+			ctx: {}
+		});
+
+		// Verify that the intention's completion status has been updated
+		const result = (await intentions.list({
+			rawInput: undefined,
+			path: 'list',
+			type: 'query',
+			ctx: {}
+		})) as Intention[];
+		expect(result).toBeInstanceOf(Array);
+		expect(result).toHaveLength(1);
+		expect(result[0]).toEqual(
+			expect.objectContaining({ ...TEST_INTENTION, completed: newCompletionStatus })
+		);
+
+		// Try to update the completion status of a non-existent intention
+		let error;
+		try {
+			await intentions.updateIntentionCompletionStatus({
+				rawInput: [
+					{
+						intentionId: 9999, // Invalid id
+						completed: newCompletionStatus
+					}
+				],
+				path: 'updateIntentionCompletionStatus',
+				type: 'mutation',
+				ctx: {}
+			});
+		} catch (e) {
+			error = e;
+		}
+		if (error instanceof Error) {
+			expect(error.cause).toBeInstanceOf(NoResultError);
+		}
 	});
 });

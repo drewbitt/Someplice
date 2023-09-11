@@ -1,6 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
+import { sql } from 'kysely';
 import { z } from 'zod';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -143,31 +144,28 @@ export const outcomes = t.router({
 			return result;
 		}),
 	/**
-	 * Create a new outcome and update the completion value of the intentions.
-	 * This is done together to ensure both are successful, as they often are related.
-	 * @param input.outcome - The `Outcome` object.
-	 * @param input.outcomesIntentions - Array of objects containing `intentionId` and `completed`.
-	 * @returns An object containing the `outcomeId` of the created outcome.
-	 * @throws {NoResultError} - If the outcome, intentions, or `outcome_intentions` could not be created or updated.
+	 * Create or update an outcome based on the provided data.
+	 * This method either creates a new outcome if it doesn't exist based on its date,
+	 * or updates the 'reviewed' status if the outcome already exists.
+	 * It also associates the provided intentions with the outcome.
+	 *
+	 * @param input.outcome - The `Outcome` object without the 'id'.
+	 * @param input.intentionIds - Array of intention IDs to associate with the outcome.
+	 * @returns An object containing the `outcomeId` of the created or updated outcome.
+	 * @throws {NoResultError} - If the outcome or its associations could not be created or updated.
 	 */
-	createAndUpdateIntentions: t.procedure
+	createOrUpdateOutcome: t.procedure
 		.use(logger)
 		.input(
 			z.object({
 				outcome: OutcomeSchema.omit({ id: true }),
-				outcomesIntentions: z.array(
-					z.object({
-						intentionId: z.number(),
-						completed: z.number()
-					})
-				)
+				intentionIds: z.array(z.number()) // Array of intention IDs
 			})
 		)
 		.mutation(async ({ input }) => {
 			const result = await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					// First, check if there's an outcome, as outcome dates are unique
 					const existingOutcome = await trx
 						.selectFrom('outcomes')
 						.selectAll()
@@ -175,8 +173,6 @@ export const outcomes = t.router({
 						.executeTakeFirst();
 
 					if (existingOutcome) {
-						// Just update the reviewed of the outcome and the intentions,
-						// not the outcome-intentions association
 						const updatedOutcome = await trx
 							.updateTable('outcomes')
 							.set({ reviewed: input.outcome.reviewed })
@@ -184,13 +180,13 @@ export const outcomes = t.router({
 							.returning('id')
 							.executeTakeFirstOrThrow();
 
-						for (const outcomesIntentionsInput of input.outcomesIntentions) {
-							await trx
-								.updateTable('intentions')
-								.set({ completed: outcomesIntentionsInput.completed })
-								.where('id', '=', outcomesIntentionsInput.intentionId)
-								.returning('id')
-								.executeTakeFirstOrThrow();
+						// Upsert associations for existing outcome
+						for (const intentionId of input.intentionIds) {
+							await sql<{
+								outcomeId: number;
+								intentionId: number;
+							}>`INSERT OR REPLACE INTO outcomes_intentions (outcomeId, intentionId) 
+                          VALUES (${updatedOutcome.id}, ${intentionId})`.execute(trx);
 						}
 
 						return { outcomeId: updatedOutcome.id };
@@ -203,18 +199,12 @@ export const outcomes = t.router({
 
 						if (!outcome.id) throw new Error('Outcome id is null');
 
-						for (const outcomesIntentionsInput of input.outcomesIntentions) {
+						// Directly insert associations for new outcome
+						for (const intentionId of input.intentionIds) {
 							await trx
 								.insertInto('outcomes_intentions')
-								.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
+								.values({ outcomeId: outcome.id, intentionId: intentionId })
 								.returning(['outcomeId', 'intentionId'])
-								.executeTakeFirstOrThrow();
-
-							await trx
-								.updateTable('intentions')
-								.set({ completed: outcomesIntentionsInput.completed })
-								.where('id', '=', outcomesIntentionsInput.intentionId)
-								.returning('id')
 								.executeTakeFirstOrThrow();
 						}
 

@@ -319,5 +319,41 @@ export const intentions = t.router({
 					);
 				});
 			return results;
+		}),
+	/**
+	 * Update the completion status of intentions based on their IDs.
+	 * @param input - An array of objects containing `intentionId` and `completed`.
+	 * @throws {NoResultError} If could not update the intention's completion status.
+	 */
+	updateIntentionCompletionStatus: t.procedure
+		.use(logger)
+		.input(
+			z.array(
+				z.object({
+					intentionId: z.number(),
+					completed: z.number()
+				})
+			)
+		)
+		.mutation(async ({ input }) => {
+			await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					await Promise.all(
+						input.map(async (intentionUpdate) => {
+							const query = trx
+								.updateTable('intentions')
+								.set({ completed: intentionUpdate.completed })
+								.where('id', '=', intentionUpdate.intentionId);
+
+							const result = await query.executeTakeFirst();
+
+							// If no row is updated, throw an error
+							if (Number(result?.numUpdatedRows) === 0) {
+								throw new NoResultError(query.toOperationNode());
+							}
+						})
+					);
+				});
 		})
 });
