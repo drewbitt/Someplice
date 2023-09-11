@@ -27,6 +27,7 @@ export const outcomes = t.router({
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @param input.order - The order to sort the results by (asc or desc, default is asc).
+	 * @param input.orderBy - The column to order the results by (either 'id' or 'date', default is 'id').
 	 * @returns An array of `Outcome` objects.
 	 */
 	list: t.procedure
@@ -41,7 +42,11 @@ export const outcomes = t.router({
 					order: z
 						.union([z.literal('asc'), z.literal('desc')])
 						.optional()
-						.default('asc')
+						.default('asc'),
+					orderBy: z
+						.union([z.literal('id'), z.literal('date')])
+						.optional()
+						.default('id')
 				})
 				.optional()
 		)
@@ -61,7 +66,7 @@ export const outcomes = t.router({
 				if (input.offset) {
 					query = query.offset(input.offset);
 				}
-				query = query.orderBy('id', input.order);
+				query = query.orderBy(input.orderBy || 'id', input.order);
 			} else {
 				query = query.orderBy('id', 'asc');
 			}

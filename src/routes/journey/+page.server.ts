@@ -8,7 +8,9 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	return {
 		goals: trpcLoad(event, (t) => t.goals.list(1)),
 		intentionsByDate: await getIntentionsByDate(),
-		outcomes: trpcLoad(event, (t) => t.outcomes.list({ limit: limit, order: 'desc' }))
+		outcomes: trpcLoad(event, (t) =>
+			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
+		)
 	};
 
 	async function getIntentionsByDate() {
