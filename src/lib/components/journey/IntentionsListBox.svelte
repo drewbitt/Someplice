@@ -9,7 +9,7 @@
 	$: numIntentions = intentions.length;
 </script>
 
-<section class="my-5 ml-5">
+<div class="my-5 ml-5" aria-label="List of Intentions for the day">
 	<Title order={3} class="mb-3 font-bold">
 		{numIntentions}
 		{numIntentions === 1 ? 'intention' : 'intentions'}
@@ -23,4 +23,4 @@
 			</div>
 		{/each}
 	</div>
-</section>
+</div>

@@ -26,6 +26,10 @@
 		dispatch('plusNewOutcomeButtonPressed', { goalId: goal.id });
 	}
 
+	function handleCheckboxClick(intentionId: number | null) {
+		dispatch('checkboxClicked', { intentionId });
+	}
+
 	function handleNewOutcomeTextChanged(event: CustomEvent<{ value: string; index: number }>) {
 		newOutcomeTexts[event.detail.index] = event.detail.value;
 		newOutcomeTexts = newOutcomeTexts.slice(); // create a new reference to trigger reactivity
@@ -35,7 +39,7 @@
 
 <div
 	role="listitem"
-	id="goal-review-item"
+	aria-label="Review Goal Box"
 	class="flex w-full max-w-screen-2xl flex-col items-center"
 >
 	<div class="goal-review-item-content flex w-4/5 min-w-min flex-col">
@@ -73,6 +77,7 @@
 							value={intention.id}
 							checked={Boolean(intention.completed)}
 							class="daisy-checkbox-md mr-2"
+							on:click={() => handleCheckboxClick(intention.id)}
 						/>
 						<label
 							for="intention-{intention.id}"

@@ -72,6 +72,9 @@
 			reviewed: 1
 		};
 
+		let intentionUpdateSuccess = false;
+		let outcomeCreationSuccess = false;
+
 		try {
 			// First, insert any newly added outcomes to the intentions
 			if (newIntentionsToInsert.length > 0) {
@@ -94,18 +97,27 @@
 				);
 			}
 
-			// Actually create the outcome and update the intentions
-			await trpc($page).outcomes.createAndUpdateIntentions.mutate({
+			// Update the completion status of intentions
+			await trpc($page).intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
+			intentionUpdateSuccess = true;
+
+			// Create or update the outcome
+			await trpc($page).outcomes.createOrUpdateOutcome.mutate({
 				outcome: outcomeToInsert,
-				outcomesIntentions: checkboxIntentions
+				intentionIds: checkboxIntentions.map((item) => item.intentionId)
 			});
+			outcomeCreationSuccess = true;
+
 			hasBeenSaved = true;
 			setHasOutstandingOutcome(false);
 			// TODO: show success toast or notification
-			await invalidateAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
+			}
+		} finally {
+			if (intentionUpdateSuccess || outcomeCreationSuccess) {
+				await invalidateAll();
 			}
 		}
 	};

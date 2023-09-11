@@ -23,7 +23,7 @@
 
 	$: outcomeReviewed = outcomeForDate?.reviewed === 1;
 
-	const handlePlusNewOutcomeButtonPressed = () => {
+	const handleReviewGoalBoxChange = () => {
 		showSaveButton = true;
 	};
 
@@ -32,7 +32,7 @@
 		// Get the values of the intention checkboxes
 		let checkboxIntentions = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
-				'.goal-review-item-content input[type="checkbox"]'
+				`#journey-outcomes-box-${dateWithoutTime} .goal-review-item-content input[type="checkbox"]`
 			)
 		).map((checkbox) => {
 			return { intentionId: Number(checkbox.value), completed: Number(checkbox.checked) };
@@ -42,6 +42,9 @@
 			date: date.split('T')[0],
 			reviewed: 1
 		};
+
+		let intentionUpdateSuccess = false;
+		let outcomeCreationSuccess = false;
 
 		try {
 			// First, insert any newly added outcomes to the intentions
@@ -65,18 +68,27 @@
 				);
 			}
 
-			// Actually create the outcome and update the intentions
-			await trpc($page).outcomes.createAndUpdateIntentions.mutate({
+			// Update the completion status of intentions
+			await trpc($page).intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
+			intentionUpdateSuccess = true;
+
+			// Create or update the outcome
+			await trpc($page).outcomes.createOrUpdateOutcome.mutate({
 				outcome: outcomeToInsert,
-				outcomesIntentions: checkboxIntentions
+				intentionIds: checkboxIntentions.map((item) => item.intentionId)
 			});
+			outcomeCreationSuccess = true;
+
 			hasBeenSaved = true;
 			showSaveButton = false;
 			// TODO: show success toast or notification
-			await invalidateAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
+			}
+		} finally {
+			if (intentionUpdateSuccess || outcomeCreationSuccess) {
+				await invalidateAll();
 			}
 		}
 	};
@@ -114,7 +126,11 @@
 	}
 </script>
 
-<div class="grid gap-5">
+<div
+	class="grid gap-5"
+	id={`journey-outcomes-box-${dateWithoutTime}`}
+	aria-label="List of Outcomes for the day"
+>
 	{#each goals as goal (goal.id)}
 		{#if outcomeReviewed}
 			<ReviewGoalBox
@@ -123,7 +139,8 @@
 				{hasBeenSaved}
 				showTitle={false}
 				on:updateNewOutcomeTexts={handleNewOutcomeTextChanged}
-				on:plusNewOutcomeButtonPressed={handlePlusNewOutcomeButtonPressed}
+				on:plusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
+				on:checkboxClicked={handleReviewGoalBoxChange}
 			/>
 		{/if}
 	{/each}

@@ -23,7 +23,7 @@
 
 <div
 	role="listitem"
-	id="journey-item"
+	aria-label="Journey Day Box"
 	class={cx(
 		'grid w-full flex-col gap-3 border border-gray-300 py-3 shadow-lg',
 		darkMode ? 'bg-gray-950' : 'bg-white',
