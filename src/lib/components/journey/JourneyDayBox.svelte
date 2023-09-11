@@ -45,6 +45,8 @@
 	</Title>
 	<div class="grid grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
+		<!-- TODO: On mobile, OutcomesBox is too wide. -->
+		<!-- Need to implement a different type of display -->
 		<OutcomesBox {goals} {intentions} {outcomes} />
 	</div>
 </div>

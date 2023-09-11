@@ -76,7 +76,7 @@
 							id="intention-{intention.id}"
 							value={intention.id}
 							checked={Boolean(intention.completed)}
-							class="daisy-checkbox-md mr-2"
+							class="daisy-checkbox-md mr-2 flex-shrink-0"
 							on:click={() => handleCheckboxClick(intention.id)}
 						/>
 						<label

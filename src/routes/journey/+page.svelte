@@ -125,7 +125,7 @@
 	</Notification>
 {:else}
 	<section class={darkMode ? 'bg-gray-900' : 'bg-gray-200'}>
-		<div class="mx-12 grid gap-4 py-6">
+		<div class="mx-12 grid gap-4 py-6 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox
 					goals={data.goals}
@@ -138,7 +138,9 @@
 			{/each}
 		</div>
 		{#if isLoadingMore}
-			<Loader variant="bars" />
+			<div class="mb-3 flex justify-center">
+				<Loader variant="bars" />
+			</div>
 		{/if}
 		<div bind:this={invisibleFooter} class="pagination-trigger"></div>
 	</section>
