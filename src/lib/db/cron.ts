@@ -37,12 +37,18 @@ export function createCronJobs() {
 
 			if (!outcomeId) {
 				// if there's no outcome for today, create one
-				const newOutcome = await db
-					.insertInto('outcomes')
-					.values({ reviewed: 0, date: previousDayString })
-					.returning('id')
-					.execute();
-				outcomeId = newOutcome[0].id;
+				try {
+					cronLogger.debug(`outcomeCron: Creating outcome for date: ${previousDayString}`);
+					const newOutcome = await db
+						.insertInto('outcomes')
+						.values({ reviewed: 0, date: previousDayString })
+						.returning('id')
+						.executeTakeFirstOrThrow();
+					outcomeId = newOutcome.id;
+				} catch (e) {
+					cronLogger.error(`outcomeCron: Could not create outcome for date: ${previousDayString}`);
+					return;
+				}
 			}
 
 			// get today's intentions
@@ -55,8 +61,6 @@ export function createCronJobs() {
 
 			// associate the intentions with the outcome
 			for (const intention of intentions) {
-				cronLogger.debug(`Checking for outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
-
 				// Check if the pair already exists in the table
 				const existingPair = await db
 					.selectFrom('outcomes_intentions')
@@ -67,7 +71,9 @@ export function createCronJobs() {
 
 				// If the pair does not exist, insert it
 				if (existingPair.length === 0) {
-					cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`); // Log the ids
+					cronLogger.debug(
+						`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id} into outcomes_intentions`
+					); // Log the ids
 					await db
 						.insertInto('outcomes_intentions')
 						.values({
@@ -75,6 +81,10 @@ export function createCronJobs() {
 							intentionId: intention.id as ValueExpression<DB, 'outcomes_intentions', number>
 						})
 						.execute();
+				} else {
+					cronLogger.debug(
+						`outcomeCron: outcomeId: ${outcomeId}, intentionId: ${intention.id} already exists in outcomes_intentions`
+					);
 				}
 			}
 		});
@@ -99,16 +109,25 @@ export async function checkMissingOutcomes() {
 
 	for (const intention of intentions) {
 		await db.transaction().execute(async (db) => {
+			let outcomeId: number | null = null;
+
 			const outcomes = await db
 				.selectFrom('outcomes')
-				.selectAll()
+				.select(['id'])
 				.where('date', '=', intention.date.slice(0, 10))
-				.execute();
+				.executeTakeFirst();
 
-			let outcomeId: number | null = outcomes.length ? outcomes[0].id : null;
+			if (outcomes) {
+				outcomeId = outcomes.id;
+			}
 
 			if (outcomeId === null) {
-				cronLogger.debug(`Creating outcome for intentionId: ${intention.id}`);
+				cronLogger.debug(
+					`checkMissingOutcomes: Outcome does not exist. Creating outcome for date: ${intention.date.slice(
+						0,
+						10
+					)}, intentionId: ${intention.id}`
+				);
 				actionTaken = true;
 				const newOutcome = await db
 					.insertInto('outcomes')
@@ -133,7 +152,9 @@ export async function checkMissingOutcomes() {
 
 			// If the pair does not exist, insert it
 			if (existingPair.length === 0 && outcomeId !== null && intention.id !== null) {
-				cronLogger.debug(`Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id}`);
+				cronLogger.debug(
+					`checkMissingOutcomes: Inserting outcomeId: ${outcomeId}, intentionId: ${intention.id} into outcomes_intentions`
+				);
 				actionTaken = true;
 				await db
 					.insertInto('outcomes_intentions')
@@ -142,6 +163,10 @@ export async function checkMissingOutcomes() {
 						intentionId: intention.id as ValueExpression<DB, 'outcomes_intentions', number>
 					})
 					.execute();
+			} else {
+				cronLogger.debug(
+					`checkMissingOutcomes: outcomeId: ${outcomeId}, intentionId: ${intention.id} already exists in outcomes_intentions`
+				);
 			}
 		});
 	}
