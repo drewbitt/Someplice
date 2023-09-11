@@ -7,29 +7,25 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 
 	return {
 		goals: trpcLoad(event, (t) => t.goals.list(1)),
-		intentionsByDate: getIntentionsByDate(),
-		// Gets limit of the most recent outcomes
+		intentionsByDate: await getIntentionsByDate(),
 		outcomes: trpcLoad(event, (t) => t.outcomes.list({ limit: limit, order: 'desc' }))
 	};
 
 	async function getIntentionsByDate() {
-		// Gets limit of the most recent unique dates
 		const uniqueDatesResult = await trpcLoad(event, (t) =>
 			t.intentions.listUniqueDates({ limit: limit })
 		);
 		const uniqueDates = uniqueDatesResult.map((d) => d.date);
 
-		// If there are no unique dates, then there's nothing to paginate.
-		if (uniqueDates.length === 0) {
-			throw new Error('No unique dates received.');
+		let endDate = new Date(uniqueDates[0]);
+		let startDate = new Date(uniqueDates[uniqueDates.length - 1]);
+
+		// At least ensure that the dates are valid
+		if (Number.isNaN(endDate.getTime())) {
+			endDate = new Date();
 		}
-
-		const endDate = new Date(uniqueDates[0]);
-		const startDate = new Date(uniqueDates[uniqueDates.length - 1]);
-
-		// Ensure the dates are valid before proceeding.
-		if (Number.isNaN(endDate.getTime()) || Number.isNaN(startDate.getTime())) {
-			throw new Error('Invalid dates received.');
+		if (Number.isNaN(startDate.getTime())) {
+			startDate = new Date();
 		}
 
 		return trpcLoad(event, (t) =>
