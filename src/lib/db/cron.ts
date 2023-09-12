@@ -163,15 +163,11 @@ export async function checkMissingOutcomes() {
 						intentionId: intention.id as ValueExpression<DB, 'outcomes_intentions', number>
 					})
 					.execute();
-			} else {
-				cronLogger.debug(
-					`checkMissingOutcomes: outcomeId: ${outcomeId}, intentionId: ${intention.id} already exists in outcomes_intentions`
-				);
 			}
 		});
 	}
 
 	if (!actionTaken) {
-		cronLogger.debug('checkMissingOutcomes: No action was taken during the entire execution.');
+		cronLogger.info('checkMissingOutcomes: No action was taken during the entire execution.');
 	}
 }

@@ -10,7 +10,7 @@ import { Logger } from 'tslog';
 export const appLogger = new Logger({ name: 'appLogger' });
 export const dbLogger = new Logger({
 	name: 'dbLogger',
-	minLevel: process.env.NODE_ENV === 'test' ? 3 : 1
+	minLevel: process.env.NODE_ENV === 'test' || import.meta.env.PROD ? 3 : 1
 });
 export const trpcLogger = new Logger({
 	name: 'trpcLogger',
