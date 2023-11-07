@@ -22,7 +22,7 @@
 		"@svelteuidev/core": "^0.15.3",
 		"@trpc/client": "^10.43.1",
 		"@trpc/server": "^10.43.1",
-		"better-sqlite3": "^8.7.0",
+		"better-sqlite3": "^9.0.0",
 		"croner": "^7.0.4",
 		"devalue": "^4.3.2",
 		"kysely": "^0.26.3",
