@@ -23,7 +23,7 @@
 		"@trpc/client": "^10.44.1",
 		"@trpc/server": "^10.44.1",
 		"better-sqlite3": "^9.2.2",
-		"croner": "^7.0.5",
+		"croner": "^8.0.0",
 		"devalue": "^4.3.2",
 		"kysely": "^0.26.3",
 		"trpc-sveltekit": "^3.5.22",
