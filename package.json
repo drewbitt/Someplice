@@ -24,7 +24,7 @@
 		"@trpc/server": "^10.45.2",
 		"better-sqlite3": "^11.0.0",
 		"croner": "^8.0.2",
-		"devalue": "^4.3.3",
+		"devalue": "^5.0.0",
 		"kysely": "^0.27.3",
 		"trpc-sveltekit": "^3.6.1",
 		"tslog": "^4.9.3",

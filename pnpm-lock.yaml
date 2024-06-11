@@ -24,8 +24,8 @@ dependencies:
     specifier: ^8.0.2
     version: 8.0.2
   devalue:
-    specifier: ^4.3.3
-    version: 4.3.3
+    specifier: ^5.0.0
+    version: 5.0.0
   kysely:
     specifier: ^0.27.3
     version: 0.27.3
@@ -3338,6 +3338,10 @@ packages:
 
   /devalue@4.3.3:
     resolution: {integrity: sha512-UH8EL6H2ifcY8TbD2QsxwCC/pr5xSwPvv85LrLXVihmHVC3T3YqTCIwnR5ak0yO1KYqlxrPVOA/JVZJYPy2ATg==}
+
+  /devalue@5.0.0:
+    resolution: {integrity: sha512-gO+/OMXF7488D+u3ue+G7Y4AA3ZmUnB3eHJXmBTgNHvr4ZNzl36A0ZtG+XCRNYCkYx/bFmw4qtkoFLa+wSrwAA==}
+    dev: false
 
   /didyoumean@1.2.2:
     resolution: {integrity: sha512-gxtyfqMg7GKyhQmb056K7M3xszy/myH8w+B4RT+QXBQsvAOdc3XymqDDPHx1BgPgsdAA5SIifona89YtRATDzw==}
