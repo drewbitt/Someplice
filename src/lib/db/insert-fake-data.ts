@@ -14,7 +14,7 @@ import {
 import { DbInstance } from './db';
 import { dbLogger } from '$src/lib/utils/logger';
 
-const db = DbInstance.getInstance().db;
+const { db } = DbInstance.getInstance();
 
 const numberOfGoals = 9;
 const incrementalNumberFactory = incrementalNumber();
@@ -54,16 +54,16 @@ const customDateMath = (i: number) => {
 		? randBetweenDate({
 				from: new Date(now.getTime() - 24 * 60 * 60 * 1000),
 				to: now
-		  }).toISOString()
+			}).toISOString()
 		: i < 20
-		? randBetweenDate({
-				from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-				to: now
-		  }).toISOString()
-		: randBetweenDate({
-				from: new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000),
-				to: now
-		  }).toISOString();
+			? randBetweenDate({
+					from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+					to: now
+				}).toISOString()
+			: randBetweenDate({
+					from: new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000),
+					to: now
+				}).toISOString();
 };
 
 async function insertFakeData() {

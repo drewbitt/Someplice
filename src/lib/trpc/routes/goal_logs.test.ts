@@ -11,7 +11,8 @@ const TEST_GOAL_LOG: GoalLog = {
 	id: 1,
 	goalId: 1,
 	type: 'start',
-	date: new Date().toISOString()
+	date: new Date().toISOString(),
+	orderNumber: 1
 };
 
 describe('goal_logs', () => {

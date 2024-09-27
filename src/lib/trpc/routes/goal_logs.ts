@@ -9,7 +9,8 @@ export const GoalLogSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
 	type: z.string(),
-	date: z.string()
+	date: z.string(),
+	orderNumber: z.number()
 });
 
 export const goal_logs = t.router({
@@ -45,12 +46,11 @@ export const goal_logs = t.router({
 				.where('id', '=', input)
 				.executeTakeFirstOrThrow();
 
-			const result = await getDb()
+			return await getDb()
 				.selectFrom('goal_logs')
 				.selectAll()
 				.where('goalId', '=', input)
 				.execute();
-			return result;
 		}),
 	/**
 	 * Get all goal logs.

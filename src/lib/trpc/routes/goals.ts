@@ -91,7 +91,7 @@ export const goals = t.router({
 				SELECT
 					goals.id,
 					goals.active,
-					goals.orderNumber,
+					goal_logs.orderNumber,
 					goals.title,
 					goals.description,
 					goals.color,
@@ -115,7 +115,7 @@ export const goals = t.router({
 				GROUP BY
 					goals.id
 				ORDER BY
-					goals.orderNumber ASC		
+					goal_logs.orderNumber ASC		
 			`.execute(getDb());
 
 				return activeGoalsWithDate.rows;
@@ -196,7 +196,8 @@ export const goals = t.router({
 							.values({
 								goalId: result.id,
 								type: 'start',
-								date: date
+								date: date,
+								orderNumber: orderNumber
 							})
 							.returning('id')
 							.executeTakeFirstOrThrow();
@@ -408,7 +409,8 @@ export const goals = t.router({
 							.values({
 								goalId: input,
 								type: 'end',
-								date: endDate
+								date: endDate,
+								orderNumber: archivedGoalOrder
 							})
 							.execute();
 					}
