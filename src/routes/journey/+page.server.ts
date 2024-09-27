@@ -6,9 +6,9 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
 	return {
-		goals: trpcLoad(event, (t) => t.goals.list(1)),
+		goals: await trpcLoad(event, (t) => t.goals.list(1)),
 		intentionsByDate: await getIntentionsByDate(),
-		outcomes: trpcLoad(event, (t) =>
+		outcomes: await trpcLoad(event, (t) =>
 			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
 		)
 	};
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			startDate = new Date();
 		}
 
-		return trpcLoad(event, (t) =>
+		return await trpcLoad(event, (t) =>
 			t.intentions.listByDate({
 				startDate: startDate,
 				endDate: endDate
