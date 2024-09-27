@@ -1,5 +1,5 @@
 import nodeAdapter from '@sveltejs/adapter-node';
-import { vitePreprocess } from '@sveltejs/kit/vite';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import preprocess from 'svelte-preprocess';
 import denoAdapter from 'sveltekit-adapter-deno';
 
@@ -31,7 +31,7 @@ const config = {
 							},
 							bundle: true
 						}
-				  })
+					})
 				: nodeAdapter(),
 		alias: {
 			$src: './src',

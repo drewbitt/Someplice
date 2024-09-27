@@ -16,9 +16,9 @@ export async function trpcLoad<
 		if (e instanceof TRPCError) {
 			const httpCode = getHTTPStatusCodeFromError(e);
 
-			throw error(httpCode, e.message);
+			error(httpCode, e.message);
 		}
 
-		throw error(500, 'Unknown error');
+		error(500, 'Unknown error');
 	}
 }
