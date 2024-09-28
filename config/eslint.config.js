@@ -20,7 +20,8 @@ export default [
 			sourceType: 'module',
 			globals: {
 				...globals.node,
-				...globals.browser
+				...globals.browser,
+				...globals.es2017
 			}
 		},
 		rules: {
@@ -33,7 +34,7 @@ export default [
 	{
 		files: ['**/*.svelte'],
 		languageOptions: {
-			ecmaVersion: 2021,
+			ecmaVersion: 2020,
 			sourceType: 'module',
 			globals: {
 				...globals.node,
@@ -59,7 +60,8 @@ export default [
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{ argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }
-			]
+			],
+			'@typescript-eslint/no-unused-expressions': 'off' // to allow Svelte reactive statements for now
 		}
 	},
 	{
@@ -86,5 +88,12 @@ export default [
 			'**/.pnpm-store',
 			'**/vite.config.ts.timestamp-*'
 		]
+	},
+	{
+		languageOptions: {
+			parserOptions: {
+				warnOnUnsupportedTypeScriptVersion: false
+			}
+		}
 	}
 ];
