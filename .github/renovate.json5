@@ -17,6 +17,10 @@
 		{
 			matchUpdateTypes: ['major'],
 			dependencyDashboardApproval: true
+		},
+		{
+			matchManagers: ['nodenv'],
+			matchUpdateTypes: ['major']
 		}
 	]
 }
