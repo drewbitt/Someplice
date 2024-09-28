@@ -20,7 +20,9 @@
 		},
 		{
 			matchManagers: ['nodenv'],
-			matchUpdateTypes: ['major']
+			extractVersion: '^(?<version>v\\d+)',
+			rangeStrategy: 'pin',
+			dependencyDashboardApproval: true
 		}
 	]
 }
