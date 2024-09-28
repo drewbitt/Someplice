@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
-	import { appLogger } from '$src/lib/utils/logger';
+	// import { appLogger } from '$src/lib/utils/logger';
 	import { cssvariable } from '@svelteuidev/composables';
 	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';

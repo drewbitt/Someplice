@@ -31,7 +31,14 @@
 		}
 	}
 
-	const useStyles = createStyles((theme: any) => ({
+	interface Theme {
+		fn: {
+			themeColor: (color: string, shade: number) => string;
+		};
+		// [key: string]: any;
+	}
+
+	const useStyles = createStyles((theme: Theme) => ({
 		root: {
 			color: theme.fn.themeColor('gray', 9),
 			darkMode: {

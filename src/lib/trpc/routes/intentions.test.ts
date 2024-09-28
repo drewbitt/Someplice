@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';

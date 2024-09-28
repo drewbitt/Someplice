@@ -5,7 +5,7 @@ import { DbInstance } from './db';
 import { cronLogger } from '../utils/logger';
 import { localePreviousDate } from '../utils';
 
-const db = DbInstance.getInstance().db;
+const { db } = DbInstance.getInstance();
 const jobName = 'outcomeCron';
 
 // Run functions at the interval defined by a cron expression
@@ -46,7 +46,10 @@ export function createCronJobs() {
 						.executeTakeFirstOrThrow();
 					outcomeId = newOutcome.id;
 				} catch (e) {
-					cronLogger.error(`outcomeCron: Could not create outcome for date: ${previousDayString}`);
+					cronLogger.error(
+						`outcomeCron: Could not create outcome for date: ${previousDayString}`,
+						e
+					);
 					return;
 				}
 			}

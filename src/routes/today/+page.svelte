@@ -12,6 +12,7 @@
 	import type { PageServerData } from './$types';
 	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
 	import { onMount } from 'svelte';
+	import { appLogger } from '$src/lib/utils/logger';
 
 	export let data: PageServerData;
 	type Intentions = (typeof data.intentions)[0];
@@ -145,6 +146,7 @@
 			}
 			return updatedIntention;
 		} catch (error) {
+			appLogger.error('Error updating intention', error);
 			showDBErrorNotification = true;
 		}
 	};

@@ -3,7 +3,9 @@ import { writable } from 'svelte/store';
 
 const defaultValue = 'light';
 
-const initialValue = browser ? window.localStorage.getItem('theme') ?? defaultValue : defaultValue;
+const initialValue = browser
+	? (window.localStorage.getItem('theme') ?? defaultValue)
+	: defaultValue;
 
 const theme = writable<string>(initialValue);
 

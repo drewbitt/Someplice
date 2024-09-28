@@ -11,7 +11,7 @@
 		"test:unit": "vitest",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"lint": "prettier --cache --ignore-path ./config/.prettierignore --check . && eslint --ignore-path ./config/.eslintignore .",
+		"lint": "prettier --cache --ignore-path ./config/.prettierignore --check . && eslint -c ./config/eslint.config.js .",
 		"format": "prettier --cache --ignore-path ./config/.prettierignore --write .",
 		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
 		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts",
@@ -34,6 +34,7 @@
 	"devDependencies": {
 		"@commitlint/cli": "^19.5.0",
 		"@commitlint/config-conventional": "^19.5.0",
+		"@eslint/js": "^9.11.1",
 		"@iconify-json/lucide": "^1.2.6",
 		"@ngneat/falso": "^7.2.0",
 		"@playwright/test": "^1.47.2",
@@ -41,16 +42,16 @@
 		"@sveltejs/kit": "^2.6.1",
 		"@sveltejs/vite-plugin-svelte": "^3.1.2",
 		"@types/better-sqlite3": "^7.6.11",
+		"@types/eslint__js": "^8.42.3",
 		"@types/node": "^20.16.10",
-		"@typescript-eslint/eslint-plugin": "^7.18.0",
-		"@typescript-eslint/parser": "^7.18.0",
 		"@vite-pwa/sveltekit": "^0.6.5",
 		"autoprefixer": "^10.4.20",
 		"cross-env": "^7.0.3",
 		"daisyui": "^3.9.4",
-		"eslint": "^8.57.1",
+		"eslint": "^9.11.1",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-svelte": "^2.44.1",
+		"globals": "^15.9.0",
 		"kysely-codegen": "^0.16.8",
 		"postcss": "^8.4.47",
 		"postcss-load-config": "^6.0.1",
@@ -65,14 +66,12 @@
 		"tailwindcss": "^3.4.13",
 		"tslib": "^2.7.0",
 		"typescript": "^5.6.2",
+		"typescript-eslint": "^8.7.0",
 		"unplugin-icons": "^0.19.3",
 		"vite": "^5.4.8",
 		"vite-plugin-pwa": "^0.20.5",
 		"vitest": "^2.1.1"
 	},
 	"type": "module",
-	"eslintConfig": {
-		"extends": "./config/.eslintrc.cjs"
-	},
 	"packageManager": "pnpm@9.11.0"
 }
