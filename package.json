@@ -73,5 +73,6 @@
 	"type": "module",
 	"eslintConfig": {
 		"extends": "./config/.eslintrc.cjs"
-	}
+	},
+	"packageManager": "pnpm@9.11.0"
 }
