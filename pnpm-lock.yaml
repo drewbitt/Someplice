@@ -130,8 +130,8 @@ importers:
         specifier: ^4.0.4
         version: 4.0.4(picomatch@4.0.2)(svelte@4.2.19)(typescript@5.6.2)
       svelte-dnd-action:
-        specifier: ^0.9.50
-        version: 0.9.50(svelte@4.2.19)
+        specifier: ^0.9.51
+        version: 0.9.51(svelte@4.2.19)
       svelte-preprocess:
         specifier: ^6.0.3
         version: 6.0.3(@babel/core@7.25.2)(postcss-load-config@6.0.1(jiti@2.0.0)(postcss@8.4.47)(yaml@2.5.1))(postcss@8.4.47)(svelte@4.2.19)(typescript@5.6.2)
@@ -3411,8 +3411,8 @@ packages:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
 
-  svelte-dnd-action@0.9.50:
-    resolution: {integrity: sha512-EnUyBmiMjflGr+NKfPmPpyareKEbQkdVGRTv6YyBHIEXPOv92XHgPHubErQ1tOaXaZ2c7y4Gja85uA1/Desw/Q==}
+  svelte-dnd-action@0.9.51:
+    resolution: {integrity: sha512-/0DEK+QqWf6QYtJgbQPJE/LSzo6JAE00oWVtBWZrBDAMXeN4cYVd0Z7sSpbu00Sm/h03t/RF4UGUMwosmrseQw==}
     peerDependencies:
       svelte: '>=3.23.0 || ^5.0.0-next.0'
 
@@ -7296,7 +7296,7 @@ snapshots:
     transitivePeerDependencies:
       - picomatch
 
-  svelte-dnd-action@0.9.50(svelte@4.2.19):
+  svelte-dnd-action@0.9.51(svelte@4.2.19):
     dependencies:
       svelte: 4.2.19
 
