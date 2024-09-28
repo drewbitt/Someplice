@@ -37,7 +37,9 @@
 							href="/today"
 							class:daisy-active={$page.url.pathname === '/today'}
 							class="rounded-md"
-							class:bg-primary-focus={$page.url.pathname === '/today'}>Today</a
+							class:bg-[color-mix(in_oklab,oklch(var(--p)),black_7%)]={$page.url.pathname ===
+								'/today'}
+							class:text-white={$page.url.pathname === '/today'}>Today</a
 						>
 					</li>
 					<li>
@@ -45,7 +47,9 @@
 							href="/goals"
 							class:daisy-active={$page.url.pathname === '/goals'}
 							class="rounded-md"
-							class:bg-primary-focus={$page.url.pathname === '/goals'}>Goals</a
+							class:bg-[color-mix(in_oklab,oklch(var(--p)),black_7%)]={$page.url.pathname ===
+								'/goals'}
+							class:text-white={$page.url.pathname === '/goals'}>Goals</a
 						>
 					</li>
 					<li>
@@ -53,7 +57,9 @@
 							href="/journey"
 							class:daisy-active={$page.url.pathname === '/journey'}
 							class="rounded-md"
-							class:bg-primary-focus={$page.url.pathname === '/journey'}>Journey</a
+							class:bg-[color-mix(in_oklab,oklch(var(--p)),black_7%)]={$page.url.pathname ===
+								'/journey'}
+							class:text-white={$page.url.pathname === '/journey'}>Journey</a
 						>
 					</li>
 				</Box>
