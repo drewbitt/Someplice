@@ -60,7 +60,7 @@
 		"prettier-plugin-tailwindcss": "^0.6.8",
 		"svelte": "^4.2.19",
 		"svelte-check": "^4.0.4",
-		"svelte-dnd-action": "^0.9.50",
+		"svelte-dnd-action": "^0.9.51",
 		"svelte-preprocess": "^6.0.3",
 		"sveltekit-adapter-deno": "^0.12.1",
 		"tailwindcss": "^3.4.13",
