@@ -1,28 +1,23 @@
 {
-	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
-	extends: [
-		'config:base',
-		'group:allNonMajor', // batch non-majors into one PR
-		':semanticCommits' // nicer commit messages
-	],
-	rangeStrategy: 'bump',
+	$schema: "https://docs.renovatebot.com/renovate-schema.json",
+	extends: ["config:recommended", "group:allNonMajor", ":semanticCommits"],
+	rangeStrategy: "bump",
 	packageRules: [
 		{
-			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			matchUpdateTypes: ["minor", "patch", "pin", "digest"],
 			automerge: true,
-			timezone: 'America/New_York',
-			schedule: ['after 5:00pm on Monday'],
-			requiredStatusChecks: ['Run Tests']
+			timezone: "America/New_York",
+			schedule: ["after 5:00pm on Monday"],
 		},
 		{
-			matchUpdateTypes: ['major'],
-			dependencyDashboardApproval: true
+			matchUpdateTypes: ["major"],
+			dependencyDashboardApproval: true,
 		},
 		{
-			matchManagers: ['nodenv'],
-			extractVersion: '^(?<version>v\\d+)',
-			rangeStrategy: 'pin',
-			dependencyDashboardApproval: true
-		}
-	]
+			matchManagers: ["nodenv"],
+			extractVersion: "^(?<version>v\\d+)",
+			rangeStrategy: "pin",
+			dependencyDashboardApproval: true,
+		},
+	],
 }
