@@ -24,8 +24,8 @@ importers:
         specifier: ^11.4.0
         version: 11.4.0
       croner:
-        specifier: ^8.1.2
-        version: 8.1.2
+        specifier: ^9.1.0
+        version: 9.1.0
       devalue:
         specifier: ^5.1.1
         version: 5.1.1
@@ -1847,8 +1847,8 @@ packages:
       typescript:
         optional: true
 
-  croner@8.1.2:
-    resolution: {integrity: sha512-ypfPFcAXHuAZRCzo3vJL6ltENzniTjwe/qsLleH1V2/7SRDjgvRQyrLmumFTLmjFax4IuSxfGXEn79fozXcJog==}
+  croner@9.1.0:
+    resolution: {integrity: sha512-p9nwwR4qyT5W996vBZhdvBCnMhicY5ytZkR4D1Xj0wuTDEiMnjwR57Q3RXYY/s0EpX6Ay3vgIcfaR+ewGHsi+g==}
     engines: {node: '>=18.0'}
 
   cross-env@7.0.3:
@@ -3318,6 +3318,7 @@ packages:
   source-map@0.8.0-beta.0:
     resolution: {integrity: sha512-2ymg6oRBpebeZi9UUNsgQ89bhx01TcTkmNTGnNO88imTmbSgy4nfujrgVEFKWpMTEGA11EDkTt7mqObTPdigIA==}
     engines: {node: '>= 8'}
+    deprecated: The work that was done in this beta branch won't be included in future versions
 
   sourcemap-codec@1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
@@ -5784,7 +5785,7 @@ snapshots:
     optionalDependencies:
       typescript: 5.6.3
 
-  croner@8.1.2: {}
+  croner@9.1.0: {}
 
   cross-env@7.0.3:
     dependencies:
