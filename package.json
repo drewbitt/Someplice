@@ -43,7 +43,7 @@
 		"@sveltejs/vite-plugin-svelte": "^3.1.2",
 		"@types/better-sqlite3": "^7.6.11",
 		"@types/eslint__js": "^8.42.3",
-		"@types/node": "^20.16.13",
+		"@types/node": "^22.18.12",
 		"@vite-pwa/sveltekit": "^0.6.6",
 		"autoprefixer": "^10.4.20",
 		"cross-env": "^7.0.3",
