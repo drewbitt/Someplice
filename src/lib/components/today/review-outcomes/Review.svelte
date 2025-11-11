@@ -172,7 +172,7 @@
 	)}
 	id="review-goals-form"
 >
-	<section class={'w-full items-center p-4 pb-6 2xl:pb-7'}>
+	<section class="w-full items-center p-4 pb-6 2xl:pb-7">
 		<h1 class="mb-5 text-center text-2xl">
 			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
 				weekday: 'long',
@@ -189,7 +189,7 @@
 			</div>
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
-				{#each goalsOnDate as goal}
+				{#each goalsOnDate as goal (goal.id)}
 					<ReviewGoalBox
 						{goal}
 						{hasBeenSaved}

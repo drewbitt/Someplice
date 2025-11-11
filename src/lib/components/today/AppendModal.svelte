@@ -65,7 +65,7 @@
 	{opened}
 	on:close={closeAppendModal}
 	withCloseButton={false}
-	title={'Append to this intention'}
+	title="Append to this intention"
 	overlayOpacity={0.25}
 >
 	<p

@@ -25,7 +25,7 @@
 				<Box class="text-center">Loading...</Box>
 			</Grid.Col>
 		{:then availColors}
-			{#each availColors as color}
+			{#each availColors as color (color)}
 				<Grid.Col span={3}>
 					<div
 						tabindex="0"

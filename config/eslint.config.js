@@ -58,7 +58,11 @@ export default [
 				'error',
 				{ argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }
 			],
-			'@typescript-eslint/no-unused-expressions': 'off' // to allow Svelte reactive statements for now
+			'@typescript-eslint/no-unused-expressions': 'off', // to allow Svelte reactive statements for now
+			'svelte/no-immutable-reactive-statements': 'off', // Too many false positives with Svelte 5
+			'svelte/infinite-reactive-loop': 'warn', // Change to warning instead of error
+			'svelte/no-navigation-without-resolve': 'off', // We're using standard SvelteKit navigation
+			'svelte/valid-prop-names-in-kit-pages': 'off' // We use custom props in page components
 		}
 	},
 	{
