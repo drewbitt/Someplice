@@ -200,7 +200,7 @@
 <Box
 	class={cx(
 		'flex flex-col items-center p-4',
-		darkMode ? 'shadow shadow-black' : 'shadow-xl',
+		darkMode ? 'shadow-sm shadow-black' : 'shadow-xl',
 		getStyles()
 	)}
 	id="review-goals-form"
