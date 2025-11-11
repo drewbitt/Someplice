@@ -19,7 +19,7 @@ export function createCronJobs() {
 
 	// Run at 00:00 every day
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const outcomeCron = Cron('0 0 * * *', { name: jobName }, async () => {
+	const outcomeCron = new Cron('0 0 * * *', { name: jobName }, async () => {
 		await db.transaction().execute(async (db) => {
 			const previousDay = localePreviousDate();
 			const previousDayString = previousDay.toISOString().slice(0, 10);

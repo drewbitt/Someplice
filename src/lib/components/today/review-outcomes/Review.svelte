@@ -204,7 +204,7 @@
 	<!-- Mimic the styling of ReviewGoalBox so the Save button aligns properly -->
 	<!-- TODO: fix conditional mr padding as ReviewGoalBox is doing something funky I'm just trying to mimic-->
 	<Box class="mr-6 flex w-full max-w-screen-2xl flex-col items-center md:mr-6 2xl:mr-0">
-		<Box class="flex w-4/5 min-w-min max-w-full justify-end gap-2">
+		<Box class="flex w-4/5 max-w-full min-w-min justify-end gap-2">
 			<Button on:click={handleSaveReview}>Save</Button>
 		</Box>
 	</Box>
