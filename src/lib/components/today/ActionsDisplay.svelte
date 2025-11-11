@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
@@ -103,7 +102,7 @@
 			return { ...item, orderNumber: index + 1 };
 		});
 		intentions = items;
-		await trpc($page).intentions.updateIntentions.mutate({ intentions: items });
+		await trpc().intentions.updateIntentions.mutate({ intentions: items });
 	};
 	const handleButtonPressIntention = (
 		event: KeyboardEvent & {

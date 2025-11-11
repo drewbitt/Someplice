@@ -26,7 +26,6 @@
 		"croner": "^9.0.0",
 		"devalue": "^5.1.1",
 		"kysely": "^0.27.4",
-		"trpc-sveltekit": "^4.0.0-next.2",
 		"tslog": "^4.9.3",
 		"vite-node": "^5.0.0",
 		"zod": "^4.0.0"
@@ -41,6 +40,7 @@
 		"@sveltejs/adapter-node": "^5.2.8",
 		"@sveltejs/kit": "^2.7.2",
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
+		"@tailwindcss/postcss": "^4.1.17",
 		"@types/better-sqlite3": "^7.6.11",
 		"@types/node": "^24.0.0",
 		"@vite-pwa/sveltekit": "^1.0.0",
