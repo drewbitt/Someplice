@@ -5,6 +5,7 @@
 	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
@@ -23,7 +24,7 @@
 	let showMousoverIndex: number | null = null;
 	let showIntentionModal = false;
 
-	let goalOrderNumbers = new Map<number, number>();
+	let goalOrderNumbers = new SvelteMap<number, number>();
 
 	// When the component gets mounted, create the map
 	// We do this for performance

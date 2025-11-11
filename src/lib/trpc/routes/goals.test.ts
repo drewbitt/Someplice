@@ -4,7 +4,7 @@ import type { DB } from '$src/lib/types/data';
 import type { Kysely, UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Goal } from '../types';
-import { goals } from './goals';
+import { createCallerFactory, router } from '../router';
 
 interface GoalResult {
 	id: number | null;
@@ -20,6 +20,8 @@ const TEST_GOAL: GoalInput = {
 
 describe('goals', () => {
 	let db: Kysely<DB>;
+	const createCaller = createCallerFactory(router);
+	const caller = createCaller({});
 
 	beforeEach(async () => {
 		const dbInstance = DbInstance.getInstance();
@@ -37,24 +39,14 @@ describe('goals', () => {
 		const activeStates = [1, 0];
 		// Loop through both active states
 		for (const activeState of activeStates) {
-			const added = (await goals.add({
-				rawInput: TEST_GOAL,
-				path: 'add',
-				type: 'mutation',
-				ctx: {}
-			})) as GoalResult;
+			const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 			const id1 = Number(added.id);
 			// Archive the goal to make it inactive
 			if (activeState === 0) {
-				await goals.archive({ rawInput: id1, path: 'archive', type: 'mutation', ctx: {} });
+				await caller.goals.archive(id1);
 			}
 
-			const result = (await goals.list({
-				rawInput: activeState,
-				path: 'list',
-				type: 'query',
-				ctx: {}
-			})) as Goal[];
+			const result = (await caller.goals.list(activeState)) as Goal[];
 
 			expect(result).toBeInstanceOf(Array);
 			expect(result.every((goal) => goal.active === activeState)).toBe(true);
@@ -68,41 +60,21 @@ describe('goals', () => {
 	});
 
 	it('list goals when no goals are present', async () => {
-		const result = (await goals.list({
-			rawInput: 1,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Goal[];
+		const result = (await caller.goals.list(1)) as Goal[];
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(0);
 	});
 
 	it('listGoalsSortedByDate', async () => {
-		const added1 = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 
 		// Add a small delay to ensure a distinct timestamp
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 
-		const added2 = (await goals.add({
-			rawInput: { ...TEST_GOAL, title: 'Test Goal 2' },
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
 
-		const result = (await goals.listGoalsSortedByDate({
-			rawInput: 1,
-			path: 'listGoalsSortedByDate',
-			type: 'query',
-			ctx: {}
-		})) as Goal[];
+		const result = (await caller.goals.listGoalsSortedByDate(1)) as Goal[];
 		expect(result).toBeInstanceOf(Array);
 
 		const goal1 = result.find((goal) => goal.id === Number(added1.id));
@@ -137,30 +109,18 @@ describe('goals', () => {
 	// TODO: improve test
 	it('listGoalsOnDate for both active and inactive goals', async () => {
 		// Add an active goal
-		(await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		(await caller.goals.add(TEST_GOAL)) as GoalResult;
 
 		// Get today's date
 		const today = new Date();
 
 		// Retrieve active goals for the current date
-		const activeGoals = (await goals.listGoalsOnDate({
-			rawInput: { active: 1, date: today },
-			path: 'listGoalsOnDate',
-			type: 'query',
-			ctx: {}
-		})) as Goal[];
+		const activeGoals = (await caller.goals.listGoalsOnDate({ active: 1, date: today })) as Goal[];
 
 		// Retrieve inactive goals for the current date
-		const inactiveGoals = (await goals.listGoalsOnDate({
-			rawInput: { active: 0, date: today },
-			path: 'listGoalsOnDate',
-			type: 'query',
-			ctx: {}
+		const inactiveGoals = (await caller.goals.listGoalsOnDate({
+			active: 0,
+			date: today
 		})) as Goal[];
 
 		// Check if both active and inactive goals have the correct length
@@ -172,12 +132,7 @@ describe('goals', () => {
 	});
 
 	it('add', async () => {
-		const result = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const result = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		expect(result.id).toBeDefined();
 		const rows = await db.selectFrom('goals').selectAll().execute();
 		expect(rows).toHaveLength(1);
@@ -188,7 +143,7 @@ describe('goals', () => {
 		const input = { active: 1, title: '' }; // Missing 'color' field
 		let error;
 		try {
-			(await goals.add({ rawInput: input, path: 'add', type: 'mutation', ctx: {} })) as GoalResult;
+			(await caller.goals.add(input)) as GoalResult;
 		} catch (e) {
 			error = e;
 		}
@@ -196,12 +151,7 @@ describe('goals', () => {
 	});
 
 	it('add creates a log entry', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
 		const logEntries = await db
@@ -215,12 +165,7 @@ describe('goals', () => {
 	});
 
 	it('edit', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
 		const goalToEdit = await db
@@ -230,12 +175,7 @@ describe('goals', () => {
 			.executeTakeFirst();
 		const editedGoal = { ...goalToEdit, title: 'Modified Test Goal' };
 
-		const result = (await goals.edit({
-			rawInput: editedGoal,
-			path: 'edit',
-			type: 'mutation',
-			ctx: {}
-		})) as UpdateResult;
+		const result = (await caller.goals.edit(editedGoal)) as UpdateResult;
 		expect(Number(result.numUpdatedRows)).toEqual(1);
 
 		const editedGoalFromDb = await db
@@ -254,12 +194,7 @@ describe('goals', () => {
 		const orderNumber = 1;
 		let error;
 		try {
-			await goals.edit({
-				rawInput: { ...TEST_GOAL, id, orderNumber },
-				path: 'edit',
-				type: 'mutation',
-				ctx: {}
-			});
+			await caller.goals.edit({ ...TEST_GOAL, id, orderNumber });
 		} catch (e) {
 			error = e;
 		}
@@ -268,28 +203,13 @@ describe('goals', () => {
 
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
-		const added1 = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id1 = Number(added1.id);
 
-		const added2 = (await goals.add({
-			rawInput: { ...TEST_GOAL, title: 'Test Goal 2' },
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
 		const id2 = Number(added2.id);
 
-		const added3 = (await goals.add({
-			rawInput: { ...TEST_GOAL, title: 'Test Goal 3' },
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added3 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 3' })) as GoalResult;
 		const id3 = Number(added3.id);
 
 		// Prepare the goals to be updated
@@ -315,11 +235,8 @@ describe('goals', () => {
 		const editedGoal3 = { ...goalToEdit3, title: 'Modified Test Goal 3' };
 
 		// Call updateGoals with the updated goals
-		const result = await goals.updateGoals({
-			rawInput: { goals: [editedGoal1, editedGoal2, editedGoal3] },
-			path: 'updateGoals',
-			type: 'mutation',
-			ctx: {}
+		const result = await caller.goals.updateGoals({
+			goals: [editedGoal1, editedGoal2, editedGoal3]
 		});
 
 		expect(result).toBeInstanceOf(Array);
@@ -349,15 +266,10 @@ describe('goals', () => {
 	});
 
 	it('delete', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
-		await goals.delete({ rawInput: id, path: 'delete', type: 'mutation', ctx: {} });
+		await caller.goals.delete(id);
 		const rows = await db.selectFrom('goals').selectAll().execute();
 		expect(rows).toHaveLength(0);
 	});
@@ -366,7 +278,7 @@ describe('goals', () => {
 		const id = 99999; // Non-existing ID
 		let error;
 		try {
-			await goals.delete({ rawInput: id, path: 'delete', type: 'mutation', ctx: {} });
+			await caller.goals.delete(id);
 		} catch (e) {
 			error = e;
 		}
@@ -374,15 +286,10 @@ describe('goals', () => {
 	});
 
 	it('delete removes all log entries for a goal', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
-		await goals.delete({ rawInput: id, path: 'delete', type: 'mutation', ctx: {} });
+		await caller.goals.delete(id);
 
 		const logEntries = await db
 			.selectFrom('goal_logs')
@@ -394,15 +301,10 @@ describe('goals', () => {
 	});
 
 	it('archive', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
-		await goals.archive({ rawInput: id, path: 'archive', type: 'mutation', ctx: {} });
+		await caller.goals.archive(id);
 
 		const rows = await db.selectFrom('goals').selectAll().execute();
 		expect(rows[0].active).toEqual(0);
@@ -412,7 +314,7 @@ describe('goals', () => {
 		const id = 99999; // Non-existing ID
 		let error;
 		try {
-			await goals.archive({ rawInput: id, path: 'archive', type: 'mutation', ctx: {} });
+			await caller.goals.archive(id);
 		} catch (e) {
 			error = e;
 		}
@@ -420,16 +322,11 @@ describe('goals', () => {
 	});
 
 	it('restore', async () => {
-		const added = (await goals.add({
-			rawInput: TEST_GOAL,
-			path: 'add',
-			type: 'mutation',
-			ctx: {}
-		})) as GoalResult;
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const id = Number(added.id);
 
-		await goals.archive({ rawInput: id, path: 'archive', type: 'mutation', ctx: {} });
-		await goals.restore({ rawInput: id, path: 'restore', type: 'mutation', ctx: {} });
+		await caller.goals.archive(id);
+		await caller.goals.restore(id);
 
 		const rows = await db.selectFrom('goals').selectAll().execute();
 		expect(rows[0].active).toEqual(1);
@@ -439,7 +336,7 @@ describe('goals', () => {
 		const id = 99999; // Non-existing ID
 		let error;
 		try {
-			await goals.restore({ rawInput: id, path: 'restore', type: 'mutation', ctx: {} });
+			await caller.goals.restore(id);
 		} catch (e) {
 			error = e;
 		}

@@ -15,7 +15,7 @@
 		{numIntentions === 1 ? 'intention' : 'intentions'}
 	</Title>
 	<div>
-		{#each intentions as intention}
+		{#each intentions as intention (intention.id)}
 			<div class="flex">
 				<span style="color: {goalColorForIntention(intention, goals)}" class="me-1 text-lg">
 					{intention.orderNumber}) {intention.text}
