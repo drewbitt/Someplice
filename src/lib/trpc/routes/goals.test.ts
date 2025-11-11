@@ -5,6 +5,7 @@ import type { Kysely, UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Goal } from '../types';
 import { createCallerFactory, router } from '../router';
+import { GoalSchema } from './goals';
 
 interface GoalResult {
 	id: number | null;
@@ -341,5 +342,20 @@ describe('goals', () => {
 			error = e;
 		}
 		expect(error).toBeDefined();
+	});
+
+	it('transaction rollback on error preserves data integrity', async () => {
+		await expect(async () => {
+			await db.transaction().execute(async (trx) => {
+				await trx.insertInto('goals').values({ active: 1, title: 'Test', description: '', color: '#000', orderNumber: 1 }).execute();
+				throw new Error('Force rollback');
+			});
+		}).rejects.toThrow();
+		expect(await db.selectFrom('goals').selectAll().execute()).toHaveLength(0);
+	});
+
+	it('schema validates required fields', () => {
+		expect(() => GoalSchema.parse({ id: 1, active: 1, orderNumber: 1, title: 'Test', description: null, color: '#000' })).not.toThrow();
+		expect(() => GoalSchema.parse({ active: 1, title: 'Missing fields' })).toThrow();
 	});
 });
