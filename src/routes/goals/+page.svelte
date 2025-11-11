@@ -6,6 +6,7 @@
 	import type { GoalLog } from '$src/lib/trpc/types';
 	import { Button, Title } from '@svelteuidev/core';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
+	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageServerData } from './$types';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
@@ -98,7 +99,7 @@
 	*/
 	async function sortInactiveGoals() {
 		const allInactiveGoals = data.inactiveGoals;
-		const goalDateMap = new Map<number, string>();
+		const goalDateMap = new SvelteMap<number, string>();
 		for (const iGoal of allInactiveGoals) {
 			if (!iGoal.id) continue;
 			const goalLogForGoalId = data.goalLogs.filter((log) => log.goalId === iGoal.id);
@@ -138,10 +139,10 @@
 					: ''}
 			/>
 			{#if editButtonActive}
-				<Button color="teal" class={'mx-2'} on:click={handleCancelButtonClick}>Cancel</Button>
+				<Button color="teal" class="mx-2" on:click={handleCancelButtonClick}>Cancel</Button>
 			{/if}
 			<Button
-				class={'mx-2'}
+				class="mx-2"
 				disabled={!editButtonEnabled || !saveButtonEnabled || noGoals}
 				color={!editButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleEditButtonClick}
@@ -156,7 +157,7 @@
 					: 'daisy-badge daisy-indicator-item daisy-badge-secondary translate-x-1/4'}
 			/>
 			<Button
-				class={'mx-2'}
+				class="mx-2"
 				disabled={!dragButtonEnabled || noGoals}
 				color={!dragButtonEnabled ? 'gray' : 'blue'}
 				on:click={handleRenumberButtonClick}
