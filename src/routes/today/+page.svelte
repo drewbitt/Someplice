@@ -13,7 +13,7 @@
 	import { onMount } from 'svelte';
 	import { appLogger } from '$src/lib/utils/logger';
 
-	export let data: PageServerData;
+	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
 
 	// let declarations grouped together
@@ -38,14 +38,15 @@
 		}
 	});
 
-	// $: declarations grouped together
-	$: noGoals = data.goals.length === 0;
-	$: noIntentions = data.intentions.length === 0;
-	$: if (showDBErrorNotification) {
-		setTimeout(() => {
-			showDBErrorNotification = false;
-		}, 5000);
-	}
+	let noGoals = $derived(data.goals.length === 0);
+	let noIntentions = $derived(data.intentions.length === 0);
+	$effect(() => {
+		if (showDBErrorNotification) {
+			setTimeout(() => {
+				showDBErrorNotification = false;
+			}, 5000);
+		}
+	});
 	// if no intentions today, check for old outstanding outcomes
 	$effect(() => {
 		if (!noIntentions || hasOutstandingOutcome || noGoals) {

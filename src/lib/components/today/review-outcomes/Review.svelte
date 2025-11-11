@@ -8,8 +8,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors';
 
-	export let intentionsOnLatestDate: Intention[];
-	export let setHasOutstandingOutcome: (value: boolean) => void;
+	let { intentionsOnLatestDate, setHasOutstandingOutcome }: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } = $props();
 
 	let intentionDate = intentionsOnLatestDate[0]
 		? new Date(intentionsOnLatestDate[0].date)
@@ -22,11 +21,11 @@
 	let maxOrderNumber: number;
 	let hasBeenSaved = false;
 
-	$: {
+	$effect(() => {
 		if (intentionsOnLatestDate[0]) {
 			intentionDate = new Date(intentionsOnLatestDate[0].date);
 		}
-	}
+	});
 	$effect(() => {
 		if (!intentionsOnLatestDate || intentionsOnLatestDate.length === 0) {
 			showPageLoadingSpinner = false;
@@ -69,9 +68,11 @@
 			cancelled = true;
 		};
 	});
-	$: if (intentionsOnDate) {
-		maxOrderNumber = Math.max(...intentionsOnDate.map((intention) => intention.orderNumber), 0);
-	}
+	$effect(() => {
+		if (intentionsOnDate) {
+			maxOrderNumber = Math.max(...intentionsOnDate.map((intention) => intention.orderNumber), 0);
+		}
+	});
 
 	const listGoalsOnDate = async (date: Date) => {
 		const goals = await trpc().goals.listGoalsOnDate.query({
@@ -190,8 +191,10 @@
 			}
 		}
 	}));
-	$: darkMode = $colorScheme === 'dark';
-	$: ({ cx, getStyles } = useStyles());
+	let darkMode = $derived($colorScheme === 'dark');
+	let styles = $derived(useStyles());
+	let cx = styles.cx;
+	let getStyles = styles.getStyles;
 </script>
 
 <Box
