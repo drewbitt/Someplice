@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { Box, Text } from '@svelteuidev/core';
 	import { colors } from './colors';
@@ -10,7 +9,7 @@
 
 	// Get default new goal title from number of active goals + 1
 	const getGoalTitle = async () => {
-		const allGoals = await trpc($page).goals.list.query(1);
+		const allGoals = await trpc().goals.list.query(1);
 		return `Goal ${allGoals.length + 1}`;
 	};
 
@@ -18,7 +17,7 @@
 		addedGoal = false;
 
 		try {
-			const allGoals = await trpc($page).goals.list.query(1);
+			const allGoals = await trpc().goals.list.query(1);
 			// get randomColor from colors.ts that is not in use
 			const allColors = colors;
 

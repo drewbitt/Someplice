@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { evenLighterHSLColor } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
@@ -15,7 +14,7 @@
 		if (!goal.id) return;
 
 		try {
-			const goalLogs = await trpc($page).goal_logs.getAllForGoal.query(goal.id);
+			const goalLogs = await trpc().goal_logs.getAllForGoal.query(goal.id);
 			if (goalLogs.length > 0) {
 				// filter 'start' and 'end' dates and sort them in descending order
 				const startDates = goalLogs

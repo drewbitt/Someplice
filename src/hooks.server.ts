@@ -3,19 +3,29 @@ import { router } from '$lib/trpc/router';
 import type { Handle } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import { prepareStylesSSR } from '@svelteuidev/core';
-import { createTRPCHandle } from 'trpc-sveltekit';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { checkMissingOutcomes, createCronJobs } from './lib/db/cron';
 import { trpcLogger } from './lib/utils/logger';
 
-export const trpcHandle: Handle = createTRPCHandle({
-	router,
-	createContext,
-	onError({ type, path, error }) {
-		trpcLogger.error({
-			'Encountered error while trying to process request in trpcHandle': { type, path, error }
+const trpcEndpoint = '/api/trpc';
+
+export const trpcHandle: Handle = async ({ event, resolve }) => {
+	if (event.url.pathname.startsWith(trpcEndpoint)) {
+		return fetchRequestHandler({
+			endpoint: trpcEndpoint,
+			req: event.request,
+			router,
+			createContext: () => createContext(event),
+			onError({ type, path, error }) {
+				trpcLogger.error({
+					'Encountered error while trying to process request in trpcHandle': { type, path, error }
+				});
+			}
 		});
 	}
-});
+
+	return resolve(event);
+};
 
 export const sveltuiHandle = prepareStylesSSR;
 

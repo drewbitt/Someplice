@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
 	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
 	import { trpc } from '$src/lib/trpc/client';
@@ -47,7 +46,7 @@
 				return { ...goal, color: goal.color };
 			});
 
-			trpc($page).goals.updateGoals.mutate({ goals: data.goals });
+			trpc().goals.updateGoals.mutate({ goals: data.goals });
 		} else {
 			// Edit button has been clicked
 			// map forces reassignment
@@ -90,7 +89,7 @@
 		});
 		data.goals = items;
 
-		await trpc($page).goals.updateGoals.mutate({ goals: items });
+		await trpc().goals.updateGoals.mutate({ goals: items });
 	};
 
 	/* 
