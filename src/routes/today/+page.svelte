@@ -47,20 +47,36 @@
 		}, 5000);
 	}
 	// if no intentions today, check for old outstanding outcomes
-	$: if (noIntentions && !hasOutstandingOutcome && !noGoals) {
+	$effect(() => {
+		if (!noIntentions || hasOutstandingOutcome || noGoals) {
+			showPageLoadingSpinner = false;
+			return;
+		}
+
+		let cancelled = false;
 		showPageLoadingSpinner = true;
-		isOldOutcomeOutstanding().then((result) => {
-			if (result) {
-				// if there is an outstanding outcome
-				hasOutstandingOutcome = true;
-				showPageLoadingSpinner = false;
-			} else {
-				showPageLoadingSpinner = false;
+
+		(async () => {
+			try {
+				const result = await isOldOutcomeOutstanding();
+				if (cancelled) return;
+
+				if (result) {
+					hasOutstandingOutcome = true;
+				} else {
+					showPageLoadingSpinner = false;
+				}
+			} catch {
+				if (!cancelled) {
+					showPageLoadingSpinner = false;
+				}
 			}
-		});
-	} else if (!noIntentions || hasOutstandingOutcome || noGoals) {
-		showPageLoadingSpinner = false;
-	}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	});
 
 	const setHasOutstandingOutcome = (value: boolean) => {
 		hasOutstandingOutcome = value;

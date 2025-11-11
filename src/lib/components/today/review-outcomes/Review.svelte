@@ -11,33 +11,64 @@
 	export let intentionsOnLatestDate: Intention[];
 	export let setHasOutstandingOutcome: (value: boolean) => void;
 
-	const intentionDate = new Date(intentionsOnLatestDate[0].date);
+	let intentionDate = intentionsOnLatestDate[0]
+		? new Date(intentionsOnLatestDate[0].date)
+		: new Date();
 	let showPageLoadingSpinner = true;
-	let daysAgo: number;
-	let goalsOnDate: Goal[];
-	let intentionsOnDate: Intention[];
+	let daysAgo = 0;
+	let goalsOnDate: Goal[] = [];
+	let intentionsOnDate: Intention[] = [];
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
 	let maxOrderNumber: number;
 	let hasBeenSaved = false;
 
 	$: {
+		if (intentionsOnLatestDate[0]) {
+			intentionDate = new Date(intentionsOnLatestDate[0].date);
+		}
+	}
+	$effect(() => {
+		if (!intentionsOnLatestDate || intentionsOnLatestDate.length === 0) {
+			showPageLoadingSpinner = false;
+			goalsOnDate = [];
+			intentionsOnDate = [];
+			daysAgo = 0;
+			return;
+		}
+
+		const targetDate = new Date(intentionDate);
 		const currentDate = localeCurrentDate();
-		const timeDiff = Math.abs(currentDate.getTime() - intentionDate.getTime());
+		const timeDiff = Math.abs(currentDate.getTime() - targetDate.getTime());
 		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-		Promise.all([listGoalsOnDate(intentionDate), listIntentionsOnDate(intentionDate)])
-			.then(([goalsResult, intentionsResult]) => {
+		let cancelled = false;
+		showPageLoadingSpinner = true;
+
+		(async () => {
+			try {
+				const [goalsResult, intentionsResult] = await Promise.all([
+					listGoalsOnDate(targetDate),
+					listIntentionsOnDate(targetDate)
+				]);
+				if (cancelled) return;
 				goalsOnDate = goalsResult;
 				intentionsOnDate = intentionsResult;
-				showPageLoadingSpinner = false; // turn off loading spinner when all promises are resolved
-			})
-			.catch((error) => {
+			} catch (error) {
+				if (cancelled) return;
 				if (error instanceof Error) {
 					todayPageErrorStore.setError(error.message);
 				}
-				showPageLoadingSpinner = false;
-			});
-	}
+			} finally {
+				if (!cancelled) {
+					showPageLoadingSpinner = false;
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	});
 	$: if (intentionsOnDate) {
 		maxOrderNumber = Math.max(...intentionsOnDate.map((intention) => intention.orderNumber), 0);
 	}
