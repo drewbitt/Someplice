@@ -147,7 +147,7 @@
 	{#if showSaveButton}
 		<!-- Mimic the styling of ReviewGoalBox so the Save button aligns properly -->
 		<Box class="flex w-full max-w-screen-2xl flex-col items-center">
-			<Box class="flex w-4/5 min-w-min max-w-full justify-end">
+			<Box class="flex w-4/5 max-w-full min-w-min justify-end">
 				<Button on:click={handleSaveReview}>Save</Button>
 			</Box>
 		</Box>
