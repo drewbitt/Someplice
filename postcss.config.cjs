@@ -1,13 +1,9 @@
-const tailwindcss = require('@tailwindcss/postcss');
 const autoprefixer = require('autoprefixer');
 
 const config = {
 	plugins: [
-		//Some plugins, like tailwindcss/nesting, need to run before Tailwind,
-		tailwindcss({
-			config: './config/tailwind.config.cjs'
-		}),
-		//But others, like autoprefixer, need to run after,
+		// Tailwind CSS is now handled by the @tailwindcss/vite plugin in vite.config.ts
+		// Only autoprefixer remains here for other PostCSS processing
 		autoprefixer
 	]
 };
