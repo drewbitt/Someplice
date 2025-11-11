@@ -74,5 +74,8 @@
 		"workbox-window": "^7.3.0"
 	},
 	"type": "module",
-	"packageManager": "pnpm@10.0.0"
+	"packageManager": "pnpm@10.0.0",
+	"pnpm": {
+		"onlyBuiltDependencies": ["@sveltejs/kit", "better-sqlite3", "esbuild", "svelte-preprocess"]
+	}
 }
