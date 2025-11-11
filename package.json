@@ -76,6 +76,6 @@
 	"type": "module",
 	"packageManager": "pnpm@10.0.0",
 	"pnpm": {
-		"onlyBuiltDependencies": ["@sveltejs/kit", "better-sqlite3", "esbuild", "svelte-preprocess"]
+		"onlyBuiltDependencies": ["better-sqlite3"]
 	}
 }
