@@ -6,7 +6,6 @@
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
 	import { trpc } from '$src/lib/trpc/client';
-	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
@@ -57,7 +56,7 @@
 		const offset = currentPage * limit;
 
 		// Fetch new outcomes
-		const newOutcomes = await trpc($page).outcomes.list.query({
+		const newOutcomes = await trpc().outcomes.list.query({
 			limit,
 			offset,
 			order: 'desc',
@@ -67,7 +66,7 @@
 		// Fetch new intentions if there are new outcomes
 		if (newOutcomes.length) {
 			data.outcomes = [...data.outcomes, ...newOutcomes];
-			const uniqueDatesResult = await trpc($page).intentions.listUniqueDates.query({
+			const uniqueDatesResult = await trpc().intentions.listUniqueDates.query({
 				limit,
 				offset
 			});
@@ -78,7 +77,7 @@
 					new Date(uniqueDates[uniqueDates.length - 1]),
 					new Date(uniqueDates[0])
 				];
-				const newIntentionsByDate = await trpc($page).intentions.listByDate.query({
+				const newIntentionsByDate = await trpc().intentions.listByDate.query({
 					startDate,
 					endDate
 				});

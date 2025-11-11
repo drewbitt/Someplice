@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import ActionsTextInput from '$lib/components/today/ActionsTextInput.svelte';
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
@@ -68,7 +67,7 @@
 	};
 
 	const addIntentions = async () => {
-		const addResult = await trpc($page).intentions.updateIntentions.mutate({
+		const addResult = await trpc().intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
 		if (addResult?.length > 0) {
@@ -109,7 +108,7 @@
 	};
 
 	const listOutcomesOnDate = async (date: Date) => {
-		const outcomes = await trpc($page).outcomes.list.query({
+		const outcomes = await trpc().outcomes.list.query({
 			startDate: date,
 			endDate: date
 		});
@@ -140,7 +139,7 @@
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
 		try {
-			const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
+			const updatedIntention = await trpc().intentions.edit.mutate(intention);
 			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
 				showDBErrorNotification = true;
 			}
@@ -152,7 +151,7 @@
 	};
 
 	const handleUpdateIntentions = async () => {
-		return await trpc($page).intentions.updateIntentions.mutate({
+		return await trpc().intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
 	};

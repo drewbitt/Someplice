@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import { Box, Button } from '@svelteuidev/core';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
@@ -49,7 +48,7 @@
 		try {
 			// First, insert any newly added outcomes to the intentions
 			if (newIntentionsToInsert.length > 0) {
-				let insertIds = await trpc($page).intentions.addMany.mutate(newIntentionsToInsert);
+				let insertIds = await trpc().intentions.addMany.mutate(newIntentionsToInsert);
 
 				// Filter out any null ids
 				const validInsertIds = insertIds?.filter((id) => id !== null) || [];
@@ -69,11 +68,11 @@
 			}
 
 			// Update the completion status of intentions
-			await trpc($page).intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
+			await trpc().intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
 			intentionUpdateSuccess = true;
 
 			// Create or update the outcome
-			await trpc($page).outcomes.createOrUpdateOutcome.mutate({
+			await trpc().outcomes.createOrUpdateOutcome.mutate({
 				outcome: outcomeToInsert,
 				intentionIds: checkboxIntentions.map((item) => item.intentionId)
 			});
