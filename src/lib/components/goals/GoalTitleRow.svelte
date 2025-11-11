@@ -24,7 +24,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<Input
 				bind:value={title}
-				class={cx('max-w-lg border-opacity-20 bg-transparent px-0 text-3xl', getStyles())}
+				class={cx('border-opacity-20 max-w-lg bg-transparent px-0 text-3xl', getStyles())}
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
