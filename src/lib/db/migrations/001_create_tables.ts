@@ -24,7 +24,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 			  AND active = 1
 		)
 		BEGIN
-			SELECT RAISE(FAIL, "Another active goal with the same orderNumber exists.");
+			SELECT RAISE(FAIL, 'Another active goal with the same orderNumber exists.');
 		END;
 	`.execute(db);
 
