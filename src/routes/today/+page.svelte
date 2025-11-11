@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import ActionsTextInput from '$lib/components/today/ActionsTextInput.svelte';
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
@@ -48,27 +47,43 @@
 		}, 5000);
 	}
 	// if no intentions today, check for old outstanding outcomes
-	$: if (noIntentions && !hasOutstandingOutcome && !noGoals) {
+	$effect(() => {
+		if (!noIntentions || hasOutstandingOutcome || noGoals) {
+			showPageLoadingSpinner = false;
+			return;
+		}
+
+		let cancelled = false;
 		showPageLoadingSpinner = true;
-		isOldOutcomeOutstanding().then((result) => {
-			if (result) {
-				// if there is an outstanding outcome
-				hasOutstandingOutcome = true;
-				showPageLoadingSpinner = false;
-			} else {
-				showPageLoadingSpinner = false;
+
+		(async () => {
+			try {
+				const result = await isOldOutcomeOutstanding();
+				if (cancelled) return;
+
+				if (result) {
+					hasOutstandingOutcome = true;
+				} else {
+					showPageLoadingSpinner = false;
+				}
+			} catch {
+				if (!cancelled) {
+					showPageLoadingSpinner = false;
+				}
 			}
-		});
-	} else if (!noIntentions || hasOutstandingOutcome || noGoals) {
-		showPageLoadingSpinner = false;
-	}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	});
 
 	const setHasOutstandingOutcome = (value: boolean) => {
 		hasOutstandingOutcome = value;
 	};
 
 	const addIntentions = async () => {
-		const addResult = await trpc($page).intentions.updateIntentions.mutate({
+		const addResult = await trpc().intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
 		if (addResult?.length > 0) {
@@ -109,7 +124,7 @@
 	};
 
 	const listOutcomesOnDate = async (date: Date) => {
-		const outcomes = await trpc($page).outcomes.list.query({
+		const outcomes = await trpc().outcomes.list.query({
 			startDate: date,
 			endDate: date
 		});
@@ -140,7 +155,7 @@
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
 		try {
-			const updatedIntention = await trpc($page).intentions.edit.mutate(intention);
+			const updatedIntention = await trpc().intentions.edit.mutate(intention);
 			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
 				showDBErrorNotification = true;
 			}
@@ -152,7 +167,7 @@
 	};
 
 	const handleUpdateIntentions = async () => {
-		return await trpc($page).intentions.updateIntentions.mutate({
+		return await trpc().intentions.updateIntentions.mutate({
 			intentions: intentions
 		});
 	};

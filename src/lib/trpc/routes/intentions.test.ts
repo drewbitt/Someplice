@@ -4,7 +4,7 @@ import type { DB } from '$src/lib/types/data';
 import { NoResultError, type Kysely, type QueryResult, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
-import { intentions } from './intentions';
+import { createCallerFactory, router } from '../router';
 
 const TEST_INTENTION: Intention = {
 	id: 1,
@@ -18,6 +18,8 @@ const TEST_INTENTION: Intention = {
 
 describe('intentions', () => {
 	let db: Kysely<DB>;
+	const createCaller = createCallerFactory(router);
+	const caller = createCaller({});
 
 	beforeEach(async () => {
 		const dbInstance = DbInstance.getInstance();
@@ -43,20 +45,10 @@ describe('intentions', () => {
 	});
 
 	it('list', async () => {
-		const added = await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
-		});
+		const added = await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 		expect(added).toBeDefined();
 
-		const result = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result = (await caller.intentions.list(undefined)) as Intention[];
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
@@ -64,21 +56,11 @@ describe('intentions', () => {
 	});
 
 	it('listByDate', async () => {
-		await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
-		});
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 
-		const result = (await intentions.listByDate({
-			rawInput: {
-				startDate: new Date('2023-07-01'),
-				endDate: new Date('2023-07-01')
-			},
-			path: 'listByDate',
-			type: 'query',
-			ctx: {}
+		const result = (await caller.intentions.listByDate({
+			startDate: new Date('2023-07-01'),
+			endDate: new Date('2023-07-01')
 		})) as Record<string, Intention[]>;
 
 		expect(result).toBeDefined();
@@ -88,21 +70,11 @@ describe('intentions', () => {
 	});
 
 	it('listUniqueDates', async () => {
-		await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
-		});
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 
-		const result = (await intentions.listUniqueDates({
-			rawInput: {
-				startDate: new Date('2023-07-01'),
-				endDate: new Date('2023-07-01')
-			},
-			path: 'listUniqueDates',
-			type: 'query',
-			ctx: {}
+		const result = (await caller.intentions.listUniqueDates({
+			startDate: new Date('2023-07-01'),
+			endDate: new Date('2023-07-01')
 		})) as { date: string }[];
 
 		expect(result).toBeDefined();
@@ -115,12 +87,7 @@ describe('intentions', () => {
 	});
 
 	it('addMany', async () => {
-		const added = (await intentions.addMany({
-			rawInput: [TEST_INTENTION],
-			path: 'addMany',
-			type: 'mutation',
-			ctx: {}
-		})) as { id: number }[];
+		const added = (await caller.intentions.addMany([TEST_INTENTION])) as { id: number }[];
 		expect(added).toBeDefined();
 		expect(added).toHaveLength(1);
 		expect(added[0].id).toBeDefined();
@@ -128,12 +95,7 @@ describe('intentions', () => {
 	});
 
 	it('latestIntentions', async () => {
-		const added1 = await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
-		});
+		const added1 = await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 		expect(added1).toBeDefined();
 
 		// Create new test intentions on a later date
@@ -151,45 +113,25 @@ describe('intentions', () => {
 		};
 
 		// Add second intention
-		const added2 = await intentions.updateIntentions({
-			rawInput: {
-				intentions: [TEST_INTENTION_2]
-			},
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added2 = await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION_2]
 		});
 		expect(added2).toBeDefined();
 
 		// Check that the second intention is returned
-		const result = (await intentions.intentionsOnLatestDate({
-			rawInput: undefined,
-			path: 'intentionsOnLatestDate',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result = (await caller.intentions.intentionsOnLatestDate(undefined)) as Intention[];
 
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(expect.objectContaining(TEST_INTENTION_2));
 
 		// Add another intention with the same latest date, but later id
-		const added3 = await intentions.updateIntentions({
-			rawInput: {
-				intentions: [TEST_INTENTION_3]
-			},
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added3 = await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION_3]
 		});
 		expect(added3).toBeDefined();
 
-		const result2 = (await intentions.intentionsOnLatestDate({
-			rawInput: undefined,
-			path: 'intentionsOnLatestDate',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result2 = (await caller.intentions.intentionsOnLatestDate(undefined)) as Intention[];
 
 		expect(result2).toBeInstanceOf(Array);
 		expect(result2).toHaveLength(2);
@@ -199,54 +141,33 @@ describe('intentions', () => {
 
 	it('edit', async () => {
 		// Add a new intention
-		const added = (await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION]
 		})) as QueryResult<Intention>[];
 		expect(added).toBeDefined();
 
 		// Edit the intention based on the id
 		const editedIntention = { ...TEST_INTENTION, text: 'Edited Text' };
-		const edit = (await intentions.edit({
-			rawInput: editedIntention,
-			path: 'edit',
-			type: 'mutation',
-			ctx: {}
-		})) as UpdateResult;
+		const edit = (await caller.intentions.edit(editedIntention)) as UpdateResult;
 		expect(edit).toBeDefined();
 
 		// Check that the intention was edited using list
-		const result = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(expect.objectContaining(editedIntention));
 	});
 
 	it('edit with invalid id', async () => {
-		const added = (await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION]
 		})) as QueryResult<Intention>[];
 		expect(added).toBeDefined();
 
 		const editedIntention = { ...TEST_INTENTION, id: 9999 }; // Invalid id
 		let error;
 		try {
-			(await intentions.edit({
-				rawInput: editedIntention,
-				path: 'edit',
-				type: 'mutation',
-				ctx: {}
-			})) as UpdateResult;
+			(await caller.intentions.edit(editedIntention)) as UpdateResult;
 		} catch (e) {
 			error = e;
 		}
@@ -255,32 +176,22 @@ describe('intentions', () => {
 
 	it('appendText', async () => {
 		// Add a new intention
-		const added = (await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION]
 		})) as QueryResult<Intention>[];
 		expect(added).toBeDefined();
 
 		// Append text to the intention
 		const appendText = ' - edit';
-		const appendedIntention = (await intentions.appendText({
-			rawInput: { id: TEST_INTENTION.id, text: appendText },
-			path: 'appendText',
-			type: 'mutation',
-			ctx: {}
+		const appendedIntention = (await caller.intentions.appendText({
+			id: TEST_INTENTION.id,
+			text: appendText
 		})) as UpdateResult;
 
 		expect(appendedIntention).toBeDefined();
 		// expect(appendedIntention.numChangedRows).toEqual(1);
 		// Check that the intention was edited using list
-		const result = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(
@@ -289,23 +200,15 @@ describe('intentions', () => {
 	});
 
 	it('appendText with invalid id', async () => {
-		const added = (await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION]
 		})) as QueryResult<Intention>[];
 		expect(added).toBeDefined();
 
 		const appendText = '';
 		let error;
 		try {
-			(await intentions.appendText({
-				rawInput: { id: 9999, text: appendText }, // Invalid id
-				path: 'appendText',
-				type: 'mutation',
-				ctx: {}
-			})) as UpdateResult;
+			(await caller.intentions.appendText({ id: 9999, text: appendText })) as UpdateResult; // Invalid id
 		} catch (e) {
 			error = e;
 		}
@@ -313,57 +216,34 @@ describe('intentions', () => {
 	});
 
 	it('updateIntentions', async () => {
-		const result = (await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
+		const result = (await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION]
 		})) as Intention[];
 		expect(result).toBeDefined();
 		expect(result[0]).toBeDefined();
 		// TODO: result[0].rows checks
 
 		// Check that the intention was added using list
-		const listResult = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const listResult = (await caller.intentions.list(undefined)) as Intention[];
 		expect(listResult).toBeInstanceOf(Array);
 		expect(listResult).toHaveLength(1);
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
 	});
 
 	it('updateIntentionCompletionStatus', async () => {
-		await intentions.updateIntentions({
-			rawInput: { intentions: [TEST_INTENTION] },
-			path: 'updateIntentions',
-			type: 'mutation',
-			ctx: {}
-		});
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 
 		// Update the completion status of the test intention
 		const newCompletionStatus = 1; // Assuming 1 represents completed
-		await intentions.updateIntentionCompletionStatus({
-			rawInput: [
-				{
-					intentionId: TEST_INTENTION.id,
-					completed: newCompletionStatus
-				}
-			],
-			path: 'updateIntentionCompletionStatus',
-			type: 'mutation',
-			ctx: {}
-		});
+		await caller.intentions.updateIntentionCompletionStatus([
+			{
+				intentionId: TEST_INTENTION.id,
+				completed: newCompletionStatus
+			}
+		]);
 
 		// Verify that the intention's completion status has been updated
-		const result = (await intentions.list({
-			rawInput: undefined,
-			path: 'list',
-			type: 'query',
-			ctx: {}
-		})) as Intention[];
+		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(
@@ -373,17 +253,12 @@ describe('intentions', () => {
 		// Try to update the completion status of a non-existent intention
 		let error;
 		try {
-			await intentions.updateIntentionCompletionStatus({
-				rawInput: [
-					{
-						intentionId: 9999, // Invalid id
-						completed: newCompletionStatus
-					}
-				],
-				path: 'updateIntentionCompletionStatus',
-				type: 'mutation',
-				ctx: {}
-			});
+			await caller.intentions.updateIntentionCompletionStatus([
+				{
+					intentionId: 9999, // Invalid id
+					completed: newCompletionStatus
+				}
+			]);
 		} catch (e) {
 			error = e;
 		}

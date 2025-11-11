@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import { Box, Button, colorScheme, createStyles } from '@svelteuidev/core';
@@ -12,46 +11,77 @@
 	export let intentionsOnLatestDate: Intention[];
 	export let setHasOutstandingOutcome: (value: boolean) => void;
 
-	const intentionDate = new Date(intentionsOnLatestDate[0].date);
+	let intentionDate = intentionsOnLatestDate[0]
+		? new Date(intentionsOnLatestDate[0].date)
+		: new Date();
 	let showPageLoadingSpinner = true;
-	let daysAgo: number;
-	let goalsOnDate: Goal[];
-	let intentionsOnDate: Intention[];
+	let daysAgo = 0;
+	let goalsOnDate: Goal[] = [];
+	let intentionsOnDate: Intention[] = [];
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
 	let maxOrderNumber: number;
 	let hasBeenSaved = false;
 
 	$: {
+		if (intentionsOnLatestDate[0]) {
+			intentionDate = new Date(intentionsOnLatestDate[0].date);
+		}
+	}
+	$effect(() => {
+		if (!intentionsOnLatestDate || intentionsOnLatestDate.length === 0) {
+			showPageLoadingSpinner = false;
+			goalsOnDate = [];
+			intentionsOnDate = [];
+			daysAgo = 0;
+			return;
+		}
+
+		const targetDate = new Date(intentionDate);
 		const currentDate = localeCurrentDate();
-		const timeDiff = Math.abs(currentDate.getTime() - intentionDate.getTime());
+		const timeDiff = Math.abs(currentDate.getTime() - targetDate.getTime());
 		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
-		Promise.all([listGoalsOnDate(intentionDate), listIntentionsOnDate(intentionDate)])
-			.then(([goalsResult, intentionsResult]) => {
+		let cancelled = false;
+		showPageLoadingSpinner = true;
+
+		(async () => {
+			try {
+				const [goalsResult, intentionsResult] = await Promise.all([
+					listGoalsOnDate(targetDate),
+					listIntentionsOnDate(targetDate)
+				]);
+				if (cancelled) return;
 				goalsOnDate = goalsResult;
 				intentionsOnDate = intentionsResult;
-				showPageLoadingSpinner = false; // turn off loading spinner when all promises are resolved
-			})
-			.catch((error) => {
+			} catch (error) {
+				if (cancelled) return;
 				if (error instanceof Error) {
 					todayPageErrorStore.setError(error.message);
 				}
-				showPageLoadingSpinner = false;
-			});
-	}
+			} finally {
+				if (!cancelled) {
+					showPageLoadingSpinner = false;
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	});
 	$: if (intentionsOnDate) {
 		maxOrderNumber = Math.max(...intentionsOnDate.map((intention) => intention.orderNumber), 0);
 	}
 
 	const listGoalsOnDate = async (date: Date) => {
-		const goals = await trpc($page).goals.listGoalsOnDate.query({
+		const goals = await trpc().goals.listGoalsOnDate.query({
 			active: 1,
 			date: date
 		});
 		return goals;
 	};
 	const listIntentionsOnDate = async (date: Date) => {
-		const intentions = await trpc($page).intentions.list.query({
+		const intentions = await trpc().intentions.list.query({
 			startDate: date,
 			endDate: date
 		});
@@ -78,7 +108,7 @@
 		try {
 			// First, insert any newly added outcomes to the intentions
 			if (newIntentionsToInsert.length > 0) {
-				let insertIds = await trpc($page).intentions.addMany.mutate(newIntentionsToInsert);
+				let insertIds = await trpc().intentions.addMany.mutate(newIntentionsToInsert);
 
 				// Filter out any null ids
 				const validInsertIds = insertIds?.filter((id) => id !== null) || [];
@@ -98,11 +128,11 @@
 			}
 
 			// Update the completion status of intentions
-			await trpc($page).intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
+			await trpc().intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
 			intentionUpdateSuccess = true;
 
 			// Create or update the outcome
-			await trpc($page).outcomes.createOrUpdateOutcome.mutate({
+			await trpc().outcomes.createOrUpdateOutcome.mutate({
 				outcome: outcomeToInsert,
 				intentionIds: checkboxIntentions.map((item) => item.intentionId)
 			});
@@ -172,9 +202,9 @@
 	)}
 	id="review-goals-form"
 >
-	<section class={'w-full items-center p-4 pb-6 2xl:pb-7'}>
+	<section class="w-full items-center p-4 pb-6 2xl:pb-7">
 		<h1 class="mb-5 text-center text-2xl">
-			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
+			Finish reviewing {intentionDate.toLocaleDateString('en-US', {
 				weekday: 'long',
 				month: 'short',
 				day: 'numeric'
@@ -189,7 +219,7 @@
 			</div>
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
-				{#each goalsOnDate as goal}
+				{#each goalsOnDate as goal (goal.id)}
 					<ReviewGoalBox
 						{goal}
 						{hasBeenSaved}
@@ -204,7 +234,7 @@
 	<!-- Mimic the styling of ReviewGoalBox so the Save button aligns properly -->
 	<!-- TODO: fix conditional mr padding as ReviewGoalBox is doing something funky I'm just trying to mimic-->
 	<Box class="mr-6 flex w-full max-w-screen-2xl flex-col items-center md:mr-6 2xl:mr-0">
-		<Box class="flex w-4/5 min-w-min max-w-full justify-end gap-2">
+		<Box class="flex w-4/5 max-w-full min-w-min justify-end gap-2">
 			<Button on:click={handleSaveReview}>Save</Button>
 		</Box>
 	</Box>

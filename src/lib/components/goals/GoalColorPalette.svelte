@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	import { lighterHSLColor } from '$src/lib/utils';
 	import { cssvariable } from '@svelteuidev/composables';
@@ -12,7 +11,7 @@
 	let closeModal = () => (opened = false);
 
 	const availableColors = async () => {
-		const allGoals = await trpc($page).goals.list.query(1);
+		const allGoals = await trpc().goals.list.query(1);
 		const usedColors = allGoals.map((goal) => goal.color);
 		return colors.filter((color) => !usedColors.includes(color));
 	};
@@ -25,7 +24,7 @@
 				<Box class="text-center">Loading...</Box>
 			</Grid.Col>
 		{:then availColors}
-			{#each availColors as color}
+			{#each availColors as color (color)}
 				<Grid.Col span={3}>
 					<div
 						tabindex="0"

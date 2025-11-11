@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { todayPageErrorStore } from '$src/lib/stores/errors';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
@@ -23,7 +22,7 @@
 	let appendText = async (text: string) => {
 		if (intention.id != null) {
 			try {
-				await trpc($page).intentions.appendText.mutate({ id: intention.id, text });
+				await trpc().intentions.appendText.mutate({ id: intention.id, text });
 				closeAppendModal();
 				await invalidateAll();
 			} catch (error) {
@@ -65,7 +64,7 @@
 	{opened}
 	on:close={closeAppendModal}
 	withCloseButton={false}
-	title={'Append to this intention'}
+	title="Append to this intention"
 	overlayOpacity={0.25}
 >
 	<p

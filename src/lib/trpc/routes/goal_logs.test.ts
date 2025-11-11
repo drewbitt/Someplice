@@ -4,8 +4,7 @@ import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GoalLog } from '../types';
-import { goal_logs } from './goal_logs';
-import { goals } from './goals';
+import { createCallerFactory, router } from '../router';
 
 const TEST_GOAL_LOG: GoalLog = {
 	id: 1,
@@ -17,6 +16,8 @@ const TEST_GOAL_LOG: GoalLog = {
 
 describe('goal_logs', () => {
 	let db: Kysely<DB>;
+	const createCaller = createCallerFactory(router);
+	const caller = createCaller({});
 
 	beforeEach(async () => {
 		const dbInstance = DbInstance.getInstance();
@@ -44,12 +45,7 @@ describe('goal_logs', () => {
 
 		let error;
 		try {
-			const added = await goal_logs.create({
-				rawInput: TEST_GOAL_LOG,
-				path: 'create',
-				type: 'mutation',
-				ctx: {}
-			});
+			const added = await caller.goal_logs.create(TEST_GOAL_LOG);
 			expect(added).toBeDefined();
 		} catch (e) {
 			error = e;
@@ -57,12 +53,7 @@ describe('goal_logs', () => {
 		expect(error).toBeUndefined();
 
 		// Lookup the goal log
-		const result = (await goal_logs.getAllForGoal({
-			rawInput: 1,
-			path: 'getAllForGoal',
-			type: 'query',
-			ctx: {}
-		})) as GoalLog[];
+		const result = (await caller.goal_logs.getAllForGoal(1)) as GoalLog[];
 		expect(result).toBeDefined();
 		expect(result.length).toBe(1);
 		expect(result[0].type).toBe(TEST_GOAL_LOG.type);
@@ -73,12 +64,7 @@ describe('goal_logs', () => {
 		const INVALID_TEST_GOAL_LOG = { ...TEST_GOAL_LOG, goalId: 999 }; // invalid goalId
 		let error;
 		try {
-			const added = await goal_logs.create({
-				rawInput: INVALID_TEST_GOAL_LOG,
-				path: 'create',
-				type: 'mutation',
-				ctx: {}
-			});
+			const added = await caller.goal_logs.create(INVALID_TEST_GOAL_LOG);
 			expect(added).toBeDefined();
 		} catch (e) {
 			error = e;
@@ -94,15 +80,10 @@ describe('goal_logs', () => {
 			description: 'A goal for testing purposes.',
 			color: 'hsl(0, 0%, 50%)'
 		};
-		await goals.add({ rawInput: TEST_GOAL, path: 'add', type: 'mutation', ctx: {} });
+		await caller.goals.add(TEST_GOAL);
 
 		// Check that the goal is started
-		const allResults = (await goal_logs.getAll({
-			rawInput: undefined,
-			path: 'getAll',
-			type: 'query',
-			ctx: {}
-		})) as GoalLog[];
+		const allResults = (await caller.goal_logs.getAll(undefined)) as GoalLog[];
 		expect(allResults).toBeDefined();
 		expect(allResults.length).toBe(1);
 		expect(allResults[0].type).toBe('start');
@@ -110,12 +91,7 @@ describe('goal_logs', () => {
 		expect(allResults[0].goalId).toBeDefined();
 
 		// Check that the goal is started by checking id
-		const singleResult = (await goal_logs.getAllForGoal({
-			rawInput: allResults[0].goalId,
-			path: 'getAllForGoal',
-			type: 'query',
-			ctx: {}
-		})) as GoalLog[];
+		const singleResult = (await caller.goal_logs.getAllForGoal(allResults[0].goalId)) as GoalLog[];
 		expect(singleResult).toBeDefined();
 		expect(singleResult.length).toBe(1);
 		expect(singleResult[0].type).toBe('start');

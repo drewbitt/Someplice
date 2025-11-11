@@ -11,17 +11,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 20.19.5
+          node-version: 24
 
       - uses: pnpm/action-setup@v2
         name: Install pnpm
         with:
-          version: 9.15.9
+          version: 10
           run_install: false
 
       - name: Get pnpm store directory
@@ -41,4 +41,4 @@ jobs:
         run: pnpm install
 
       - name: Run Vitest Tests
-        run: npx vitest --run --reporter basic
+        run: npx vitest --run

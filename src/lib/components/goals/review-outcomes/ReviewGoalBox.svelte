@@ -48,13 +48,13 @@
 				<span class="flex">
 					<span
 						style="background-color: {lighterGoalColor(goal.color)}; color: {goal.color}"
-						class="px-1.5 font-mono text-2xl font-bold leading-none"
+						class="px-1.5 font-mono text-2xl leading-none font-bold"
 					>
 						{goal.orderNumber}
 					</span>
 					<span
 						style="background-color: {goal.color}; font-size: 1.1rem;"
-						class="px-1.5 font-semibold leading-6 tracking-wider text-white"
+						class="px-1.5 leading-6 font-semibold tracking-wider text-white"
 					>
 						{goal.title}
 					</span>
@@ -81,7 +81,7 @@
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="text-lg font-semibold leading-6"
+							class="text-lg leading-6 font-semibold"
 							style="color: {goal.color}">{intention.text}</label
 						>
 					</div>
@@ -98,7 +98,7 @@
 				/>
 			{/each}
 			<button
-				class="daisy-tooltip daisy-tooltip-right flex justify-self-start pb-1 pe-1 transition-colors duration-300"
+				class="daisy-tooltip daisy-tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
 				on:click={handlePlusNewOutcome}

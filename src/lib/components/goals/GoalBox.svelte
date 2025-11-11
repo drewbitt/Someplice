@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { trpc } from '$src/lib/trpc/client';
 	// import { appLogger } from '$src/lib/utils/logger';
 	import { cssvariable } from '@svelteuidev/composables';
@@ -43,7 +42,7 @@
 	const deleteGoal = async () => {
 		if (goal.id) {
 			try {
-				const deleteResult = await trpc($page).goals.delete.mutate(goal.id);
+				const deleteResult = await trpc().goals.delete.mutate(goal.id);
 				if (deleteResult.length > 0) {
 					await invalidateAll();
 				}
@@ -63,7 +62,7 @@
 	const archiveGoal = async () => {
 		if (goal.id) {
 			try {
-				const archiveResult = await trpc($page).goals.archive.mutate(goal.id);
+				const archiveResult = await trpc().goals.archive.mutate(goal.id);
 				if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
 					await invalidateAll();
 				}
@@ -83,7 +82,7 @@
 	const restoreGoal = async () => {
 		if (goal.id) {
 			try {
-				await trpc($page).goals.restore.mutate(goal.id);
+				await trpc().goals.restore.mutate(goal.id);
 				await invalidateAll();
 			} catch (error: unknown) {
 				if (error instanceof Error) {
