@@ -5,6 +5,7 @@ import { NoResultError, type Kysely, type QueryResult, type UpdateResult } from 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
 import { createCallerFactory, router } from '../router';
+import { IntentionsSchema } from './intentions';
 
 const TEST_INTENTION: Intention = {
 	id: 1,
@@ -265,5 +266,9 @@ describe('intentions', () => {
 		if (error instanceof Error) {
 			expect(error.cause).toBeInstanceOf(NoResultError);
 		}
+	});
+
+	it('schema validates required fields', () => {
+		expect(() => IntentionsSchema.parse({ id: 1, goalId: 1, orderNumber: 1, completed: 0, text: 'test', subIntentionQualifier: null, date: '2024-01-01T00:00:00.000Z' })).not.toThrow();
 	});
 });
