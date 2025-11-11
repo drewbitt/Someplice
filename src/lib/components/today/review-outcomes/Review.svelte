@@ -204,7 +204,7 @@
 >
 	<section class="w-full items-center p-4 pb-6 2xl:pb-7">
 		<h1 class="mb-5 text-center text-2xl">
-			Finish reviewing {new Date(intentionsOnLatestDate[0].date).toLocaleDateString('en-US', {
+			Finish reviewing {intentionDate.toLocaleDateString('en-US', {
 				weekday: 'long',
 				month: 'short',
 				day: 'numeric'
