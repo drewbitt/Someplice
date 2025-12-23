@@ -1,5 +1,5 @@
 {
-	"packages": ["nodePackages.pnpm", "nodejs@24.11.1"],
+	"packages": ["nodePackages.pnpm", "nodejs@24.12.0"],
 	"shell": {},
 	"nixpkgs": {
 		"commit": "5eb98948b66de29f899c7fe27ae112a47964baf8"
