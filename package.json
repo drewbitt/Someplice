@@ -27,7 +27,7 @@
 		"devalue": "^5.6.4",
 		"kysely": "^0.28.14",
 		"tslog": "^4.10.2",
-		"vite-node": "^5.3.0",
+		"vite-node": "^6.0.0",
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
