@@ -20,7 +20,7 @@
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
 
-	let intentionsString = '';
+	let intentionsString = $state('');
 
 	onMount(() => {
 		todaysIntentionsStore.initialize();

@@ -15,13 +15,13 @@
 	// do not allow Save if goal does not have title
 	let saveButtonEnabled = $derived(data.goals.every((goal) => goal.title.length > 0));
 
-	let dragDisabled = true;
-	let editButtonActive = false;
+	let dragDisabled = $state(true);
+	let editButtonActive = $state(false);
 	let editButtonEnabled = $derived(dragDisabled);
 	let dragButtonEnabled = $derived(!editButtonActive);
 
 	let backupGoals: Goals[] = [];
-	let addedGoal = false;
+	let addedGoal = $state(false);
 	$effect(() => {
 		if (addedGoal) {
 			addedGoal = false;

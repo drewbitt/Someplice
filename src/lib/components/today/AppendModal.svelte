@@ -7,7 +7,7 @@
 
 	let { goals, opened, intention, closeModal }: { goals: Goal[]; opened: boolean; intention: Intention; closeModal: () => void } = $props();
 
-	let showDBErrorNotification = false;
+	let showDBErrorNotification = $state(false);
 	let dialogEl: HTMLDialogElement;
 
 	let closeAppendModal = () => {

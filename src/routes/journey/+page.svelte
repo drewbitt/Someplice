@@ -16,10 +16,10 @@
 	let darkMode = $derived($theme === 'dark');
 	let dates = $derived(Object.keys(data.intentionsByDate));
 
-	let currentPage = 1;
-	let hasMore = true;
-	let isLoadingMore = false;
-	let invisibleFooter: HTMLDivElement;
+	let currentPage = $state(1);
+	let hasMore = $state(true);
+	let isLoadingMore = $state(false);
+	let invisibleFooter = $state<HTMLDivElement>();
 
 	onMount(() => {
 		if (browser) {

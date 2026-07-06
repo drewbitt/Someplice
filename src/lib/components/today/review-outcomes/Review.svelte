@@ -10,16 +10,16 @@
 
 	let { intentionsOnLatestDate, setHasOutstandingOutcome }: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } = $props();
 
-	let intentionDate = intentionsOnLatestDate[0]
+	let intentionDate = $state(intentionsOnLatestDate[0]
 		? new Date(intentionsOnLatestDate[0].date)
-		: new Date();
-	let showPageLoadingSpinner = true;
-	let daysAgo = 0;
-	let goalsOnDate: Goal[] = [];
-	let intentionsOnDate: Intention[] = [];
-	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
-	let maxOrderNumber: number;
-	let hasBeenSaved = false;
+		: new Date());
+	let showPageLoadingSpinner = $state(true);
+	let daysAgo = $state(0);
+	let goalsOnDate = $state<Goal[]>([]);
+	let intentionsOnDate = $state<Intention[]>([]);
+	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
+	let maxOrderNumber = $state<number>();
+	let hasBeenSaved = $state(false);
 
 	$effect(() => {
 		if (intentionsOnLatestDate[0]) {

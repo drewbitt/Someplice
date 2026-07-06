@@ -21,9 +21,9 @@
 
 	type Intention = PageServerData['intentions'][0];
 
-	let showMousoverMenu = false;
-	let showMousoverIndex: number | null = null;
-	let showIntentionModal = false;
+	let showMousoverMenu = $state(false);
+	let showMousoverIndex = $state<number | null>(null);
+	let showIntentionModal = $state(false);
 
 	let goalOrderNumbers = new SvelteMap<number, number>();
 

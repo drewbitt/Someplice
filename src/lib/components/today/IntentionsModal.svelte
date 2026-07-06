@@ -8,8 +8,8 @@
 	let { goals, opened, intention }: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
 
 	let dialog: HTMLDialogElement;
-	let intentionsModalOpened = opened;
-	let showAppendModal = false;
+	let intentionsModalOpened = $state(opened);
+	let showAppendModal = $state(false);
 
 	let modalTitle = $derived(goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text);
 	let darkMode = $derived($theme === 'dark');
