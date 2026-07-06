@@ -33,7 +33,7 @@
 	"devDependencies": {
 		"@commitlint/cli": "^20.5.3",
 		"@commitlint/config-conventional": "^20.5.3",
-		"@eslint/js": "^9.39.4",
+		"@eslint/js": "^10.0.1",
 		"@iconify-json/lucide": "^1.2.116",
 		"@ngneat/falso": "^8.0.2",
 		"@playwright/test": "^1.61.1",
@@ -46,7 +46,7 @@
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"cross-env": "^10.1.0",
 		"daisyui": "^5.6.13",
-		"eslint": "^9.39.4",
+		"eslint": "^10.4.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.20.0",
 		"globals": "^17.7.0",
