@@ -2,9 +2,7 @@
 	import type { Goal } from '$src/lib/trpc/types';
 	import { createEventDispatcher } from 'svelte';
 
-	export let goal: Goal;
-	export let newOutcomeText: string;
-	export let index: number;
+	let { goal, newOutcomeText, index }: { goal: Goal; newOutcomeText: string; index: number } = $props();
 
 	const dispatch = createEventDispatcher();
 
@@ -22,7 +20,7 @@
 	<input
 		placeholder="What did you do?"
 		value={newOutcomeText}
-		on:input={handleInputChange}
-		class=" input  input-bordered w-full sm:w-3/5"
+		oninput={handleInputChange}
+		class="input input-bordered w-full sm:w-3/5"
 	/>
 </div>

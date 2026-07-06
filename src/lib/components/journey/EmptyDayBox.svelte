@@ -1,7 +1,7 @@
 <script lang="ts">
 	import theme from '$lib/stores/theme';
 
-	export let numDays: number;
+	let { numDays }: { numDays: number } = $props();
 </script>
 
 <div

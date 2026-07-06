@@ -8,23 +8,21 @@
 	import type { PageServerData } from './$types';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
-	export let data: PageServerData;
+	let { data }: { data: PageServerData } = $props();
 	type Goals = (typeof data.goals)[0];
-	$: noGoals = data.goals.length === 0;
+	let noGoals = $derived(data.goals.length === 0);
 
 	// do not allow Save if goal does not have title
-	$: saveButtonEnabled = data.goals.every((goal) => goal.title.length > 0);
+	let saveButtonEnabled = $derived(data.goals.every((goal) => goal.title.length > 0));
 
 	let dragDisabled = true;
-	let dragButtonEnabled = true;
 	let editButtonActive = false;
-	let editButtonEnabled = true;
-	$: editButtonEnabled = dragDisabled;
-	$: dragButtonEnabled = !editButtonActive;
+	let editButtonEnabled = $derived(dragDisabled);
+	let dragButtonEnabled = $derived(!editButtonActive);
 
 	let backupGoals: Goals[] = [];
 	let addedGoal = false;
-	$: {
+	$effect(() => {
 		if (addedGoal) {
 			addedGoal = false;
 			backupGoals = data.goals.map((goal) => {
@@ -32,7 +30,7 @@
 			});
 			editButtonActive = true;
 		}
-	}
+	})
 
 	function handleEditButtonClick() {
 		if (editButtonActive) {
@@ -101,7 +99,9 @@
 		});
 		data.inactiveGoals = allInactiveGoals;
 	}
-	$: sortInactiveGoals();
+	$effect(() => {
+		sortInactiveGoals();
+	})
 </script>
 
 <svelte:head>
@@ -111,33 +111,33 @@
 <div>
 	<h1 class="flex text-3xl font-bold">
 		Goals
-		<div class=" indicator">
+		<div class="indicator">
 			<span
 				class={editButtonActive
-					? ' badge  indicator-item  badge-secondary translate-x-1/4'
+					? 'badge indicator-item badge-secondary translate-x-1/4'
 					: ''}
 			/>
 			{#if editButtonActive}
-				<button class=" btn mx-2" on:click={handleCancelButtonClick}>Cancel</button>
+				<button class="btn mx-2" onclick={handleCancelButtonClick}>Cancel</button>
 			{/if}
 			<button
-				class=" btn mx-2"
+				class="btn mx-2"
 				disabled={!editButtonEnabled || !saveButtonEnabled || noGoals}
-				on:click={handleEditButtonClick}
+				onclick={handleEditButtonClick}
 			>
 				{editButtonActive ? 'Save' : 'Edit'}
 			</button>
 		</div>
-		<div class=" indicator">
+		<div class="indicator">
 			<span
 				class={dragDisabled
 					? ''
-					: ' badge  indicator-item  badge-secondary translate-x-1/4'}
+					: 'badge indicator-item badge-secondary translate-x-1/4'}
 			/>
 			<button
-				class=" btn mx-2"
+				class="btn mx-2"
 				disabled={!dragButtonEnabled || noGoals}
-				on:click={handleRenumberButtonClick}
+				onclick={handleRenumberButtonClick}
 			>
 				{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
 			</button>
@@ -148,19 +148,19 @@
 		id="goals-list-container"
 		class="mt-2.5 grid gap-2.5 overflow-hidden"
 		use:dndzone={{ items: data.goals, dragDisabled }}
-		on:consider={handleDndConsider}
-		on:finalize={handleDndFinalize}
+		onconsider={handleDndConsider}
+		onfinalize={handleDndFinalize}
 	>
-		{#each data.goals as goal (goal)}
-			<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} />
+		{#each data.goals as goal, i (goal)}
+			<GoalBoxComponent bind:goal={data.goals[i]} currentlyEditing={editButtonActive} />
 		{/each}
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>
 	{#if data.goals.length > 0 || data.inactiveGoals.length > 0}
 		<h1 class="text-3xl font-bold">Inactive Goals</h1>
 		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
-			{#each data.inactiveGoals as goal (goal)}
-				<GoalBoxComponent bind:goal currentlyEditing={editButtonActive} isInactiveGoal={true} />
+			{#each data.inactiveGoals as goal, i (goal)}
+				<GoalBoxComponent bind:goal={data.inactiveGoals[i]} currentlyEditing={editButtonActive} isInactiveGoal={true} />
 			{/each}
 		</section>
 	{/if}

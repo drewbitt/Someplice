@@ -196,7 +196,7 @@
 		</p>
 		{#if showPageLoadingSpinner}
 			<div class="flex justify-center">
-				<span class=" loading  loading-spinner  loading-lg" />
+				<span class="loading loading-spinner loading-lg" />
 			</div>
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
@@ -214,7 +214,7 @@
 	</section>
 	<div class="mr-6 flex w-full max-w-screen-2xl flex-col items-center md:mr-6 2xl:mr-0">
 		<div class="flex w-4/5 max-w-full min-w-min justify-end gap-2">
-			<button class=" btn" on:click={handleSaveReview}>Save</button>
+			<button class="btn" onclick={handleSaveReview}>Save</button>
 		</div>
 	</div>
 </div>

@@ -5,17 +5,16 @@
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
 
-	export let goal: Goal;
-	export let intentions: Intention[];
-	export let showTitle: boolean;
-	export let hasBeenSaved: boolean;
+	let { goal, intentions, showTitle, hasBeenSaved }: { goal: Goal; intentions: Intention[]; showTitle: boolean; hasBeenSaved: boolean } = $props();
 
 	const dispatch = createEventDispatcher();
-	let newOutcomeTexts: string[] = [];
+	let newOutcomeTexts = $state<string[]>([]);
 
-	$: if (hasBeenSaved) {
-		newOutcomeTexts = []; // to hide the new outcome text boxes
-	}
+	$effect(() => {
+		if (hasBeenSaved) {
+			newOutcomeTexts = [];
+		}
+	});
 
 	const lighterGoalColor = (color: string) => {
 		return evenEvenLighterHSLColor(color);
@@ -76,8 +75,8 @@
 							id="intention-{intention.id}"
 							value={intention.id}
 							checked={Boolean(intention.completed)}
-							class=" checkbox-md mr-2 flex-shrink-0"
-							on:click={() => handleCheckboxClick(intention.id)}
+							class="checkbox-md mr-2 flex-shrink-0"
+							onclick={() => handleCheckboxClick(intention.id)}
 						/>
 						<label
 							for="intention-{intention.id}"
@@ -98,10 +97,10 @@
 				/>
 			{/each}
 			<button
-				class=" tooltip  tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
+				class="tooltip tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
-				on:click={handlePlusNewOutcome}
+				onclick={handlePlusNewOutcome}
 			>
 				<Plus class="h-5 w-5 hover:bg-gray-500" />
 			</button>

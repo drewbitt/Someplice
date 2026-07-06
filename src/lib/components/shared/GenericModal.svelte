@@ -1,30 +1,41 @@
 <script lang="ts">
-	export let showModal: boolean;
-	export let actionConfirmed: boolean;
-	export let title: string;
-	export let message: string;
-	export let action: string;
-	export let actionButtonClass: string;
+	let {
+		showModal = $bindable(),
+		actionConfirmed = $bindable(),
+		title,
+		message,
+		action,
+		actionButtonClass
+	}: {
+		showModal: boolean;
+		actionConfirmed: boolean;
+		title: string;
+		message: string;
+		action: string;
+		actionButtonClass: string;
+	} = $props();
 
 	let dialog: HTMLDialogElement;
 
-	$: if (dialog) {
-		if (showModal) {
-			dialog.showModal();
-		} else {
-			dialog.close();
+	$effect(() => {
+		if (dialog) {
+			if (showModal) {
+				dialog.showModal();
+			} else {
+				dialog.close();
+			}
 		}
-	}
+	});
 </script>
 
-<dialog bind:this={dialog} class=" modal" on:close={() => (showModal = false)}>
-	<div class=" modal-box">
+<dialog bind:this={dialog} class="modal" onclose={() => (showModal = false)}>
+	<div class="modal-box">
 		<h3 class="text-lg font-bold">{title}</h3>
 		<p class="py-4">{message}</p>
-		<div class=" modal-action">
+		<div class="modal-action">
 			<button
-				class=" btn  btn-warning"
-				on:click={() => {
+				class="btn btn-warning"
+				onclick={() => {
 					showModal = false;
 				}}
 			>
@@ -32,7 +43,7 @@
 			</button>
 			<button
 				class={actionButtonClass}
-				on:click={() => {
+				onclick={() => {
 					actionConfirmed = true;
 					showModal = false;
 				}}
@@ -41,7 +52,7 @@
 			</button>
 		</div>
 	</div>
-	<form method="dialog" class=" modal-backdrop">
+	<form method="dialog" class="modal-backdrop">
 		<button>close</button>
 	</form>
 </dialog>

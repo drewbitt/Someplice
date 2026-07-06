@@ -6,12 +6,10 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { appLogger } from '$src/lib/utils/logger';
 
-	export let goals: Goal[];
-	export let intentions: Intention[];
-	export let outcomes: Outcome[];
+	let { goals, intentions, outcomes }: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
 
-	let showSaveButton = false;
-	let hasBeenSaved = false;
+	let showSaveButton = $state(false);
+	let hasBeenSaved = $state(false);
 
 	let date = intentions[intentions.length - 1].date;
 	let dateWithoutTime = date.split('T')[0];
@@ -19,7 +17,7 @@
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
 	let maxOrderNumber = Math.max(...intentions.map((intention) => intention.orderNumber), 0);
 
-	$: outcomeReviewed = outcomeForDate?.reviewed === 1;
+	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
 
 	const handleReviewGoalBoxChange = () => {
 		showSaveButton = true;
@@ -132,7 +130,7 @@
 	{#if showSaveButton}
 		<div class="flex w-full max-w-screen-2xl flex-col items-center">
 			<div class="flex w-4/5 max-w-full min-w-min justify-end">
-				<button class=" btn" on:click={handleSaveReview}>Save</button>
+				<button class="btn" onclick={handleSaveReview}>Save</button>
 			</div>
 		</div>
 	{/if}

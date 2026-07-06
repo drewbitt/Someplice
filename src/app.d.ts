@@ -14,10 +14,10 @@ declare global {
 	declare type DndEvent<ItemType = Item> = import('svelte-dnd-action').DndEvent<ItemType>;
 	declare namespace svelteHTML {
 		interface HTMLAttributes<T> {
-			'on:consider'?: (
+			onconsider?: (
 				event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }
 			) => void;
-			'on:finalize'?: (
+			onfinalize?: (
 				event: CustomEvent<DndEvent<ItemType>> & { target: EventTarget & T }
 			) => void;
 		}

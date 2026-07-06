@@ -5,10 +5,7 @@
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
 
-	export let goals: Goal[];
-	export let opened: boolean;
-	export let intention: Intention;
-	export let closeModal: () => void;
+	let { goals, opened, intention, closeModal }: { goals: Goal[]; opened: boolean; intention: Intention; closeModal: () => void } = $props();
 
 	let showDBErrorNotification = false;
 	let dialogEl: HTMLDialogElement;
@@ -40,9 +37,9 @@
 		}
 	};
 
-	$: modalTitle = goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text;
+	let modalTitle = $derived(goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text);
 
-	$: {
+	$effect(() => {
 		if (dialogEl) {
 			if (opened) {
 				dialogEl.showModal();
@@ -50,11 +47,11 @@
 				dialogEl.close();
 			}
 		}
-	}
+	});
 </script>
 
-<dialog class=" modal" bind:this={dialogEl} on:close={closeAppendModal}>
-	<div class=" modal-box">
+<dialog class="modal" bind:this={dialogEl} onclose={closeAppendModal}>
+	<div class="modal-box">
 		<h3 class="text-center text-lg font-bold">Append to this intention</h3>
 		<p
 			class="mb-8 text-center text-lg font-bold"
@@ -64,30 +61,30 @@
 		</p>
 		<div class="flex flex-col items-center">
 			<span class="w-11/12">
-				<input class=" input  input-bordered h-12 w-full text-xl" id="append-text" />
+				<input class="input input-bordered h-12 w-full text-xl" id="append-text" />
 			</span>
 			<span class="append-buttons mt-8 flex gap-2">
 				<button
-					class=" btn  btn-warning"
-					on:click={closeAppendModal}
-					on:keypress={(e) => {
+					class="btn btn-warning"
+					onclick={closeAppendModal}
+					onkeypress={(e) => {
 						if (e.key === 'Enter') {
 							closeAppendModal();
 						}
 					}}>Cancel</button
 				>
-				<button class=" btn  btn-primary" on:click={appendInputValue}>Append</button>
+				<button class="btn btn-primary" onclick={appendInputValue}>Append</button>
 			</span>
 		</div>
 	</div>
-	<form method="dialog" class=" modal-backdrop">
+	<form method="dialog" class="modal-backdrop">
 		<button>close</button>
 	</form>
 </dialog>
 
 {#if showDBErrorNotification}
-	<div class=" toast">
-		<div class=" alert  alert-error">
+	<div class="toast">
+		<div class="alert alert-error">
 			<div>
 				<span>Error saving intention</span>
 			</div>

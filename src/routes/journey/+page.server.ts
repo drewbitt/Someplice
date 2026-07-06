@@ -1,6 +1,6 @@
 import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
 import type { ServerLoadEvent } from '@sveltejs/kit';
-import type { PageServerLoad } from '../today/$types';
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;

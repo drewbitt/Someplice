@@ -5,14 +5,20 @@
 	import Editor from './actions-input/Editor.svelte';
 	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
 
-	export let goals: PageServerData['goals'];
-	export let intentions: PageServerData['intentions'];
-	export let existingIntentions: PageServerData['intentions'] | undefined = undefined;
+	let {
+		goals,
+		existingIntentions,
+		valid = $bindable(),
+		intentions = $bindable([])
+	}: {
+		goals: PageServerData['goals'];
+		existingIntentions?: PageServerData['intentions'];
+		valid: boolean;
+		intentions?: PageServerData['intentions'];
+	} = $props();
 
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
-
-	export let valid = true;
 
 	let intentionsString = '';
 
@@ -32,37 +38,33 @@
 		}
 	});
 
-	// Save to store whenever intentionsString changes
-	$: {
+	$effect(() => {
 		if (intentionsString) {
 			todaysIntentionsStore.updateValue(intentionsString);
 		}
-	}
+	});
 
-	// Parse intentionsString into intentions to give them to parent component
-	// For each intentionsString line, if it is valid (from parseLine), build an intention and add it to the intentions array.
-	$: intentions = intentionsString.split('\n').reduce((acc: Intention[], line, index) => {
-		const parsedData = parseLine(line);
-		if (parsedData) {
-			const intention = buildIntention(parsedData, index);
-			if (intention) {
-				valid = true;
-				acc.push(intention);
-				return acc;
+	$effect(() => {
+		intentions = intentionsString.split('\n').reduce((acc: Intention[], line, index) => {
+			const parsedData = parseLine(line);
+			if (parsedData) {
+				const intention = buildIntention(parsedData, index);
+				if (intention) {
+					acc.push(intention);
+					return acc;
+				}
 			}
+			return acc;
+		}, []);
+	});
+
+	$effect(() => {
+		if (intentions.length === intentionsString.split('\n').filter((line) => line.trim()).length) {
+			valid = true;
+		} else {
+			valid = false;
 		}
-
-		valid = false; // If it reaches here, the line is invalid.
-		return acc; // Return the accumulator unchanged for invalid lines.
-	}, []);
-
-	// If the number of intentions is the same as the number of lines in intentionsString, then it is valid.
-	// Otherwise, it is invalid. This is due to the reduce function.
-	$: if (intentions.length === intentionsString.split('\n').filter((line) => line.trim()).length) {
-		valid = true;
-	} else {
-		valid = false;
-	}
+	});
 
 	function parseLine(line: string): [number, string | null, string] | null {
 		const regex = /^([1-9])([a-z]{0,3})?\)\s*(\S.*)$/;

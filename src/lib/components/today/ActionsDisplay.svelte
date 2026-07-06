@@ -9,13 +9,17 @@
 	import IntentionsModal from './IntentionsModal.svelte';
 	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
 
-	export let goals: PageServerData['goals'];
-	export let intentions: PageServerData['intentions'];
-	type Intention = (typeof intentions)[0];
+	let {
+		goals,
+		intentions = $bindable(),
+		handleUpdateSingleIntention
+	}: {
+		goals: PageServerData['goals'];
+		intentions: PageServerData['intentions'];
+		handleUpdateSingleIntention: (intention: PageServerData['intentions'][0]) => Promise<UpdateResult | undefined>;
+	} = $props();
 
-	export let handleUpdateSingleIntention: (
-		intentions: Intention
-	) => Promise<UpdateResult | undefined>;
+	type Intention = PageServerData['intentions'][0];
 
 	let showMousoverMenu = false;
 	let showMousoverIndex: number | null = null;
@@ -32,9 +36,9 @@
 		}
 	}
 
-	$: goals && updateGoalOrderNumbers();
+	$effect(() => { if (goals) updateGoalOrderNumbers(); });
 
-	$: {
+	$effect(() => {
 		if (intentions && goalOrderNumbers) {
 			intentions = intentions.filter((intention) => {
 				const orderNumber = goalOrderNumbers.get(intention.goalId);
@@ -47,9 +51,9 @@
 				);
 			});
 		}
-	}
+	});
 
-	$: firstIncompleteIntentionIndex = intentions.findIndex((intention) => intention.completed === 0);
+	let firstIncompleteIntentionIndex = $derived(intentions.findIndex((intention) => intention.completed === 0));
 
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
@@ -134,8 +138,8 @@
 			role="list"
 			class="overflow-hidden"
 			use:dndzone={{ items: intentions }}
-			on:consider={handleDndConsider}
-			on:finalize={handleDndFinalize}
+			onconsider={handleDndConsider}
+			onfinalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
 				<span
@@ -145,19 +149,19 @@
 					class={'flex items-center pl-3' +
 						(intention.completed ? ' line-through' : '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
-					on:mouseover={() => {
+					onmouseover={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					on:focus={() => {
+					onfocus={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					on:blur={() => {
+					onblur={() => {
 						showMousoverMenu = false;
 						showMousoverIndex = null;
 					}}
-					on:keydown={(event) => {
+					onkeydown={(event) => {
 						handleButtonPressIntention(event);
 					}}
 				>
@@ -168,10 +172,10 @@
 						<button
 							aria-haspopup="true"
 							class="cursor-pointer py-0.5 hover:bg-gray-400"
-							on:click={() => {
+							onclick={() => {
 								showIntentionModal = true;
 							}}
-							on:keydown={(event) => {
+							onkeydown={(event) => {
 								if (event.key === 'Enter') {
 									showIntentionModal = true;
 								}
@@ -202,16 +206,16 @@
 						aria-labelledby="intention-{intention.id}"
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
-							? ' checkbox-md ml-0.5'
-							: ' checkbox-sm ml-0.5'}
+							? 'checkbox-md ml-0.5'
+							: 'checkbox-sm ml-0.5'}
 						checked={Boolean(intention.completed)}
-						on:change={updateIntention}
+						onchange={updateIntention}
 					/>
 					<span
 						role="button"
 						tabindex={0}
 						aria-haspopup="true"
-						on:contextmenu={(e) => {
+						oncontextmenu={(e) => {
 							e.preventDefault();
 							showIntentionModal = true;
 						}}

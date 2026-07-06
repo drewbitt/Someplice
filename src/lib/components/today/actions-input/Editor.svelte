@@ -2,17 +2,16 @@
 	import { onMount } from 'svelte';
 	import './Editor.css';
 
-	export let highlight: (value: string) => string;
-	export let value: string;
+	let { highlight, value }: { highlight: (value: string) => string; value: string } = $props();
 
 	let input: HTMLTextAreaElement;
 
-	$: {
+	$effect(() => {
 		if (input && input.previousElementSibling) {
 			const highlighted = highlight(value);
 			input.previousElementSibling.innerHTML = highlighted;
 		}
-	}
+	});
 
 	onMount(() => {
 		input.focus();
@@ -35,6 +34,6 @@
 		contenteditable="true"
 		bind:value
 		tabindex="0"
-		on:input={handleInput}
+		oninput={handleInput}
 	/>
 </div>

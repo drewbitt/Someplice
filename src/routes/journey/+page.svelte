@@ -9,12 +9,12 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
-	export let data: PageServerData;
+	let { data }: { data: PageServerData } = $props();
 
-	$: noIntentions = Object.keys(data.intentionsByDate).length === 0;
-	$: noGoals = data.goals.length === 0;
-	$: darkMode = $theme === 'dark';
-	$: dates = Object.keys(data.intentionsByDate);
+	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
+	let noGoals = $derived(data.goals.length === 0);
+	let darkMode = $derived($theme === 'dark');
+	let dates = $derived(Object.keys(data.intentionsByDate));
 
 	let currentPage = 1;
 	let hasMore = true;
@@ -98,7 +98,7 @@
 </div>
 
 {#if noGoals || noIntentions}
-	<div role="alert" class=" alert  alert-error border-gray-400">
+	<div role="alert" class="alert alert-error border-gray-400">
 		<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>
 	</div>
@@ -118,7 +118,7 @@
 		</div>
 		{#if isLoadingMore}
 			<div class="mb-3 flex justify-center">
-				<span class=" loading  loading-bars  loading-lg" />
+				<span class="loading loading-bars loading-lg" />
 			</div>
 		{/if}
 		<div bind:this={invisibleFooter} class="pagination-trigger"></div>

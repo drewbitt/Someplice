@@ -4,26 +4,18 @@
 	import { colors } from './colors';
 	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
-	export let addedGoal: boolean;
-
-	const getGoalTitle = async () => {
-		const allGoals = await trpc().goals.list.query(1);
-		return `Goal ${allGoals.length + 1}`;
-	};
+	let { addedGoal = $bindable(), goalCount = 0 }: { addedGoal: boolean; goalCount?: number } = $props();
 
 	const addGoal = async () => {
 		addedGoal = false;
 
 		try {
 			const allGoals = await trpc().goals.list.query(1);
-			const allColors = colors;
-
 			const usedColors = allGoals.map((goal) => goal.color);
-			const availableColors = allColors.filter((color) => !usedColors.includes(color));
-			const randomColorIndex = Math.floor(Math.random() * availableColors.length);
-			const randomColorValue = availableColors[randomColorIndex];
+			const availableColors = colors.filter((color) => !usedColors.includes(color));
+			const randomColorValue = availableColors[Math.floor(Math.random() * availableColors.length)];
 			const addResult = await trpc().goals.add.mutate({
-				title: await getGoalTitle(),
+				title: `Goal ${allGoals.length + 1}`,
 				color: randomColorValue,
 				active: 1,
 				description: null
@@ -40,20 +32,14 @@
 	};
 </script>
 
-<div class="goal-box-new mx-5 my-2.5 grid">
+<div
+	class="mx-5 my-2.5 grid leading-none"
+	style="gap: 1rem; grid-template-columns: minmax(0, 3rem) 4fr; grid-auto-rows: 6rem;"
+>
 	<span class="font-mono text-7xl">#</span>
-	<div class="goal-box-details">
-		<button id="new-goal-button" on:click={addGoal}>
+	<div>
+		<button id="new-goal-button" onclick={addGoal}>
 			<p class="text-3xl">New Goal</p>
 		</button>
 	</div>
 </div>
-
-<style>
-	.goal-box-new {
-		gap: 1rem;
-		grid-template-columns: minmax(0, 3rem) 4fr;
-		grid-auto-rows: 6rem;
-		line-height: 1;
-	}
-</style>

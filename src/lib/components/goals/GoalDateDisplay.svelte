@@ -5,9 +5,9 @@
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
 
-	export let goal: PageServerData['goals'][0];
-	let startDate = '';
-	let endDate = '';
+	let { goal }: { goal: PageServerData['goals'][0] } = $props();
+	let startDate = $state('');
+	let endDate = $state('');
 
 	onMount(async () => {
 		if (!goal.id) return;
@@ -31,13 +31,13 @@
 </script>
 
 <div
-	class="goal-box-date-display mx-5 flex items-center justify-between px-1 py-1"
+	class="mx-5 flex items-center justify-between px-1 py-1"
 	style="background-color: {evenLighterHSLColor(goal.color)}"
 >
-	<span class="goal-box-date-display-date">
+	<span>
 		Start: {startDate.slice(0, 10)}
 	</span>
-	<span class="goal-box-date-display-date">
+	<span>
 		End: {endDate.slice(0, 10)}
 	</span>
 </div>

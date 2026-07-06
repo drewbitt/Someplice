@@ -8,27 +8,27 @@
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
-	export let goal: PageServerData['goals'][0];
-	export let currentlyEditing: boolean;
-	export let isInactiveGoal = false;
+	let {
+		goal = $bindable(),
+		currentlyEditing,
+		isInactiveGoal = false
+	}: {
+		goal: PageServerData['goals'][0];
+		currentlyEditing: boolean;
+		isInactiveGoal?: boolean;
+	} = $props();
 
-	let goalColor = goal.color;
-	$: goal.color = goalColor;
-	let showDeletionPrompt = false;
-	let deletionConfirmed = false;
-	let showArchivePrompt = false;
-	let archiveConfirmed = false;
-	let showRestorePrompt = false;
-	let restoreConfirmed = false;
-	$: if (deletionConfirmed) {
-		deleteGoal();
-	}
-	$: if (archiveConfirmed) {
-		archiveGoal();
-	}
-	$: if (restoreConfirmed) {
-		restoreGoal();
-	}
+	let goalColor = $state(goal.color);
+	$effect(() => { goal.color = goalColor; });
+	let showDeletionPrompt = $state(false);
+	let deletionConfirmed = $state(false);
+	let showArchivePrompt = $state(false);
+	let archiveConfirmed = $state(false);
+	let showRestorePrompt = $state(false);
+	let restoreConfirmed = $state(false);
+	$effect(() => { if (deletionConfirmed) { deleteGoal(); } });
+	$effect(() => { if (archiveConfirmed) { archiveGoal(); } });
+	$effect(() => { if (restoreConfirmed) { restoreGoal(); } });
 
 	const handleDeleteGoal = async () => {
 		if (goal.id) {
@@ -90,7 +90,7 @@
 <div role="listitem">
 	<div
 		style="background-color: {goalColor}"
-		class="goal-box mx-5 grid"
+		class="mx-5 grid gap-4 grid-cols-[minmax(0,3rem)_4fr] auto-rows-[6rem] leading-none"
 	>
 		<span
 			class="pl-2 font-mono text-7xl dark:text-white"
@@ -104,7 +104,7 @@
 				title="Delete Goal"
 				message="Are you sure you want to delete this goal? This action is irreversible and will delete all associated history with this goal."
 				action="Delete"
-				actionButtonClass=" btn  btn-error"
+				actionButtonClass="btn btn-error"
 			/>
 		{/if}
 		{#if showArchivePrompt}
@@ -114,7 +114,7 @@
 				title="Archive Goal"
 				message="Are you sure you want to archive this goal?"
 				action="Archive"
-				actionButtonClass=" btn  btn-accent"
+				actionButtonClass="btn btn-accent"
 			/>
 		{/if}
 		{#if showRestorePrompt}
@@ -124,7 +124,7 @@
 				title="Restore Goal"
 				message="Are you sure you want to restore this goal?"
 				action="Restore"
-				actionButtonClass=" btn  btn-accent"
+				actionButtonClass="btn btn-accent"
 			/>
 		{/if}
 		<div class="goal-box-details flex flex-col gap-1">
@@ -144,12 +144,4 @@
 	{/if}
 </div>
 
-<style>
-	.goal-box {
-		gap: 1rem;
-		grid-template-columns: minmax(0, 3rem) 4fr;
-		grid-auto-rows: 6rem;
-		line-height: 1;
-		background-color: var(--goal-color);
-	}
-</style>
+

@@ -1,6 +1,5 @@
 <script>
-	export let title = 'Someplice';
-	export let subtitle = 'Achieve your goals with daily intentions';
+	let { title = 'Someplice', subtitle = 'Achieve your goals with daily intentions' } = $props();
 </script>
 
 <div class="flex justify-center">

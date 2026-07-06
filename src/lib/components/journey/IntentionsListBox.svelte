@@ -2,10 +2,9 @@
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention } from '$src/lib/utils';
 
-	export let goals: Goal[];
-	export let intentions: Intention[];
+	let { goals, intentions }: { goals: Goal[]; intentions: Intention[] } = $props();
 
-	$: numIntentions = intentions.length;
+	let numIntentions = $derived(intentions.length);
 </script>
 
 <div class="my-5 ml-5" aria-label="List of Intentions for the day">

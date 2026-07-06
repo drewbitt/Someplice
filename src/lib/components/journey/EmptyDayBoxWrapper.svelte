@@ -2,20 +2,14 @@
 	import { onMount } from 'svelte';
 	import EmptyDayBox from './EmptyDayBox.svelte';
 
-	export let date: string;
-	export let nextDate: string;
+	let { date, nextDate }: { date: string; nextDate: string } = $props();
 
-	// Enforce that nextDate is always earlier than date
-	if (new Date(date) < new Date(nextDate)) {
-		throw new Error('nextDate must be earlier than date');
-	}
-
-	let diffDays: number;
+	let diffDays = $state(0);
 
 	onMount(() => {
 		let dateObj = new Date(date);
 		let nextDateObj = new Date(nextDate);
-		// Calculation for diffDays assuming the nextDate is always earlier than date
+		if (dateObj < nextDateObj) return;
 		diffDays = Math.ceil((dateObj.getTime() - nextDateObj.getTime()) / (1000 * 60 * 60 * 24)) - 1;
 	});
 </script>

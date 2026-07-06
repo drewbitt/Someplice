@@ -4,9 +4,7 @@
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 
-	export let goals: Goal[];
-	export let intentions: Intention[];
-	export let outcomes: Outcome[];
+	let { goals, intentions, outcomes }: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
 
 	let date = intentions[intentions.length - 1]?.date;
 </script>

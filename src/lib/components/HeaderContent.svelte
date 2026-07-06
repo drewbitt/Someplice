@@ -4,10 +4,10 @@
 	import theme from '$lib/stores/theme';
 	import { onMount } from 'svelte';
 
-	export let toggleTheme: () => void;
+	let { toggleTheme }: { toggleTheme: () => void } = $props();
 
-	let os: string;
-	let mod: string;
+	let os = $state('');
+	let mod = $state('');
 
 	onMount(() => {
 		os = navigator.platform.includes('Mac') ? 'macos' : 'other';
@@ -23,7 +23,7 @@
 		return () => document.removeEventListener('keydown', handler);
 	});
 
-	$: isDark = $theme === 'dark';
+	let isDark = $derived($theme === 'dark');
 </script>
 
 <nav class="flex h-full w-full items-center justify-between px-5">
@@ -38,7 +38,7 @@
 			/>
 			<span class="hidden text-xl text-blue-500 sm:block">Someplice</span>
 		</a>
-		<ul class=" menu  menu-horizontal flex gap-1 p-0">
+		<ul class="menu menu-horizontal flex gap-1 p-0">
 			<li>
 				<a
 					href="/today"
@@ -68,10 +68,10 @@
 			</li>
 		</ul>
 	</div>
-	<div class=" tooltip  tooltip-bottom" data-tip="{mod} + J">
+	<div class="tooltip tooltip-bottom" data-tip="{mod} + J">
 		<button
-			class=" btn  btn-ghost  btn-square"
-			on:click={toggleTheme}
+			class="btn btn-ghost btn-square"
+			onclick={toggleTheme}
 			aria-label="Toggle theme"
 		>
 			{#if isDark}

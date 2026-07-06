@@ -15,16 +15,16 @@
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
 
-	let intentions = data.intentions;
-	let intentionsOnLatestDate = data.intentionsOnLatestDate;
-	let additionalIntentions: Intentions[] = [];
-	let validIntentions: boolean;
-	let showValidIntentionsNotification = false;
-	let showAdditionalIntentionsTextArea = false;
-	let showDBErrorNotification = false;
-	let intentionsFromServer: Intentions[] = data.intentions;
-	let hasOutstandingOutcome = false;
-	let showPageLoadingSpinner = false;
+	let intentions = $state(data.intentions);
+	let intentionsOnLatestDate = $state(data.intentionsOnLatestDate);
+	let additionalIntentions = $state<Intentions[]>([]);
+	let validIntentions = $state<boolean>(false);
+	let showValidIntentionsNotification = $state(false);
+	let showAdditionalIntentionsTextArea = $state(false);
+	let showDBErrorNotification = $state(false);
+	let intentionsFromServer = $state(data.intentions);
+	let hasOutstandingOutcome = $state(false);
+	let showPageLoadingSpinner = $state(false);
 
 	onMount(() => {
 		todaysIntentionsStore.initialize();
@@ -174,7 +174,7 @@
 
 {#if showPageLoadingSpinner}
 	<div class="flex justify-center">
-		<span class=" loading  loading-spinner  loading-lg" />
+		<span class="loading loading-spinner loading-lg" />
 	</div>
 {:else}
 	<div class="flex flex-col gap-4">
@@ -183,7 +183,7 @@
 			<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
 		{/if}
 		{#if noGoals}
-			<div role="alert" class=" alert  alert-error border-gray-400">
+			<div role="alert" class="alert alert-error border-gray-400">
 				<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 				<span>You have no goals. Please add some goals first.</span>
 			</div>
@@ -198,13 +198,13 @@
 			{#if showAdditionalIntentionsTextArea}
 				<div class="flex items-center">
 					<button
-						class=" btn mr-2"
-						on:click={handleHideAdditionalIntentionsTextArea}>Hide</button
+						class="btn mr-2"
+						onclick={handleHideAdditionalIntentionsTextArea}>Hide</button
 					>
 					<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
 				</div>
 				{#if showValidIntentionsNotification}
-					<div role="alert" class=" alert  alert-error border-gray-400">
+					<div role="alert" class="alert alert-error border-gray-400">
 						<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 						<span
 							>Please check that your intentions are formatted correctly and have valid goal
@@ -219,20 +219,20 @@
 					existingIntentions={intentionsFromServer}
 				/>
 				<div>
-					<button class=" btn" on:click={handleSaveIntentions}>
+					<button class="btn" onclick={handleSaveIntentions}>
 						Set {dayOfWeekFromDate(new Date())} intentions
 					</button>
 				</div>
 			{:else}
 				<div>
-					<button class=" btn" on:click={handleShowAdditionalIntentionsTextArea}>
+					<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
 						Add more {dayOfWeekFromDate(new Date())} intentions
 					</button>
 				</div>
 			{/if}
 		{:else}
 			{#if showValidIntentionsNotification}
-				<div role="alert" class=" alert  alert-error border-gray-400">
+				<div role="alert" class="alert alert-error border-gray-400">
 					<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 					<span
 						>Please check that your intentions are formatted correctly and have valid goal
@@ -243,15 +243,15 @@
 			<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
 
 			<div>
-				<button class=" btn" on:click={handleSaveIntentions}>
+				<button class="btn" onclick={handleSaveIntentions}>
 					Set {dayOfWeekFromDate(new Date())} intentions
 				</button>
 			</div>
 		{/if}
 
 		{#if showDBErrorNotification}
-			<div class=" toast">
-				<div class=" alert  alert-error">
+			<div class="toast">
+				<div class="alert alert-error">
 					<span>Error saving intentions</span>
 				</div>
 			</div>

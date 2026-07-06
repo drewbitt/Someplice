@@ -4,11 +4,15 @@
 	import theme from '$lib/stores/theme';
 	import { pwaInfo } from 'virtual:pwa-info';
 
-	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
+	let { children } = $props();
 
-	$: if (typeof document !== 'undefined') {
-		document.documentElement.setAttribute('data-theme', $theme);
-	}
+	let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '');
+
+	$effect(() => {
+		if (typeof document !== 'undefined') {
+			document.documentElement.setAttribute('data-theme', $theme);
+		}
+	});
 
 	function toggleTheme() {
 		theme.update((t) => (t === 'dark' ? 'light' : 'dark'));
@@ -25,6 +29,6 @@
 		<HeaderContent {toggleTheme} />
 	</header>
 	<main class="p-4">
-		<slot />
+		{@render children()}
 	</main>
 </div>
