@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
-	import { Paper, Stack, Title, createStyles } from '@svelteuidev/core';
 	import type { UpdateResult } from 'kysely';
-	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
@@ -25,15 +23,6 @@
 
 	let goalOrderNumbers = new SvelteMap<number, number>();
 
-	// When the component gets mounted, create the map
-	// We do this for performance
-	onMount(() => {
-		updateGoalOrderNumbers();
-	});
-
-	// Whenever the goals change, recalculate the order numbers
-	$: goals && updateGoalOrderNumbers();
-
 	function updateGoalOrderNumbers() {
 		goalOrderNumbers.clear();
 		for (const goal of goals) {
@@ -43,7 +32,8 @@
 		}
 	}
 
-	// Filter intentions based on the pre-calculated order numbers
+	$: goals && updateGoalOrderNumbers();
+
 	$: {
 		if (intentions && goalOrderNumbers) {
 			intentions = intentions.filter((intention) => {
@@ -92,11 +82,11 @@
 		}
 		return lighterHSLColor(goalColor);
 	};
-	// eslint-disable-next-line no-undef
+
 	const handleDndConsider = (event: CustomEvent<DndEvent<Intention>>) => {
 		intentions = event.detail.items;
 	};
-	// eslint-disable-next-line no-undef
+
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Intention>>) => {
 		const items: Intention[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
@@ -104,6 +94,7 @@
 		intentions = items;
 		await trpc().intentions.updateIntentions.mutate({ intentions: items });
 	};
+
 	const handleButtonPressIntention = (
 		event: KeyboardEvent & {
 			currentTarget: EventTarget & HTMLSpanElement;
@@ -114,39 +105,18 @@
 				'input[type="checkbox"]'
 			) as HTMLInputElement;
 			checkbox.checked = !checkbox.checked;
-			// TODO: Focus issue here, if you check and uncheck the checkbox, the focus is lost
 		}
 	};
-
-	const useStyles = createStyles(
-		(theme: {
-			fn: {
-				themeColor: (color: string, shade: number) => string;
-			};
-		}) => ({
-			intentionsNumber: {
-				darkMode: {
-					color: theme.fn.themeColor('grape', 1) + ' !important'
-				}
-			},
-			intentionsDate: {
-				darkMode: {
-					color: theme.fn.themeColor('gray', 8) + ' !important'
-				}
-			}
-		})
-	);
-	$: ({ classes } = useStyles());
 </script>
 
-<Paper shadow="sm">
-	<Stack class="gap-1.5">
+<div class="rounded-box bg-base-100 shadow-sm">
+	<div class="flex flex-col gap-1.5">
 		{#if intentions.length > 0}
 			<span class="mb-5 flex pl-12">
-				<Title order={2} class="{classes.intentionsNumber} font-bold text-gray-700"
-					>{intentions.length} intentions for today,</Title
-				>
-				<Title order={2} class="{classes.intentionsDate} ml-5 font-bold text-gray-300">
+				<h2 class="text-2xl font-bold text-gray-700 dark:text-purple-200">
+					{intentions.length} intentions for today,
+				</h2>
+				<h2 class="ml-5 text-2xl font-bold text-gray-300 dark:text-gray-600">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {
@@ -157,12 +127,9 @@
 						});
 						return formatter.format(dateObj);
 					})()}
-				</Title>
+				</h2>
 			</span>
 		{/if}
-		<!-- browser complains about non-passive event violation. in svelte-dnd-action, see
-			 https://github.com/isaacHagoel/svelte-dnd-action/issues/367
-		-->
 		<section
 			role="list"
 			class="overflow-hidden"
@@ -171,7 +138,6 @@
 			on:finalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
-				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 				<span
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
@@ -236,8 +202,8 @@
 						aria-labelledby="intention-{intention.id}"
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
-							? 'daisy-checkbox-md ml-0.5'
-							: 'daisy-checkbox-sm ml-0.5'}
+							? ' checkbox-md ml-0.5'
+							: ' checkbox-sm ml-0.5'}
 						checked={Boolean(intention.completed)}
 						on:change={updateIntention}
 					/>
@@ -258,5 +224,5 @@
 				</span>
 			{/each}
 		</section>
-	</Stack>
-</Paper>
+	</div>
+</div>

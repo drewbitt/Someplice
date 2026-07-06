@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Box, Group, Text } from '@svelteuidev/core';
 	import Archive from 'virtual:icons/lucide/archive';
 	import ArchiveRestore from 'virtual:icons/lucide/archive-restore';
 	import Trash from 'virtual:icons/lucide/trash-2';
@@ -13,17 +12,17 @@
 </script>
 
 {#if currentlyEditing && !isInactiveGoal}
-	<Box class="goal-box-description-editable w-full">
-		<Group position="apart">
+	<div class="goal-box-description-editable w-full">
+		<div class="flex items-center justify-between">
 			<textarea
 				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
 				placeholder="Describe your goal"
 				bind:value={description}
 			/>
-			<Box class="flex">
+			<div class="flex">
 				<button
 					id="goal-box-archive-button"
-					class="daisy-btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
+					class=" btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
 					on:click={handleArchiveGoal}
 				>
 					<Archive class="text-white" />
@@ -31,22 +30,22 @@
 				<button
 					id="goal-box-delete-button"
 					aria-haspopup="true"
-					class="daisy-btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
+					class=" btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
 					on:click={handleDeleteGoal}
 				>
 					<Trash class="text-white" />
 				</button>
-			</Box>
-		</Group>
-	</Box>
+			</div>
+		</div>
+	</div>
 {:else if currentlyEditing && isInactiveGoal}
-	<Box class="goal-box-description w-full">
-		<Group position="apart">
-			<Text>{description ?? ''}</Text>
-			<Box class="flex">
+	<div class="goal-box-description w-full">
+		<div class="flex items-center justify-between">
+			<p class="text-base-content/80">{description ?? ''}</p>
+			<div class="flex">
 				<button
 					id="goal-box-archive-button"
-					class="daisy-btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
+					class=" btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
 					on:click={handleRestoreGoal}
 				>
 					<ArchiveRestore class="text-white" />
@@ -54,16 +53,16 @@
 				<button
 					id="goal-box-delete-button"
 					aria-haspopup="true"
-					class="daisy-btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
+					class=" btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
 					on:click={handleDeleteGoal}
 				>
 					<Trash class="text-white" />
 				</button>
-			</Box>
-		</Group>
-	</Box>
+			</div>
+		</div>
+	</div>
 {:else}
-	<Box class="goal-box-description w-full">
-		<Text>{description ?? ''}</Text>
-	</Box>
+	<div class="goal-box-description w-full">
+		<p class="text-base-content/80">{description ?? ''}</p>
+	</div>
 {/if}

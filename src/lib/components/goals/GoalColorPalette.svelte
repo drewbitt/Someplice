@@ -1,14 +1,22 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
 	import { lighterHSLColor } from '$src/lib/utils';
-	import { cssvariable } from '@svelteuidev/composables';
-	import { Box, Grid, Modal } from '@svelteuidev/core';
 	import { colors } from './colors';
 
 	export let goalColor: string;
 
 	let opened = false;
-	let closeModal = () => (opened = false);
+	let dialogEl: HTMLDialogElement;
+
+	$: {
+		if (dialogEl) {
+			if (opened) {
+				dialogEl.showModal();
+			} else {
+				dialogEl.close();
+			}
+		}
+	}
 
 	const availableColors = async () => {
 		const allGoals = await trpc().goals.list.query(1);
@@ -17,41 +25,45 @@
 	};
 </script>
 
-<Modal {opened} on:close={closeModal} withCloseButton={false} title="Choose Goal Color">
-	<Grid>
-		{#await availableColors()}
-			<Grid.Col span={12}>
-				<Box class="text-center">Loading...</Box>
-			</Grid.Col>
-		{:then availColors}
-			{#each availColors as color (color)}
-				<Grid.Col span={3}>
-					<div
-						tabindex="0"
-						role="button"
-						style="background-color: {color}"
-						class="goal-box-color-picker-color h-10 w-10 cursor-pointer rounded-full"
-						on:click={() => {
-							goalColor = color;
-							closeModal();
-						}}
-						on:keydown={(event) => {
-							if (event.key === 'Enter') {
+<dialog class=" modal" bind:this={dialogEl} on:close={() => (opened = false)}>
+	<div class=" modal-box">
+		<h3 class="text-lg font-bold">Choose Goal Color</h3>
+		<div class="grid grid-cols-4 gap-2">
+			{#await availableColors()}
+				<div class="col-span-4 text-center">Loading...</div>
+			{:then availColors}
+				{#each availColors as color (color)}
+					<div class="flex justify-center">
+						<div
+							tabindex="0"
+							role="button"
+							style="background-color: {color}"
+							class="h-10 w-10 cursor-pointer rounded-full"
+							on:click={() => {
 								goalColor = color;
-								closeModal();
-							}
-						}}
-					/>
-				</Grid.Col>
-			{/each}
-		{/await}
-	</Grid>
-</Modal>
+								opened = false;
+							}}
+							on:keydown={(event) => {
+								if (event.key === 'Enter') {
+									goalColor = color;
+									opened = false;
+								}
+							}}
+						/>
+					</div>
+				{/each}
+			{/await}
+		</div>
+	</div>
+	<form method="dialog" class=" modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>
 
 <div
 	tabindex="0"
 	role="button"
-	use:cssvariable={{ 'lighter-goal-color': lighterHSLColor(goalColor) }}
+	style="--lighter-goal-color: {lighterHSLColor(goalColor)}"
 	class="goal-box-color-picker flex h-8 w-14 cursor-pointer items-center justify-center"
 	on:click={() => (opened = true)}
 	on:keydown={(event) => {
@@ -61,9 +73,8 @@
 	}}
 >
 	<div
-		use:cssvariable={{ 'goal-color': goalColor }}
+		style="--goal-color: {goalColor}"
 		class="goal-box-color-picker-color-current h-6 w-6 border"
-		style="background-color: {goalColor}"
 	/>
 </div>
 

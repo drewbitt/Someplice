@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
-	import { Box, Text } from '@svelteuidev/core';
 	import { colors } from './colors';
 	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
 	export let addedGoal: boolean;
 
-	// Get default new goal title from number of active goals + 1
 	const getGoalTitle = async () => {
 		const allGoals = await trpc().goals.list.query(1);
 		return `Goal ${allGoals.length + 1}`;
@@ -18,7 +16,6 @@
 
 		try {
 			const allGoals = await trpc().goals.list.query(1);
-			// get randomColor from colors.ts that is not in use
 			const allColors = colors;
 
 			const usedColors = allGoals.map((goal) => goal.color);
@@ -44,18 +41,17 @@
 </script>
 
 <div class="goal-box-new mx-5 my-2.5 grid">
-	<Box root="span" class="font-mono text-7xl" className="goal-box-number">#</Box>
-	<Box className="goal-box-details">
-		<Box id="new-goal-button" root="button" on:click={addGoal}>
-			<Text class="text-3xl">New Goal</Text>
-		</Box>
-	</Box>
+	<span class="font-mono text-7xl">#</span>
+	<div class="goal-box-details">
+		<button id="new-goal-button" on:click={addGoal}>
+			<p class="text-3xl">New Goal</p>
+		</button>
+	</div>
 </div>
 
 <style>
 	.goal-box-new {
 		gap: 1rem;
-		/* minimum width of 0 */
 		grid-template-columns: minmax(0, 3rem) 4fr;
 		grid-auto-rows: 6rem;
 		line-height: 1;

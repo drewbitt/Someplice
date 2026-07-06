@@ -1,19 +1,16 @@
 <script lang="ts">
-	import { Badge, Group } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/today/$types';
 
 	export let goals: PageServerData['goals'];
 </script>
 
-<Group>
+<div class="flex items-center gap-2">
 	{#each goals as goal (goal.id)}
-		<Badge size="lg" variant="filled" color={goal.color} class="border border-gray-200 px-4">
+		<span class=" badge border border-gray-200 px-4" style="background-color: {goal.color}; color: white">
+			<span class="pr-1 font-mono text-xl">
+				{goal.orderNumber}
+			</span>
 			{goal.title}
-			<svelte:fragment slot="leftSection">
-				<span class="pr-1 font-mono text-xl">
-					{goal.orderNumber}
-				</span>
-			</svelte:fragment>
-		</Badge>
+		</span>
 	{/each}
-</Group>
+</div>

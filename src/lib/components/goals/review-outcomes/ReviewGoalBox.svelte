@@ -76,7 +76,7 @@
 							id="intention-{intention.id}"
 							value={intention.id}
 							checked={Boolean(intention.completed)}
-							class="daisy-checkbox-md mr-2 flex-shrink-0"
+							class=" checkbox-md mr-2 flex-shrink-0"
 							on:click={() => handleCheckboxClick(intention.id)}
 						/>
 						<label
@@ -98,7 +98,7 @@
 				/>
 			{/each}
 			<button
-				class="daisy-tooltip daisy-tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
+				class=" tooltip  tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
 				on:click={handlePlusNewOutcome}

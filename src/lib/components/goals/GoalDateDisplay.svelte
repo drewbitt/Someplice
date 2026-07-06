@@ -2,7 +2,6 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { evenLighterHSLColor } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
-	import { Box } from '@svelteuidev/core';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
 
@@ -16,7 +15,6 @@
 		try {
 			const goalLogs = await trpc().goal_logs.getAllForGoal.query(goal.id);
 			if (goalLogs.length > 0) {
-				// filter 'start' and 'end' dates and sort them in descending order
 				const startDates = goalLogs
 					.filter((log) => log.type === 'start')
 					.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -27,13 +25,12 @@
 				endDate = endDates[0]?.date ?? '';
 			}
 		} catch (error) {
-			// TODO: handle error
 			appLogger.error(error);
 		}
 	});
 </script>
 
-<Box
+<div
 	class="goal-box-date-display mx-5 flex items-center justify-between px-1 py-1"
 	style="background-color: {evenLighterHSLColor(goal.color)}"
 >
@@ -43,4 +40,4 @@
 	<span class="goal-box-date-display-date">
 		End: {endDate.slice(0, 10)}
 	</span>
-</Box>
+</div>

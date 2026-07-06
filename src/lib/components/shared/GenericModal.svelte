@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { Group, Modal, Stack } from '@svelteuidev/core';
-	import { onMount } from 'svelte';
-
 	export let showModal: boolean;
 	export let actionConfirmed: boolean;
 	export let title: string;
@@ -9,20 +6,24 @@
 	export let action: string;
 	export let actionButtonClass: string;
 
-	onMount(() => {
-		const modalTitle = document.querySelector('.svelteui-Modal-title');
-		if (modalTitle) {
-			modalTitle.setAttribute('style', 'font-size: 1.25rem; line-height: 1.75rem;');
+	let dialog: HTMLDialogElement;
+
+	$: if (dialog) {
+		if (showModal) {
+			dialog.showModal();
+		} else {
+			dialog.close();
 		}
-	});
+	}
 </script>
 
-<Modal opened={showModal} on:close={() => (showModal = false)} {title} withCloseButton={false}>
-	<Stack spacing="xs">
-		<p>{message}</p>
-		<Group position="right">
+<dialog bind:this={dialog} class=" modal" on:close={() => (showModal = false)}>
+	<div class=" modal-box">
+		<h3 class="text-lg font-bold">{title}</h3>
+		<p class="py-4">{message}</p>
+		<div class=" modal-action">
 			<button
-				class="daisy-btn-warning daisy-btn"
+				class=" btn  btn-warning"
 				on:click={() => {
 					showModal = false;
 				}}
@@ -38,6 +39,9 @@
 			>
 				{action}
 			</button>
-		</Group>
-	</Stack>
-</Modal>
+		</div>
+	</div>
+	<form method="dialog" class=" modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>

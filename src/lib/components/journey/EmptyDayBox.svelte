@@ -1,29 +1,17 @@
 <script lang="ts">
-	import { Title, colorScheme, createStyles } from '@svelteuidev/core';
+	import theme from '$lib/stores/theme';
 
 	export let numDays: number;
-
-	const useStyles = createStyles(() => ({
-		root: {
-			darkMode: {
-				color: 'black'
-			}
-		}
-	}));
-	$: darkMode = $colorScheme === 'dark';
-	$: ({ cx, getStyles } = useStyles());
 </script>
 
 <div
 	role="listitem"
 	id="journey-item-empty"
-	class={cx(
-		'grid w-full flex-col justify-center gap-3 border border-gray-300 py-4 shadow-lg',
-		darkMode ? 'bg-gray-950' : 'bg-white',
-		getStyles()
-	)}
+	class="grid w-full flex-col justify-center gap-3 border border-gray-300 py-4 shadow-lg"
+	class:bg-gray-950={$theme === 'dark'}
+	class:bg-white={$theme !== 'dark'}
 >
-	<Title order={4} class={cx('ml-5 font-bold', darkMode ? 'text-gray-500' : 'text-gray-400')}>
+	<h4 class="ml-5 text-lg font-bold" class:text-gray-500={$theme === 'dark'} class:text-gray-400={$theme !== 'dark'}>
 		{numDays} blank days
-	</Title>
+	</h4>
 </div>

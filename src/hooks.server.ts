@@ -1,8 +1,6 @@
 import { createContext } from '$lib/trpc/context';
 import { router } from '$lib/trpc/router';
 import type { Handle } from '@sveltejs/kit';
-import { sequence } from '@sveltejs/kit/hooks';
-import { prepareStylesSSR } from '@svelteuidev/core';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { checkMissingOutcomes, createCronJobs } from './lib/db/cron';
 import { trpcLogger } from './lib/utils/logger';
@@ -27,9 +25,7 @@ export const trpcHandle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const sveltuiHandle = prepareStylesSSR;
-
-export const handle = sequence(trpcHandle, sveltuiHandle);
+export const handle = trpcHandle;
 
 function initializeServerHooks() {
 	// Check for missing outcomes from past days when the application is restarted.

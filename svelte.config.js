@@ -1,21 +1,13 @@
 import nodeAdapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import preprocess from 'svelte-preprocess';
 import denoAdapter from 'sveltekit-adapter-deno';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	// Consult https://kit.svelte.dev/docs/integrations#preprocessors
-	// for more information about preprocessors
-	preprocess: [
-		vitePreprocess(),
-		preprocess()
-	],
+	preprocess: vitePreprocess(),
 
 	kit: {
 		adapter:
-			// Building for deno will never work as long as better-sqlite3 is broken in it
-			// But, let's start trying anyway
 			process.env.BUILD_ENV === 'deno'
 				? denoAdapter({
 						buildOptions: {
@@ -33,13 +25,9 @@ const config = {
 				: nodeAdapter(),
 		alias: {
 			$src: './src',
-			$db: './src/lib/db',
-			tailwindConfig: 'tailwind.config.cjs'
+			$db: './src/lib/db'
 		},
 		paths: {
-			// assets: either `paths.assets`, if specified, or a relative path to `paths.base`
-			// has to be an absolute path
-			// path.resolve("./src/lib/assets") does not work
 			assets: ''
 		}
 	}

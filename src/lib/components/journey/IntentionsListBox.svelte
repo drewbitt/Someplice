@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention } from '$src/lib/utils';
-	import { Title } from '@svelteuidev/core';
 
 	export let goals: Goal[];
 	export let intentions: Intention[];
@@ -10,10 +9,10 @@
 </script>
 
 <div class="my-5 ml-5" aria-label="List of Intentions for the day">
-	<Title order={3} class="mb-3 font-bold">
+	<h3 class="mb-3 text-xl font-bold">
 		{numIntentions}
 		{numIntentions === 1 ? 'intention' : 'intentions'}
-	</Title>
+	</h3>
 	<div>
 		{#each intentions as intention (intention.id)}
 			<div class="flex">

@@ -1,6 +1,4 @@
 <script>
-	import { Title } from '@svelteuidev/core';
-
 	export let title = 'Someplice';
 	export let subtitle = 'Achieve your goals with daily intentions';
 </script>
@@ -8,12 +6,12 @@
 <div class="flex justify-center">
 	<div class="max-w-2xl">
 		<header class="mb-8">
-			<Title order={1} color="blue">{title}</Title>
+			<h1 class="text-3xl font-bold">{title}</h1>
 			<p class="italic">{subtitle}</p>
 		</header>
 
 		<section>
-			<Title order={2}>Features</Title>
+			<h2 class="text-2xl font-bold">Features</h2>
 			<ul>
 				<li>🎯 Set and manage multiple goals</li>
 				<li>📅 Set daily intentions for each goal</li>

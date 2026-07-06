@@ -1,7 +1,7 @@
 <script lang="ts">
 	import JourneyDayBox from '$src/lib/components/journey/JourneyDayBox.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
-	import { Loader, Notification, Title, colorScheme } from '@svelteuidev/core';
+	import theme from '$lib/stores/theme';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
@@ -11,24 +11,16 @@
 
 	export let data: PageServerData;
 
-	// Reactive variables
 	$: noIntentions = Object.keys(data.intentionsByDate).length === 0;
 	$: noGoals = data.goals.length === 0;
-	$: darkMode = $colorScheme === 'dark';
+	$: darkMode = $theme === 'dark';
 	$: dates = Object.keys(data.intentionsByDate);
 
-	// Pagination parameters
-	/* 	
-	TODO: Due to invalidateAll(), the page will be de-paginated on changes in the JourneyDayBoxes.
-	This is not ideal, but it would be complicated to re-run all client queries as well,
-	so leaving as a quick implementation for now.
-	*/
 	let currentPage = 1;
 	let hasMore = true;
 	let isLoadingMore = false;
 	let invisibleFooter: HTMLDivElement;
 
-	// Initialize the IntersectionObserver for infinite scrolling
 	onMount(() => {
 		if (browser) {
 			type HandleIntersect = (entries: IntersectionObserverEntry[]) => void;
@@ -46,16 +38,11 @@
 		}
 	});
 
-	/**
-	 * Fetches and appends more outcomes and intentions from the server.
-	 * If no new data is found, sets `hasMore` to false.
-	 */
 	async function loadMore() {
 		isLoadingMore = true;
 		const limit = 15;
 		const offset = currentPage * limit;
 
-		// Fetch new outcomes
 		const newOutcomes = await trpc().outcomes.list.query({
 			limit,
 			offset,
@@ -63,7 +50,6 @@
 			orderBy: 'date'
 		});
 
-		// Fetch new intentions if there are new outcomes
 		if (newOutcomes.length) {
 			data.outcomes = [...data.outcomes, ...newOutcomes];
 			const uniqueDatesResult = await trpc().intentions.listUniqueDates.query({
@@ -82,7 +68,6 @@
 					endDate
 				});
 
-				// Merge the new intentions with existing ones
 				for (let date in newIntentionsByDate) {
 					data.intentionsByDate[date] = data.intentionsByDate[date]
 						? [...data.intentionsByDate[date], ...newIntentionsByDate[date]]
@@ -107,21 +92,16 @@
 
 <div class="w-full pb-3 shadow-md">
 	<div class="mx-12 grid gap-4">
-		<Title order={1} class="font-bold">My daily progress</Title>
+		<h1 class="text-3xl font-bold">My daily progress</h1>
 		<GoalBadges goals={data.goals} />
 	</div>
 </div>
 
 {#if noGoals || noIntentions}
-	<Notification
-		id="no-goals-notification"
-		icon={CircleX}
-		color="red"
-		withCloseButton={false}
-		class="border-gray-400"
-	>
-		Begin your Journey by adding goals and intentions.
-	</Notification>
+	<div role="alert" class=" alert  alert-error border-gray-400">
+		<CircleX class="h-6 w-6 shrink-0 stroke-current" />
+		<span>Begin your Journey by adding goals and intentions.</span>
+	</div>
 {:else}
 	<section class={darkMode ? 'bg-gray-900' : 'bg-gray-200'}>
 		<div class="mx-12 grid gap-4 py-6 xl:mx-36">
@@ -138,7 +118,7 @@
 		</div>
 		{#if isLoadingMore}
 			<div class="mb-3 flex justify-center">
-				<Loader variant="bars" />
+				<span class=" loading  loading-bars  loading-lg" />
 			</div>
 		{/if}
 		<div bind:this={invisibleFooter} class="pagination-trigger"></div>

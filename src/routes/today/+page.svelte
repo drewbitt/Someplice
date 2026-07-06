@@ -6,7 +6,6 @@
 	import Review from '$src/lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import { dayOfWeekFromDate } from '$src/lib/utils';
-	import { Box, Button, Notification, Stack, Title } from '@svelteuidev/core';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
@@ -16,7 +15,6 @@
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
 
-	// let declarations grouped together
 	let intentions = data.intentions;
 	let intentionsOnLatestDate = data.intentionsOnLatestDate;
 	let additionalIntentions: Intentions[] = [];
@@ -29,10 +27,7 @@
 	let showPageLoadingSpinner = false;
 
 	onMount(() => {
-		// Initialize the store from local storage
 		todaysIntentionsStore.initialize();
-
-		// Open the additional intentions text area if there are intentions stored in localStorage
 		if ($todaysIntentionsStore && !noGoals && !noIntentions) {
 			showAdditionalIntentionsTextArea = true;
 		}
@@ -47,7 +42,6 @@
 			}, 5000);
 		}
 	});
-	// if no intentions today, check for old outstanding outcomes
 	$effect(() => {
 		if (!noIntentions || hasOutstandingOutcome || noGoals) {
 			showPageLoadingSpinner = false;
@@ -108,14 +102,10 @@
 		}
 	};
 
-	/**
-		Check if the latest intentions have an outcome reviewed on the same day
-	*/
 	const isOldOutcomeOutstanding = async () => {
 		if (intentionsOnLatestDate && intentionsOnLatestDate.length > 0) {
 			const latestIntentionDate = new Date(intentionsOnLatestDate[0].date);
 			const outcomes = await listOutcomesOnDate(latestIntentionDate);
-			// if there are no outcomes on the same day as the latest intentions, or if it is reviewed = false
 			if (outcomes.length === 0 || !outcomes[0].reviewed) {
 				return true;
 			}
@@ -132,11 +122,6 @@
 		return outcomes;
 	};
 
-	/*
-		Manages saving intentions. Verifies validity. Ensures not saving any duplicate orderNumbers.
-		Decides between adding new intentions or updating existing intentions.
-		Clears localStorage of todays intentions.
-	*/
 	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
 		if (!validIntentions) {
@@ -150,7 +135,6 @@
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
 
 		noIntentions ? await addIntentions() : await updateIntentions();
-		// clear localStorage
 		todaysIntentionsStore.clear();
 	};
 
@@ -190,45 +174,43 @@
 
 {#if showPageLoadingSpinner}
 	<div class="flex justify-center">
-		<span class="daisy-loading daisy-loading-spinner daisy-loading-lg" />
+		<span class=" loading  loading-spinner  loading-lg" />
 	</div>
 {:else}
-	<Stack>
+	<div class="flex flex-col gap-4">
 		<GoalBadges goals={data.goals} />
 		{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
-			<Title order={2}>Actions you'll take towards your goals today</Title>
+			<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
 		{/if}
 		{#if noGoals}
-			<Notification
-				id="no-goals-notification"
-				icon={CircleX}
-				color="red"
-				withCloseButton={false}
-				class="border-gray-400"
-			>
-				You have no goals. Please add some goals first.
-			</Notification>
-			<!-- if there are no intentions set today, show Review -->
+			<div role="alert" class=" alert  alert-error border-gray-400">
+				<CircleX class="h-6 w-6 shrink-0 stroke-current" />
+				<span>You have no goals. Please add some goals first.</span>
+			</div>
 		{:else if hasOutstandingOutcome}
 			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
-			<!-- if there are intentions already set today, show ActionsDisplay -->
 		{:else if intentionsFromServer.length > 0}
 			<ActionsDisplay
 				bind:intentions={data.intentions}
 				{handleUpdateSingleIntention}
 				goals={data.goals}
 			/>
-			<!-- if there are intentions today and the user presses "Add more intentions" button,
-			show additional ActionsTextInput -->
 			{#if showAdditionalIntentionsTextArea}
-				<Box class="flex items-center">
-					<Button on:click={handleHideAdditionalIntentionsTextArea} class="mr-2">Hide</Button>
-					<Title order={3}>What else are you doing towards your goals today?</Title>
-				</Box>
+				<div class="flex items-center">
+					<button
+						class=" btn mr-2"
+						on:click={handleHideAdditionalIntentionsTextArea}>Hide</button
+					>
+					<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
+				</div>
 				{#if showValidIntentionsNotification}
-					<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
-						Please check that your intentions are formatted correctly and have valid goal numbers.
-					</Notification>
+					<div role="alert" class=" alert  alert-error border-gray-400">
+						<CircleX class="h-6 w-6 shrink-0 stroke-current" />
+						<span
+							>Please check that your intentions are formatted correctly and have valid goal
+							numbers.</span
+						>
+					</div>
 				{/if}
 				<ActionsTextInput
 					goals={data.goals}
@@ -236,42 +218,43 @@
 					bind:valid={validIntentions}
 					existingIntentions={intentionsFromServer}
 				/>
-				<Box>
-					<Button on:click={handleSaveIntentions}>
+				<div>
+					<button class=" btn" on:click={handleSaveIntentions}>
 						Set {dayOfWeekFromDate(new Date())} intentions
-					</Button>
-				</Box>
-				<!-- if user hasn't pressed "Add more intentions" button, display the button -->
+					</button>
+				</div>
 			{:else}
-				<Box>
-					<Button on:click={handleShowAdditionalIntentionsTextArea}>
+				<div>
+					<button class=" btn" on:click={handleShowAdditionalIntentionsTextArea}>
 						Add more {dayOfWeekFromDate(new Date())} intentions
-					</Button>
-				</Box>
+					</button>
+				</div>
 			{/if}
 		{:else}
 			{#if showValidIntentionsNotification}
-				<Notification icon={CircleX} color="red" withCloseButton={false} class="border-gray-400">
-					Please check that your intentions are formatted correctly and have valid goal numbers.
-				</Notification>
+				<div role="alert" class=" alert  alert-error border-gray-400">
+					<CircleX class="h-6 w-6 shrink-0 stroke-current" />
+					<span
+						>Please check that your intentions are formatted correctly and have valid goal
+						numbers.</span
+					>
+				</div>
 			{/if}
 			<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
 
-			<Box>
-				<Button on:click={handleSaveIntentions}>
+			<div>
+				<button class=" btn" on:click={handleSaveIntentions}>
 					Set {dayOfWeekFromDate(new Date())} intentions
-				</Button>
-			</Box>
+				</button>
+			</div>
 		{/if}
 
 		{#if showDBErrorNotification}
-			<div class="daisy-toast">
-				<div class="daisy-alert daisy-alert-error">
-					<div>
-						<span>Error saving intentions</span>
-					</div>
+			<div class=" toast">
+				<div class=" alert  alert-error">
+					<span>Error saving intentions</span>
 				</div>
 			</div>
 		{/if}
-	</Stack>
+	</div>
 {/if}

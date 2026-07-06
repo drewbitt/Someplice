@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
-	// import { appLogger } from '$src/lib/utils/logger';
-	import { cssvariable } from '@svelteuidev/composables';
-	import { Box, createStyles, Stack } from '@svelteuidev/core';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GenericModal from '../shared/GenericModal.svelte';
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
@@ -35,7 +32,6 @@
 
 	const handleDeleteGoal = async () => {
 		if (goal.id) {
-			// Prompt user to confirm deletion
 			showDeletionPrompt = true;
 		}
 	};
@@ -55,7 +51,6 @@
 	};
 	const handleArchiveGoal = async () => {
 		if (goal.id) {
-			// Prompt user to confirm archive
 			showArchivePrompt = true;
 		}
 	};
@@ -75,7 +70,6 @@
 	};
 	const handleRestoreGoal = async () => {
 		if (goal.id) {
-			// Let's show the user a prompt to confirm restoration
 			showRestorePrompt = true;
 		}
 	};
@@ -91,26 +85,18 @@
 			}
 		}
 	};
-
-	const useStyles = createStyles(() => ({
-		root: {
-			darkMode: {
-				color: 'white'
-			}
-		}
-	}));
-	$: ({ cx, getStyles } = useStyles());
 </script>
 
-<Box role="listitem">
+<div role="listitem">
 	<div
 		style="background-color: {goalColor}"
-		use:cssvariable={{ 'goal-color': goalColor }}
 		class="goal-box mx-5 grid"
 	>
-		<Box root="span" class={cx('pl-2 font-mono text-7xl', getStyles())} className="goal-box-number">
+		<span
+			class="pl-2 font-mono text-7xl dark:text-white"
+		>
 			{goal.active ? goal.orderNumber : 'X'}
-		</Box>
+		</span>
 		{#if showDeletionPrompt}
 			<GenericModal
 				bind:showModal={showDeletionPrompt}
@@ -118,7 +104,7 @@
 				title="Delete Goal"
 				message="Are you sure you want to delete this goal? This action is irreversible and will delete all associated history with this goal."
 				action="Delete"
-				actionButtonClass="daisy-btn daisy-btn-error"
+				actionButtonClass=" btn  btn-error"
 			/>
 		{/if}
 		{#if showArchivePrompt}
@@ -128,7 +114,7 @@
 				title="Archive Goal"
 				message="Are you sure you want to archive this goal?"
 				action="Archive"
-				actionButtonClass="daisy-btn daisy-btn-accent"
+				actionButtonClass=" btn  btn-accent"
 			/>
 		{/if}
 		{#if showRestorePrompt}
@@ -138,10 +124,10 @@
 				title="Restore Goal"
 				message="Are you sure you want to restore this goal?"
 				action="Restore"
-				actionButtonClass="daisy-btn daisy-btn-accent"
+				actionButtonClass=" btn  btn-accent"
 			/>
 		{/if}
-		<Stack className="goal-box-details" spacing="xs">
+		<div class="goal-box-details flex flex-col gap-1">
 			<GoalTitleRow bind:title={goal.title} {currentlyEditing} {isInactiveGoal} bind:goalColor />
 			<GoalDescription
 				bind:description={goal.description}
@@ -151,17 +137,16 @@
 				{isInactiveGoal}
 				{handleRestoreGoal}
 			/>
-		</Stack>
+		</div>
 	</div>
 	{#if isInactiveGoal}
 		<GoalDateDisplay {goal} />
 	{/if}
-</Box>
+</div>
 
 <style>
 	.goal-box {
 		gap: 1rem;
-		/* minimum width of 0 */
 		grid-template-columns: minmax(0, 3rem) 4fr;
 		grid-auto-rows: 6rem;
 		line-height: 1;

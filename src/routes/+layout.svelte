@@ -1,17 +1,17 @@
 <script>
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
-	import { AppShell, fns, Header, SvelteUIProvider } from '@svelteuidev/core';
 	import '../app.postcss';
 	import theme from '$lib/stores/theme';
-	import { derived } from 'svelte/store';
 	import { pwaInfo } from 'virtual:pwa-info';
 
 	$: webManifestLink = pwaInfo ? pwaInfo.webManifest.linkTag : '';
 
-	const isDark = derived(theme, ($theme) => $theme === 'dark');
+	$: if (typeof document !== 'undefined') {
+		document.documentElement.setAttribute('data-theme', $theme);
+	}
 
 	function toggleTheme() {
-		theme.update((theme) => (theme === 'dark' ? 'light' : 'dark'));
+		theme.update((t) => (t === 'dark' ? 'light' : 'dark'));
 	}
 </script>
 
@@ -20,25 +20,11 @@
 	{@html webManifestLink}
 </svelte:head>
 
-<SvelteUIProvider class="h-screen" themeObserver={$isDark ? 'dark' : 'light'} withGlobalStyles>
-	<AppShell
-		override={{
-			main: {
-				paddingTop: '1.5rem !important',
-				bc: $isDark ? fns.themeColor('dark', 8) : fns.themeColor('gray', 0),
-				color: $isDark ? fns.themeColor('dark', 0) : 'black',
-				ml: '0px !important'
-			}
-		}}
-	>
-		<Header
-			slot="header"
-			height={60}
-			override={{ p: '$mdPX', bc: $isDark ? fns.themeColor('dark', 7) : 'white' }}
-		>
-			<HeaderContent toggle={toggleTheme} />
-		</Header>
-
+<div class="min-h-screen bg-base-100">
+	<header class="sticky top-0 z-50 flex h-14 items-center bg-base-100 shadow-sm">
+		<HeaderContent {toggleTheme} />
+	</header>
+	<main class="p-4">
 		<slot />
-	</AppShell>
-</SvelteUIProvider>
+	</main>
+</div>

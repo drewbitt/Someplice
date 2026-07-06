@@ -1,12 +1,5 @@
-@config "../config/tailwind.config.cjs";
 @import "tailwindcss";
-
-/* Includes Box-Sizing Reset (Universal with inheritance) */
-html {
-	box-sizing: border-box;
-}
-*,
-*:before,
-*:after {
-	box-sizing: inherit;
+@plugin "daisyui" {
+	themes: light --default, dark;
+	logs: false;
 }

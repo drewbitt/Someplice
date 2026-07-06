@@ -4,10 +4,10 @@
 </script>
 
 {#if $todayPageErrorStore}
-	<div class="daisy-toast daisy-toast-center">
-		<div class="daisy-alert daisy-alert-error flex gap-2">
+	<div class=" toast  toast-center">
+		<div class=" alert  alert-error flex gap-2">
 			<button
-				class="daisy-btn daisy-btn-circle daisy-btn-sm"
+				class=" btn  btn-circle  btn-sm"
 				on:click={() => todayPageErrorStore.setError(null)}
 			>
 				<X />
