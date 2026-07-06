@@ -1,4 +1,5 @@
-import { Kysely, Migrator, type Migration, type MigrationProvider } from 'kysely';
+import { Kysely } from 'kysely';
+import { Migrator, type Migration, type MigrationProvider } from 'kysely/migration';
 import type { DB } from '../types/data';
 import { dbLogger } from '$src/lib/utils/logger';
 import { DbInstance } from './db';
