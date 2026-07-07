@@ -59,7 +59,7 @@
 		"sveltekit-adapter-deno": "^0.16.1",
 		"tailwindcss": "^4.3.2",
 		"tslib": "^2.8.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.63.0",
 		"unplugin-icons": "^23.0.1",
 		"vite": "^7.3.6",
