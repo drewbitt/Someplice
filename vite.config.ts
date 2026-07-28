@@ -15,7 +15,10 @@ const config = {
 	],
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}'],
-		reporters: [['default', { summary: false }]]
+		reporters: [['default', { summary: false }]],
+		env: {
+			NODE_ENV: 'test'
+		}
 	}
 };
 
