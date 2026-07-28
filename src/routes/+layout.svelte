@@ -1,6 +1,6 @@
 <script>
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
-	import '../app.postcss';
+	import '../app.css';
 	import theme from '$lib/stores/theme';
 	import { pwaInfo } from 'virtual:pwa-info';
 
