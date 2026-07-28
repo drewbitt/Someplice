@@ -143,7 +143,7 @@ describe('goals', () => {
 		const input = { active: 1, title: '' }; // Missing 'color' field
 		let error;
 		try {
-			(await caller.goals.add(input)) as GoalResult;
+			(await caller.goals.add(input as GoalInput)) as GoalResult;
 		} catch (e) {
 			error = e;
 		}
@@ -175,7 +175,7 @@ describe('goals', () => {
 			.executeTakeFirst();
 		const editedGoal = { ...goalToEdit, title: 'Modified Test Goal' };
 
-		const result = (await caller.goals.edit(editedGoal)) as UpdateResult;
+		const result = (await caller.goals.edit(editedGoal as Goal)) as UpdateResult;
 		expect(Number(result.numUpdatedRows)).toEqual(1);
 
 		const editedGoalFromDb = await db
@@ -236,7 +236,7 @@ describe('goals', () => {
 
 		// Call updateGoals with the updated goals
 		const result = await caller.goals.updateGoals({
-			goals: [editedGoal1, editedGoal2, editedGoal3]
+			goals: [editedGoal1, editedGoal2, editedGoal3] as Goal[]
 		});
 
 		expect(result).toBeInstanceOf(Array);

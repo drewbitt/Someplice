@@ -2,7 +2,8 @@
 	import type { Goal } from '$src/lib/trpc/types';
 	import { createEventDispatcher } from 'svelte';
 
-	let { goal, newOutcomeText, index }: { goal: Goal; newOutcomeText: string; index: number } = $props();
+	let { goal, newOutcomeText, index }: { goal: Goal; newOutcomeText: string; index: number } =
+		$props();
 
 	const dispatch = createEventDispatcher();
 

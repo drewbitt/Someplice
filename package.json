@@ -39,7 +39,6 @@
 		"@sveltejs/kit": "^2.70.1",
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@tailwindcss/postcss": "^4.3.3",
-
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^24.13.3",
 		"@vite-pwa/sveltekit": "^1.1.0",

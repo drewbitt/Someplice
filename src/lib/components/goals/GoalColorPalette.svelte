@@ -55,7 +55,7 @@
 									opened = false;
 								}
 							}}
-						/>
+						></div>
 					</div>
 				{/each}
 			{/await}
@@ -78,8 +78,5 @@
 		}
 	}}
 >
-	<div
-		style="background-color: {goalColor}"
-		class="h-6 w-6 border"
-	/>
+	<div style="background-color: {goalColor}" class="h-6 w-6 border"></div>
 </div>

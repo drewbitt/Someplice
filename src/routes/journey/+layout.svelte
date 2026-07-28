@@ -8,10 +8,7 @@
 {#if $journeyPageErrorStore}
 	<div class="toast toast-center">
 		<div class="alert alert-error flex gap-2">
-			<button
-				class="btn btn-circle btn-sm"
-				onclick={() => journeyPageErrorStore.setError(null)}
-			>
+			<button class="btn btn-circle btn-sm" onclick={() => journeyPageErrorStore.setError(null)}>
 				<X />
 			</button>
 			<p>{$journeyPageErrorStore}</p>

@@ -184,7 +184,7 @@ describe('intentions', () => {
 		// Append text to the intention
 		const appendText = ' - edit';
 		const appendedIntention = (await caller.intentions.appendText({
-			id: TEST_INTENTION.id,
+			id: TEST_INTENTION.id as number,
 			text: appendText
 		})) as UpdateResult;
 
@@ -218,7 +218,7 @@ describe('intentions', () => {
 	it('updateIntentions', async () => {
 		const result = (await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION]
-		})) as Intention[];
+		})) as unknown as Intention[];
 		expect(result).toBeDefined();
 		expect(result[0]).toBeDefined();
 		// TODO: result[0].rows checks
@@ -237,7 +237,7 @@ describe('intentions', () => {
 		const newCompletionStatus = 1; // Assuming 1 represents completed
 		await caller.intentions.updateIntentionCompletionStatus([
 			{
-				intentionId: TEST_INTENTION.id,
+				intentionId: TEST_INTENTION.id as number,
 				completed: newCompletionStatus
 			}
 		]);

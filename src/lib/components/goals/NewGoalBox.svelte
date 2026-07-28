@@ -4,7 +4,7 @@
 	import { colors } from './colors';
 	import { goalPageErrorStore } from '$src/lib/stores/errors';
 
-	let { addedGoal = $bindable(), goalCount = 0 }: { addedGoal: boolean; goalCount?: number } = $props();
+	let { addedGoal = $bindable() }: { addedGoal: boolean } = $props();
 
 	const addGoal = async () => {
 		addedGoal = false;

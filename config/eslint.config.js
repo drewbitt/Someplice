@@ -23,6 +23,8 @@ export default [
 			}
 		},
 		rules: {
+			'no-undef': 'off',
+			'no-useless-assignment': 'off',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{ argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }
@@ -54,6 +56,8 @@ export default [
 			}
 		},
 		rules: {
+			'no-undef': 'off',
+			'no-useless-assignment': 'off',
 			'@typescript-eslint/no-unused-vars': [
 				'error',
 				{ argsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }

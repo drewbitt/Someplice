@@ -34,7 +34,9 @@
 			};
 
 			const observer = new IntersectionObserver(handleIntersect, { threshold: 0.1 });
-			observer.observe(invisibleFooter);
+			if (invisibleFooter) {
+				observer.observe(invisibleFooter);
+			}
 		}
 	});
 
@@ -118,7 +120,7 @@
 		</div>
 		{#if isLoadingMore}
 			<div class="mb-3 flex justify-center">
-				<span class="loading loading-bars loading-lg" />
+				<span class="loading loading-bars loading-lg"></span>
 			</div>
 		{/if}
 		<div bind:this={invisibleFooter} class="pagination-trigger"></div>

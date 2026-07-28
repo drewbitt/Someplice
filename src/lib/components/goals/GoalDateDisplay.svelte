@@ -25,7 +25,7 @@
 				endDate = endDates[0]?.date ?? '';
 			}
 		} catch (error) {
-			appLogger.error(error);
+			appLogger.error('Error loading goal logs', error);
 		}
 	});
 </script>

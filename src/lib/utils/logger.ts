@@ -14,8 +14,7 @@ export const dbLogger = new Logger({
 });
 export const trpcLogger = new Logger({
 	name: 'trpcLogger',
-	hideLogPositionForProduction: true,
-	prettyLogTemplate: '{{name}} ',
+	pretty: { template: '{{name}} ' },
 	minLevel: import.meta.env.PROD || process.env.NODE_ENV === 'test' ? 4 : 1
 });
 export const cronLogger = new Logger({
