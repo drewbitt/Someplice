@@ -6,16 +6,22 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { appLogger } from '$src/lib/utils/logger';
 
-	let { goals, intentions, outcomes }: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+	let {
+		goals,
+		intentions,
+		outcomes
+	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
 
-	let date = intentions[intentions.length - 1].date;
-	let dateWithoutTime = date.split('T')[0];
-	let outcomeForDate = outcomes.find((outcome) => outcome.date === dateWithoutTime);
+	let date = $derived(intentions[intentions.length - 1].date);
+	let dateWithoutTime = $derived(date.split('T')[0]);
+	let outcomeForDate = $derived(outcomes.find((outcome) => outcome.date === dateWithoutTime));
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
-	let maxOrderNumber = Math.max(...intentions.map((intention) => intention.orderNumber), 0);
+	let maxOrderNumber = $derived(
+		Math.max(...intentions.map((intention) => intention.orderNumber), 0)
+	);
 
 	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
 

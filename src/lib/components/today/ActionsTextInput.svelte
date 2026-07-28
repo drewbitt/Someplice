@@ -96,10 +96,11 @@
 		return null;
 	}
 
-	let maxOrderNumber = 0;
-	if (existingIntentions) {
-		maxOrderNumber = Math.max(...existingIntentions.map((intention) => intention.orderNumber));
-	}
+	let maxOrderNumber = $derived(
+		existingIntentions
+			? Math.max(...existingIntentions.map((intention) => intention.orderNumber))
+			: 0
+	);
 
 	const highlight = (value: string) => {
 		// Match lines that start with a number followed by a letter or letters and a closing parenthesis

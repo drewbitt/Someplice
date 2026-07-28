@@ -7,7 +7,7 @@ import { router, createCallerFactory } from '../router';
 const createCaller = createCallerFactory(router);
 
 export async function trpcLoad<
-	Event extends RequestEvent<Partial<Record<string, string>>, string | null>,
+	Event extends RequestEvent<Record<string, string>, string | null>,
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	Method extends (caller: ReturnType<typeof createCaller>) => Promise<any>
 >(event: Event, method: Method): Promise<ReturnType<Method>> {

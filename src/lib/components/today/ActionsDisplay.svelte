@@ -16,7 +16,9 @@
 	}: {
 		goals: PageServerData['goals'];
 		intentions: PageServerData['intentions'];
-		handleUpdateSingleIntention: (intention: PageServerData['intentions'][0]) => Promise<UpdateResult | undefined>;
+		handleUpdateSingleIntention: (
+			intention: PageServerData['intentions'][0]
+		) => Promise<UpdateResult | undefined>;
 	} = $props();
 
 	type Intention = PageServerData['intentions'][0];
@@ -36,7 +38,9 @@
 		}
 	}
 
-	$effect(() => { if (goals) updateGoalOrderNumbers(); });
+	$effect(() => {
+		if (goals) updateGoalOrderNumbers();
+	});
 
 	$effect(() => {
 		if (intentions && goalOrderNumbers) {
@@ -53,7 +57,9 @@
 		}
 	});
 
-	let firstIncompleteIntentionIndex = $derived(intentions.findIndex((intention) => intention.completed === 0));
+	let firstIncompleteIntentionIndex = $derived(
+		intentions.findIndex((intention) => intention.completed === 0)
+	);
 
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
@@ -142,6 +148,7 @@
 			onfinalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<span
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
@@ -171,6 +178,7 @@
 						{/if}
 						<button
 							aria-haspopup="true"
+							aria-label="Open intention menu"
 							class="cursor-pointer py-0.5 hover:bg-gray-400"
 							onclick={() => {
 								showIntentionModal = true;
@@ -198,7 +206,7 @@
 						</button>
 						<Menu class="w-5" color="grey" />
 					{:else}
-						<div class="w-9" />
+						<div class="w-9"></div>
 					{/if}
 					<input
 						tabindex={-1}

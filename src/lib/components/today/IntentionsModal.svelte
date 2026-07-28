@@ -5,7 +5,11 @@
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import AppendModal from './AppendModal.svelte';
 
-	let { goals, opened, intention }: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
+	let {
+		goals,
+		opened = $bindable(),
+		intention
+	}: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
 
 	let dialog: HTMLDialogElement;
 	let intentionsModalOpened = $state(opened);
@@ -39,11 +43,7 @@
 	};
 </script>
 
-<dialog
-	bind:this={dialog}
-	class="modal"
-	onclose={closeIntentionsModal}
->
+<dialog bind:this={dialog} class="modal" onclose={closeIntentionsModal}>
 	<div class="modal-box" style="border-top: 4px solid var(--goal-color)">
 		<h3 class="text-lg font-bold" style="color: var(--goal-color)">{modalTitle}</h3>
 		<div class="py-4">

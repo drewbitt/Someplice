@@ -30,7 +30,7 @@
 			});
 			editButtonActive = true;
 		}
-	})
+	});
 
 	function handleEditButtonClick() {
 		if (editButtonActive) {
@@ -83,7 +83,7 @@
 			const goalLogForGoalId = data.goalLogs.filter((log) => log.goalId === iGoal.id);
 			type GoalLogNoId = Omit<GoalLog, 'id'>;
 
-			const last = goalLogForGoalId.sort(
+			const last = (goalLogForGoalId as GoalLogNoId[]).sort(
 				(a: GoalLogNoId, b: GoalLogNoId) => new Date(b.date).valueOf() - new Date(a.date).valueOf()
 			)[0];
 			if (last?.type === 'end' && iGoal.id) {
@@ -101,7 +101,7 @@
 	}
 	$effect(() => {
 		sortInactiveGoals();
-	})
+	});
 </script>
 
 <svelte:head>
@@ -112,11 +112,8 @@
 	<h1 class="flex text-3xl font-bold">
 		Goals
 		<div class="indicator">
-			<span
-				class={editButtonActive
-					? 'badge indicator-item badge-secondary translate-x-1/4'
-					: ''}
-			/>
+			<span class={editButtonActive ? 'badge indicator-item badge-secondary translate-x-1/4' : ''}
+			></span>
 			{#if editButtonActive}
 				<button class="btn mx-2" onclick={handleCancelButtonClick}>Cancel</button>
 			{/if}
@@ -129,11 +126,8 @@
 			</button>
 		</div>
 		<div class="indicator">
-			<span
-				class={dragDisabled
-					? ''
-					: 'badge indicator-item badge-secondary translate-x-1/4'}
-			/>
+			<span class={dragDisabled ? '' : 'badge indicator-item badge-secondary translate-x-1/4'}
+			></span>
 			<button
 				class="btn mx-2"
 				disabled={!dragButtonEnabled || noGoals}
@@ -160,7 +154,11 @@
 		<h1 class="text-3xl font-bold">Inactive Goals</h1>
 		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
 			{#each data.inactiveGoals as goal, i (goal)}
-				<GoalBoxComponent bind:goal={data.inactiveGoals[i]} currentlyEditing={editButtonActive} isInactiveGoal={true} />
+				<GoalBoxComponent
+					bind:goal={data.inactiveGoals[i]}
+					currentlyEditing={editButtonActive}
+					isInactiveGoal={true}
+				/>
 			{/each}
 		</section>
 	{/if}

@@ -5,7 +5,12 @@
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
 
-	let { goal, intentions, showTitle, hasBeenSaved }: { goal: Goal; intentions: Intention[]; showTitle: boolean; hasBeenSaved: boolean } = $props();
+	let {
+		goal,
+		intentions,
+		showTitle,
+		hasBeenSaved
+	}: { goal: Goal; intentions: Intention[]; showTitle: boolean; hasBeenSaved: boolean } = $props();
 
 	const dispatch = createEventDispatcher();
 	let newOutcomeTexts = $state<string[]>([]);

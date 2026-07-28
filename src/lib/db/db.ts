@@ -33,7 +33,7 @@ export class DbInstance {
 				try {
 					fs.accessSync('./data/', fs.constants.R_OK | fs.constants.W_OK);
 				} catch (err) {
-					dbLogger.fatal(new Error('No read/write access to data directory'), err);
+					dbLogger.fatal('No read/write access to data directory', err);
 				}
 
 				betterSqlite3 = new Database('./data/db.sqlite');
@@ -52,7 +52,7 @@ export class DbInstance {
 				fs.mkdirSync(dirPath);
 				dbLogger.info('data directory created');
 			} catch (err) {
-				dbLogger.fatal(new Error('Failed to create data directory'), err);
+				dbLogger.fatal('Failed to create data directory', err);
 			}
 		}
 	}

@@ -15,16 +15,25 @@
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
 
+	// svelte-ignore state_referenced_locally
 	let intentions = $state(data.intentions);
+	// svelte-ignore state_referenced_locally
 	let intentionsOnLatestDate = $state(data.intentionsOnLatestDate);
 	let additionalIntentions = $state<Intentions[]>([]);
 	let validIntentions = $state<boolean>(false);
 	let showValidIntentionsNotification = $state(false);
 	let showAdditionalIntentionsTextArea = $state(false);
 	let showDBErrorNotification = $state(false);
+	// svelte-ignore state_referenced_locally
 	let intentionsFromServer = $state(data.intentions);
 	let hasOutstandingOutcome = $state(false);
 	let showPageLoadingSpinner = $state(false);
+
+	$effect(() => {
+		intentions = data.intentions;
+		intentionsOnLatestDate = data.intentionsOnLatestDate;
+		intentionsFromServer = data.intentions;
+	});
 
 	onMount(() => {
 		todaysIntentionsStore.initialize();
@@ -174,7 +183,7 @@
 
 {#if showPageLoadingSpinner}
 	<div class="flex justify-center">
-		<span class="loading loading-spinner loading-lg" />
+		<span class="loading loading-spinner loading-lg"></span>
 	</div>
 {:else}
 	<div class="flex flex-col gap-4">
@@ -197,10 +206,7 @@
 			/>
 			{#if showAdditionalIntentionsTextArea}
 				<div class="flex items-center">
-					<button
-						class="btn mr-2"
-						onclick={handleHideAdditionalIntentionsTextArea}>Hide</button
-					>
+					<button class="btn mr-2" onclick={handleHideAdditionalIntentionsTextArea}>Hide</button>
 					<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
 				</div>
 				{#if showValidIntentionsNotification}
@@ -235,8 +241,7 @@
 				<div role="alert" class="alert alert-error border-gray-400">
 					<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 					<span
-						>Please check that your intentions are formatted correctly and have valid goal
-						numbers.</span
+						>Please check that your intentions are formatted correctly and have valid goal numbers.</span
 					>
 				</div>
 			{/if}

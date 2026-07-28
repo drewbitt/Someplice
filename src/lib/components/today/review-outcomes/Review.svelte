@@ -8,17 +8,22 @@
 	import { invalidateAll } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors';
 
-	let { intentionsOnLatestDate, setHasOutstandingOutcome }: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } = $props();
+	let {
+		intentionsOnLatestDate,
+		setHasOutstandingOutcome
+	}: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } =
+		$props();
 
-	let intentionDate = $state(intentionsOnLatestDate[0]
-		? new Date(intentionsOnLatestDate[0].date)
-		: new Date());
+	let intentionDate = $derived(
+		intentionsOnLatestDate[0] ? new Date(intentionsOnLatestDate[0].date) : new Date()
+	);
 	let showPageLoadingSpinner = $state(true);
+
 	let daysAgo = $state(0);
 	let goalsOnDate = $state<Goal[]>([]);
 	let intentionsOnDate = $state<Intention[]>([]);
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
-	let maxOrderNumber = $state<number>();
+	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
 
 	$effect(() => {
@@ -196,7 +201,7 @@
 		</p>
 		{#if showPageLoadingSpinner}
 			<div class="flex justify-center">
-				<span class="loading loading-spinner loading-lg" />
+				<span class="loading loading-spinner loading-lg"></span>
 			</div>
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">

@@ -5,7 +5,7 @@
 
 	let {
 		currentlyEditing,
-		description,
+		description = $bindable(),
 		handleDeleteGoal,
 		handleArchiveGoal,
 		handleRestoreGoal,

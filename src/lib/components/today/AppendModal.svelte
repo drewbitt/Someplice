@@ -5,7 +5,12 @@
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
 
-	let { goals, opened, intention, closeModal }: { goals: Goal[]; opened: boolean; intention: Intention; closeModal: () => void } = $props();
+	let {
+		goals,
+		opened,
+		intention,
+		closeModal
+	}: { goals: Goal[]; opened: boolean; intention: Intention; closeModal: () => void } = $props();
 
 	let showDBErrorNotification = $state(false);
 	let dialogEl: HTMLDialogElement;

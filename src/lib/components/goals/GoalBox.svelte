@@ -19,16 +19,30 @@
 	} = $props();
 
 	let goalColor = $state(goal.color);
-	$effect(() => { goal.color = goalColor; });
+	$effect(() => {
+		goal.color = goalColor;
+	});
 	let showDeletionPrompt = $state(false);
 	let deletionConfirmed = $state(false);
 	let showArchivePrompt = $state(false);
 	let archiveConfirmed = $state(false);
 	let showRestorePrompt = $state(false);
 	let restoreConfirmed = $state(false);
-	$effect(() => { if (deletionConfirmed) { deleteGoal(); } });
-	$effect(() => { if (archiveConfirmed) { archiveGoal(); } });
-	$effect(() => { if (restoreConfirmed) { restoreGoal(); } });
+	$effect(() => {
+		if (deletionConfirmed) {
+			deleteGoal();
+		}
+	});
+	$effect(() => {
+		if (archiveConfirmed) {
+			archiveGoal();
+		}
+	});
+	$effect(() => {
+		if (restoreConfirmed) {
+			restoreGoal();
+		}
+	});
 
 	const handleDeleteGoal = async () => {
 		if (goal.id) {
@@ -90,11 +104,9 @@
 <div role="listitem">
 	<div
 		style="background-color: {goalColor}"
-		class="mx-5 grid gap-4 grid-cols-[minmax(0,3rem)_4fr] auto-rows-[6rem] leading-none"
+		class="mx-5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
 	>
-		<span
-			class="pl-2 font-mono text-7xl dark:text-white"
-		>
+		<span class="pl-2 font-mono text-7xl dark:text-white">
 			{goal.active ? goal.orderNumber : 'X'}
 		</span>
 		{#if showDeletionPrompt}
@@ -143,5 +155,3 @@
 		<GoalDateDisplay {goal} />
 	{/if}
 </div>
-
-
