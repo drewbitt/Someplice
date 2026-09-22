@@ -26,8 +26,7 @@
 			<textarea
 				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
 				placeholder="Describe your goal"
-				bind:value={description}
-			></textarea>
+				bind:value={description}></textarea>
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"

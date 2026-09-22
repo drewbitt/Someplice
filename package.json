@@ -43,7 +43,7 @@
 		"@types/node": "^24.13.6",
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"cross-env": "^10.1.0",
-		"daisyui": "^5.7.43",
+		"daisyui": "^5.7.42",
 		"eslint": "^10.11.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.0",
@@ -68,10 +68,5 @@
 		"workbox-window": "^7.4.1"
 	},
 	"type": "module",
-	"packageManager": "pnpm@10.34.5",
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"better-sqlite3"
-		]
-	}
+	"packageManager": "pnpm@12.5.1"
 }
