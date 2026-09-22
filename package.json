@@ -68,10 +68,5 @@
 		"workbox-window": "^7.4.1"
 	},
 	"type": "module",
-	"packageManager": "pnpm@12.5.1",
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"better-sqlite3"
-		]
-	}
+	"packageManager": "pnpm@12.5.1"
 }

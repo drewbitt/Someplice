@@ -38,7 +38,16 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types and Svelte components
+        run: pnpm check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
 
       - name: Run Vitest Tests
-        run: npx vitest --run
+        run: pnpm test:unit --run
