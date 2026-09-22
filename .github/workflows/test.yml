@@ -21,7 +21,7 @@ jobs:
       - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
-          version: 10.34.5
+          version: 12.5.1
           run_install: false
 
       - name: Get pnpm store directory
@@ -38,7 +38,13 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Check types and Svelte components
+        run: pnpm check
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Run Vitest Tests
-        run: npx vitest --run
+        run: pnpm test:unit --run

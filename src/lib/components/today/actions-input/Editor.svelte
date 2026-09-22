@@ -35,6 +35,5 @@
 		contenteditable="true"
 		bind:value
 		tabindex="0"
-		oninput={handleInput}
-	></textarea>
+		oninput={handleInput}></textarea>
 </div>

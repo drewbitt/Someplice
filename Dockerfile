@@ -3,12 +3,13 @@ FROM node:latest
 WORKDIR /app
 COPY package.json .
 COPY pnpm-lock.yaml .
+COPY pnpm-workspace.yaml .
 COPY tsconfig.json .
 COPY svelte.config.js .
 COPY vite.config.ts .
 COPY src/app.html src/app.html
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@12.5.1
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
