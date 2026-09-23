@@ -106,7 +106,7 @@ jobs:
           load: true
           tags: someplice:ci
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Boot container and smoke test
         run: |

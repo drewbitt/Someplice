@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 FROM node:24-slim AS base
-RUN npm install -g pnpm@12.5.1
+RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
