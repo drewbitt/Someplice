@@ -8,6 +8,23 @@ import path from 'node:path';
 
 const dbFilePath = () => process.env.DATABASE_PATH ?? './data/db.sqlite';
 
+// Shared by the app and tests: REGEXP must exist before migrations run
+// (intentions has a CHECK that uses it)
+export const configureSqlite = (sqlite: DatabaseSync): void => {
+	sqlite.exec('PRAGMA journal_mode = WAL');
+	sqlite.exec('PRAGMA foreign_keys = ON');
+	sqlite.function(
+		'regexp',
+		{ deterministic: true },
+		(regex: SQLOutputValue, text: SQLOutputValue) => {
+			if (typeof regex === 'string' && typeof text === 'string') {
+				return new RegExp(regex).test(text) ? 1 : 0;
+			}
+			return null;
+		}
+	);
+};
+
 let fileDbInstance: Kysely<DB> | null = null;
 
 export class DbInstance {
@@ -63,20 +80,7 @@ export class DbInstance {
 
 	private initDb(sqlite: DatabaseSync): Kysely<DB> {
 		dbLogger.debug('Initializing db instance');
-		// WAL for concurrent read/write; foreign keys were previously decorative
-		sqlite.exec('PRAGMA journal_mode = WAL');
-		sqlite.exec('PRAGMA foreign_keys = ON');
-		// Define REGEXP function
-		sqlite.function(
-			'regexp',
-			{ deterministic: true },
-			(regex: SQLOutputValue, text: SQLOutputValue) => {
-				if (typeof regex === 'string' && typeof text === 'string') {
-					return new RegExp(regex).test(text) ? 1 : 0;
-				}
-				return null;
-			}
-		);
+		configureSqlite(sqlite);
 
 		return new Kysely<DB>({
 			dialect: createNodeSqliteDialect(sqlite)

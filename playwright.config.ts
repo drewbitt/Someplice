@@ -2,7 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	testDir: 'tests',
-	fullyParallel: true,
+	// All tests share one sqlite db behind the preview server
+	workers: 1,
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
 	reporter: 'list',
@@ -12,7 +13,7 @@ export default defineConfig({
 	},
 	projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
 	webServer: {
-		command: 'pnpm run db:migrate && pnpm run build && pnpm run preview',
+		command: 'rm -f data/db.sqlite && pnpm run db:migrate && pnpm run build && pnpm run preview',
 		port: 4173,
 		reuseExistingServer: !process.env.CI
 	}

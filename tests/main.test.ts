@@ -37,3 +37,28 @@ test('Pressing New Goal button adds a new goal', async ({ page }) => {
 	// Adding a goal enters edit mode, so the title is rendered as an input
 	await expect(goalsListContainer.locator('.goal-box-title-editable input')).toHaveValue('Goal 1');
 });
+
+test('theme toggle persists dark mode across reload', async ({ page }) => {
+	await page.goto('/');
+	await page.getByRole('button', { name: 'Toggle theme' }).click();
+	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+	expect(await page.evaluate(() => localStorage.getItem('theme'))).toBe('dark');
+
+	await page.reload();
+	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});
+
+test('intentions typed on Today persist across reload', async ({ page }) => {
+	// Today hides the editor until a goal exists
+	await page.goto('/goals');
+	await page.getByRole('button', { name: 'New Goal' }).click();
+	await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
+
+	await page.goto('/today');
+	const editor = page.locator('.goal__editor__textarea');
+	await editor.fill('1) write tests');
+	await expect(editor).toHaveValue('1) write tests');
+
+	await page.reload();
+	await expect(page.locator('.goal__editor__textarea')).toHaveValue('1) write tests');
+});

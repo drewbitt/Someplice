@@ -1,12 +1,14 @@
 # syntax=docker/dockerfile:1
 
 FROM node:24-slim AS base
-RUN npm install -g pnpm@12.5.1
+RUN corepack enable
 WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# esbuild ships binaries via optionalDeps; skipping scripts keeps dev-only
+# native deps from breaking slim image builds
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM deps AS build
 COPY . .
@@ -14,7 +16,7 @@ RUN pnpm run build
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 FROM node:24-slim AS runtime
 WORKDIR /app

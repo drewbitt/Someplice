@@ -1,13 +1,20 @@
 {
 	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
-	extends: ['config:recommended', 'group:allNonMajor', ':semanticCommits'],
+	extends: ['config:best-practices', ':semanticCommits'],
 	rangeStrategy: 'bump',
+	// Bad or yanked releases self-filter before they can be proposed.
+	minimumReleaseAge: '7 days',
 	packageRules: [
 		{
-			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			matchUpdateTypes: ['patch', 'pin', 'digest'],
 			automerge: true,
 			timezone: 'America/New_York',
 			schedule: ['after 5:00pm on Monday']
+		},
+		{
+			matchUpdateTypes: ['minor'],
+			groupName: 'minor updates',
+			groupSlug: 'minor'
 		},
 		{
 			matchUpdateTypes: ['major'],
