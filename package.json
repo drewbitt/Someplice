@@ -15,8 +15,8 @@
 		"lint": "prettier --cache --ignore-path ./config/.prettierignore --check . && eslint -c ./config/eslint.config.js .",
 		"format": "prettier --cache --ignore-path ./config/.prettierignore --write .",
 		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
-		"db:migrate": "vite-node ./src/lib/db/migrate-to-latest.ts",
-		"db:migrate:single": "vite-node ./src/lib/db/migrate-to-latest.ts --migration"
+		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts",
+		"db:migrate:single": "node ./src/lib/db/migrate-to-latest.ts --migration"
 	},
 	"dependencies": {
 		"@trpc/client": "^11.19.0",
@@ -26,7 +26,6 @@
 		"devalue": "^5.9.4",
 		"kysely": "^0.29.6",
 		"tslog": "^5.2.0",
-		"vite-node": "^6.0.0",
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
@@ -70,5 +69,8 @@
 		"workbox-window": "^7.4.1"
 	},
 	"type": "module",
+	"engines": {
+		"node": ">=24"
+	},
 	"packageManager": "pnpm@12.5.1"
 }

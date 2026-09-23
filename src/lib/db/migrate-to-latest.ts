@@ -1,8 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Kysely } from 'kysely';
 import { Migrator, type Migration, type MigrationProvider } from 'kysely/migration';
 import type { DB } from '../types/data';
-import { dbLogger } from '$src/lib/utils/logger';
-import { DbInstance } from './db';
+import { dbLogger } from '../utils/logger.ts';
+import { DbInstance } from './db.ts';
+
+const migrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
 export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	const isTest = process.env.NODE_ENV === 'test';
@@ -11,11 +16,16 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	}
 	db = db || DbInstance.getInstance().db;
 
-	const ViteMigrationProvider: MigrationProvider = {
+	const FsMigrationProvider: MigrationProvider = {
 		async getMigrations() {
-			const migrations: Record<string, Migration> = import.meta.glob('./migrations/**.ts', {
-				eager: true
-			});
+			const files = fs
+				.readdirSync(migrationsDir)
+				.filter((file) => file.endsWith('.ts'))
+				.sort();
+			const migrations: Record<string, Migration> = {};
+			for (const file of files) {
+				migrations[`./migrations/${file}`] = await import(`./migrations/${file}`);
+			}
 
 			if (migrationName) {
 				for (const key in migrations) {
@@ -33,7 +43,7 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 
 	const migrator = new Migrator({
 		db,
-		provider: ViteMigrationProvider
+		provider: FsMigrationProvider
 	});
 
 	const { error, results } = await migrator.migrateToLatest();
@@ -64,10 +74,11 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	}
 }
 
-// Run as a CLI only when invoked directly (e.g. `vite-node ./src/lib/db/migrate-to-latest.ts`).
+// Run as a CLI only when invoked directly (e.g. `node ./src/lib/db/migrate-to-latest.ts`).
 // Imports by tests / app code must not trigger a module-level migration, which was destroying
 // the DbInstance singleton's driver before tests could run their beforeEach setup.
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+const isMainModule =
+	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
 	const migrationName = process.argv[2] === '--migration' ? process.argv[3] : undefined;
 	migrateToLatest(undefined, migrationName);

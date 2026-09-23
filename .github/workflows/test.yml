@@ -48,3 +48,30 @@ jobs:
 
       - name: Run Vitest Tests
         run: pnpm test:unit --run
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.21.0
+
+      - uses: pnpm/action-setup@v6
+        name: Install pnpm
+        with:
+          version: 12.5.1
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        run: pnpm test:e2e

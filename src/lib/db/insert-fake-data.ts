@@ -11,8 +11,8 @@ import {
 	randText,
 	randTextRange
 } from '@ngneat/falso';
-import { DbInstance } from './db';
-import { dbLogger } from '$src/lib/utils/logger';
+import { DbInstance } from './db.ts';
+import { dbLogger } from '../utils/logger.ts';
 
 const { db } = DbInstance.getInstance();
 

@@ -86,8 +86,9 @@
 		}
 	};
 
-	function handleNewOutcomeTextChanged(event: CustomEvent<{ goalId: number; texts: string[] }>) {
-		const { goalId, texts } = event.detail;
+	function handleNewOutcomeTextChanged(detail: { goalId: number | null; texts: string[] }) {
+		const { goalId, texts } = detail;
+		if (goalId === null) return;
 
 		texts.forEach((text, index) => {
 			const newOrderNumber = maxOrderNumber + 1 + index;
@@ -127,9 +128,9 @@
 				{intentions}
 				{hasBeenSaved}
 				showTitle={false}
-				on:updateNewOutcomeTexts={handleNewOutcomeTextChanged}
-				on:plusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
-				on:checkboxClicked={handleReviewGoalBoxChange}
+				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
+				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
+				onCheckboxClicked={handleReviewGoalBoxChange}
 			/>
 		{/if}
 	{/each}

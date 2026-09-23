@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+.svelte-kit
+build
+data/*.sqlite
+data/*.sqlite-*
+.env
+.env.*
+!.env.example
+test-results
+playwright-report
+Dockerfile
+.dockerignore
+devbox.json
+devbox.lock

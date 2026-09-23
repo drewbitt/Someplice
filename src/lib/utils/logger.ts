@@ -10,16 +10,16 @@ import { Logger } from 'tslog';
 export const appLogger = new Logger({ name: 'appLogger' });
 export const dbLogger = new Logger({
 	name: 'dbLogger',
-	minLevel: process.env.NODE_ENV === 'test' || import.meta.env.PROD ? 3 : 1
+	minLevel: process.env.NODE_ENV === 'test' || import.meta.env?.PROD ? 3 : 1
 });
 export const trpcLogger = new Logger({
 	name: 'trpcLogger',
 	pretty: { template: '{{name}} ' },
-	minLevel: import.meta.env.PROD || process.env.NODE_ENV === 'test' ? 4 : 1
+	minLevel: import.meta.env?.PROD || process.env.NODE_ENV === 'test' ? 4 : 1
 });
 export const cronLogger = new Logger({
 	name: 'cronLogger',
-	minLevel: import.meta.env.PROD ? 3 : 1
+	minLevel: import.meta.env?.PROD ? 3 : 1
 });
 
 // Default logger
