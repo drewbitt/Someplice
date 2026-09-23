@@ -24,6 +24,7 @@
 		"croner": "^10.0.1",
 		"devalue": "^5.9.4",
 		"kysely": "^0.29.6",
+		"kysely-generic-sqlite": "^2.0.1",
 		"runed": "0.37.1",
 		"tslog": "^5.2.0",
 		"zod": "^4.6.5"

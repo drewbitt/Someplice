@@ -1,5 +1,5 @@
 import { dbLogger } from '../utils/logger.ts';
-import { NodeSqliteDialect } from './node-sqlite.ts';
+import { createNodeSqliteDialect } from './node-sqlite.ts';
 import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
 import { Kysely } from 'kysely';
 import type { DB } from '../types/data';
@@ -79,9 +79,7 @@ export class DbInstance {
 		);
 
 		return new Kysely<DB>({
-			dialect: new NodeSqliteDialect({
-				database: sqlite
-			})
+			dialect: createNodeSqliteDialect(sqlite)
 		});
 	}
 
