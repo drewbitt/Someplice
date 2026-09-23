@@ -6,7 +6,10 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# No install scripts: nothing in the build needs native bindings (esbuild
+# ships platform binaries via optionalDeps), and skipping them means dev-only
+# native deps can't break the image build on slim variants.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM deps AS build
 COPY . .
@@ -14,7 +17,7 @@ RUN pnpm run build
 
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 FROM node:24-slim AS runtime
 WORKDIR /app
