@@ -6,7 +6,7 @@
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
-	import { goalPageErrorStore } from '$src/lib/stores/errors';
+	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
 		goal = $bindable(),

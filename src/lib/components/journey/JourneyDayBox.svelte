@@ -17,13 +17,13 @@
 	role="listitem"
 	aria-label="Journey Day Box"
 	class="grid w-full flex-col gap-3 border border-gray-300 py-3 shadow-lg"
-	class:bg-gray-950={$theme === 'dark'}
-	class:bg-white={$theme !== 'dark'}
+	class:bg-gray-950={theme.current === 'dark'}
+	class:bg-white={theme.current !== 'dark'}
 >
 	<h3
 		class="ml-5 text-xl font-bold"
-		class:text-gray-700={$theme === 'dark'}
-		class:text-gray-300={$theme !== 'dark'}
+		class:text-gray-700={theme.current === 'dark'}
+		class:text-gray-300={theme.current !== 'dark'}
 	>
 		{(() => {
 			const dateObj = new Date(date);

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { todayPageErrorStore } from '$src/lib/stores/errors';
+	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';

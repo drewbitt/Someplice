@@ -23,7 +23,7 @@
 		return () => document.removeEventListener('keydown', handler);
 	});
 
-	let isDark = $derived($theme === 'dark');
+	let isDark = $derived(theme.current === 'dark');
 </script>
 
 <nav class="flex h-full w-full items-center justify-between px-5">

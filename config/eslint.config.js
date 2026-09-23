@@ -32,6 +32,16 @@ export default [
 		}
 	},
 	{
+		// eslint-plugin-svelte already routes *.svelte.ts files through svelte-eslint-parser;
+		// without this it parses them with espree, which can't handle TS syntax.
+		files: ['**/*.svelte.ts'],
+		languageOptions: {
+			parserOptions: {
+				parser: tsEslint.parser
+			}
+		}
+	},
+	{
 		files: ['**/*.svelte'],
 		languageOptions: {
 			ecmaVersion: 2020,

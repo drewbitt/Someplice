@@ -6,7 +6,7 @@
 	import { localeCurrentDate } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
 	import { invalidateAll } from '$app/navigation';
-	import { todayPageErrorStore } from '$src/lib/stores/errors';
+	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
 		intentionsOnLatestDate,
@@ -179,7 +179,7 @@
 		});
 	}
 
-	let darkMode = $derived($theme === 'dark');
+	let darkMode = $derived(theme.current === 'dark');
 </script>
 
 <div
