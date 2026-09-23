@@ -19,12 +19,11 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24.21.0
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
-          version: 12.5.1
           run_install: false
 
       - name: Get pnpm store directory
@@ -57,6 +56,8 @@ jobs:
 
   db:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_PATH: /tmp/ci-test.sqlite
 
     steps:
       - name: Checkout
@@ -65,12 +66,11 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24.21.0
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
-          version: 12.5.1
           run_install: false
 
       - name: Install dependencies
@@ -79,17 +79,14 @@ jobs:
       - name: Migrate a fresh database
         run: pnpm run db:migrate
         env:
-          DATABASE_PATH: /tmp/ci-test.sqlite
           NODE_ENV: migration
 
       - name: Seed smoke test
         run: node ./src/lib/db/insert-fake-data.ts
-        env:
-          DATABASE_PATH: /tmp/ci-test.sqlite
 
       - name: Schema matches generated types
         run: |
-          DATABASE_URL=/tmp/ci-test.sqlite pnpm run db:codegen
+          DATABASE_URL=$DATABASE_PATH pnpm run db:codegen
           git diff --exit-code -- src/lib/types/data.d.ts
 
   docker:
@@ -127,12 +124,11 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 24.21.0
+          node-version-file: '.node-version'
 
       - uses: pnpm/action-setup@v6
         name: Install pnpm
         with:
-          version: 12.5.1
           run_install: false
 
       - name: Install dependencies

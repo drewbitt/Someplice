@@ -6,9 +6,8 @@ WORKDIR /app
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# No install scripts: nothing in the build needs native bindings (esbuild
-# ships platform binaries via optionalDeps), and skipping them means dev-only
-# native deps can't break the image build on slim variants.
+# esbuild ships binaries via optionalDeps; skipping scripts keeps dev-only
+# native deps from breaking slim image builds
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 FROM deps AS build

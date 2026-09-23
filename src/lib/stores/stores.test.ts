@@ -40,8 +40,7 @@ describe('stores', () => {
 	});
 
 	it('theme and intentions defaults are readable without a browser', () => {
-		// runed's PersistedState treats storage as the source of truth, so
-		// writes are dropped headless — defaults are all that is observable here.
+		// PersistedState treats storage as source of truth; writes drop headless
 		expect(theme.current).toBe('light');
 		expect(todaysIntentions.current).toBe('');
 	});

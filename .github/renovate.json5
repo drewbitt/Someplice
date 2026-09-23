@@ -2,21 +2,16 @@
 	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
 	extends: ['config:best-practices', ':semanticCommits'],
 	rangeStrategy: 'bump',
-	// Let releases age a week before any update is proposed — yanked or
-	// malicious releases self-filter before they reach the repo. The
-	// Dependency Dashboard can still force an update sooner.
+	// Bad or yanked releases self-filter before they can be proposed.
 	minimumReleaseAge: '7 days',
-	platformAutomerge: true,
 	packageRules: [
 		{
-			// Low-risk bumps merge themselves, Monday evenings only.
 			matchUpdateTypes: ['patch', 'pin', 'digest'],
 			automerge: true,
 			timezone: 'America/New_York',
 			schedule: ['after 5:00pm on Monday']
 		},
 		{
-			// Minors arrive as one grouped PR for review.
 			matchUpdateTypes: ['minor'],
 			groupName: 'minor updates',
 			groupSlug: 'minor'

@@ -25,8 +25,7 @@ const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
 describe('migrations', () => {
 	let dir: string;
 	let db: Kysely<DB>;
-	// migrations are typed to Kysely<unknown>; a single aliased handle avoids
-	// casting at every call site
+	// migration fns take Kysely<unknown>; one alias instead of a cast per call
 	let migrationDb: Kysely<unknown>;
 
 	beforeAll(async () => {
@@ -66,7 +65,7 @@ describe('migrations', () => {
 			['outcomes', 'outcomes_intentions'].sort()
 		);
 
-		// re-apply to prove the up/down pairs are symmetric
+		// re-apply to prove the pairs are symmetric
 		await m001.up(migrationDb);
 		await m003.up(migrationDb);
 		await m004.up(migrationDb);
