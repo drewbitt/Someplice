@@ -1,73 +1,128 @@
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import {
-	DatabaseSync,
-	type SQLInputValue,
-	type SQLOutputValue,
-	type StatementSync
-} from 'node:sqlite';
-import type { SqliteDatabase, SqliteStatement } from 'kysely';
+	CompiledQuery,
+	SelectQueryNode,
+	SqliteAdapter,
+	SqliteIntrospector,
+	SqliteQueryCompiler,
+	type DatabaseConnection,
+	type DatabaseIntrospector,
+	type Dialect,
+	type DialectAdapter,
+	type Driver,
+	type Kysely,
+	type QueryCompiler,
+	type QueryResult
+} from 'kysely';
 
-// Thin adapter so node:sqlite satisfies Kysely's SqliteDatabase contract:
-// it expects statements to expose `reader` and to take bind params as an array.
-// node:sqlite also returns rows as null-prototype objects; spread them back
-// into plain objects to match better-sqlite3's observable behavior.
-class NodeSqliteStatement implements SqliteStatement {
-	private readonly stmt: StatementSync;
+export interface NodeSqliteDialectConfig {
+	database: DatabaseSync;
+}
 
-	constructor(stmt: StatementSync) {
-		this.stmt = stmt;
+/**
+ * Kysely dialect backed by Node's built-in `node:sqlite`.
+ *
+ * Reuses Kysely's SqliteAdapter/Introspector/QueryCompiler — only the driver
+ * differs from the bundled SqliteDialect (which targets better-sqlite3):
+ * bound parameters are spread into statement calls rather than passed as an
+ * array, and there is no `stmt.reader` flag, so read-vs-write is derived from
+ * `stmt.columns()`. Rows are spread into plain objects since node:sqlite
+ * returns null-prototype records.
+ */
+export class NodeSqliteDialect implements Dialect {
+	private readonly config: NodeSqliteDialectConfig;
+
+	constructor(config: NodeSqliteDialectConfig) {
+		this.config = config;
 	}
 
-	get reader() {
-		return this.stmt.columns().length > 0;
+	createDriver(): Driver {
+		return new NodeSqliteDriver(this.config);
 	}
 
-	all(parameters: readonly unknown[]) {
-		return this.stmt.all(...(parameters as SQLInputValue[])).map((row) => ({ ...row }));
+	createQueryCompiler(): QueryCompiler {
+		return new SqliteQueryCompiler();
 	}
 
-	run(parameters: readonly unknown[]) {
-		return this.stmt.run(...(parameters as SQLInputValue[]));
+	createAdapter(): DialectAdapter {
+		return new SqliteAdapter();
 	}
 
-	*iterate(parameters: readonly unknown[]) {
-		for (const row of this.stmt.iterate(...(parameters as SQLInputValue[]))) {
-			yield { ...row };
-		}
+	createIntrospector(db: Kysely<unknown>): DatabaseIntrospector {
+		return new SqliteIntrospector(db);
 	}
 }
 
-export class NodeSqliteDatabase implements SqliteDatabase {
+class NodeSqliteDriver implements Driver {
+	private readonly config: NodeSqliteDialectConfig;
+	private connection: NodeSqliteConnection | null = null;
+
+	constructor(config: NodeSqliteDialectConfig) {
+		this.config = config;
+	}
+
+	async init(): Promise<void> {
+		this.connection = new NodeSqliteConnection(this.config.database);
+	}
+
+	async acquireConnection(): Promise<DatabaseConnection> {
+		return this.connection!;
+	}
+
+	async beginTransaction(connection: DatabaseConnection): Promise<void> {
+		await connection.executeQuery(CompiledQuery.raw('begin'));
+	}
+
+	async commitTransaction(connection: DatabaseConnection): Promise<void> {
+		await connection.executeQuery(CompiledQuery.raw('commit'));
+	}
+
+	async rollbackTransaction(connection: DatabaseConnection): Promise<void> {
+		await connection.executeQuery(CompiledQuery.raw('rollback'));
+	}
+
+	async releaseConnection(): Promise<void> {
+		// noop — single connection
+	}
+
+	async destroy(): Promise<void> {
+		this.config.database.close();
+	}
+}
+
+class NodeSqliteConnection implements DatabaseConnection {
 	private readonly db: DatabaseSync;
 
-	constructor(pathOrMemory: string) {
-		this.db = new DatabaseSync(pathOrMemory);
+	constructor(db: DatabaseSync) {
+		this.db = db;
 	}
 
-	exec(sql: string) {
-		this.db.exec(sql);
-	}
+	async executeQuery<R>(compiledQuery: CompiledQuery): Promise<QueryResult<R>> {
+		const stmt = this.db.prepare(compiledQuery.sql);
+		const parameters = compiledQuery.parameters as SQLInputValue[];
 
-	function(
-		name: string,
-		options: { deterministic?: boolean },
-		fn: (...args: unknown[]) => unknown
-	) {
-		// better-sqlite3 treats an undefined return as SQL NULL; match that
-		const wrapped = (...args: SQLOutputValue[]) => {
-			const result = fn(...args);
-			return result === undefined ? null : (result as SQLInputValue);
+		if (stmt.columns().length > 0) {
+			return { rows: stmt.all(...parameters).map((row) => ({ ...row }) as R) };
+		}
+
+		const { changes, lastInsertRowid } = stmt.run(...parameters);
+		return {
+			insertId: BigInt(lastInsertRowid),
+			numAffectedRows: BigInt(changes),
+			rows: []
 		};
-		// node:sqlite derives the SQL arity from func.length — keep it identical
-		// to the wrapped function so arity checking still rejects wrong arg counts.
-		Object.defineProperty(wrapped, 'length', { value: fn.length });
-		this.db.function(name, options, wrapped);
 	}
 
-	prepare(sql: string) {
-		return new NodeSqliteStatement(this.db.prepare(sql));
-	}
+	async *streamQuery<R>(compiledQuery: CompiledQuery): AsyncIterableIterator<QueryResult<R>> {
+		if (!SelectQueryNode.is(compiledQuery.query)) {
+			throw new Error('NodeSqlite driver only supports streaming of select queries');
+		}
 
-	close() {
-		this.db.close();
+		const stmt = this.db.prepare(compiledQuery.sql);
+		const parameters = compiledQuery.parameters as SQLInputValue[];
+
+		for (const row of stmt.iterate(...parameters)) {
+			yield { rows: [{ ...row } as R] };
+		}
 	}
 }
