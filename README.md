@@ -100,13 +100,7 @@ The Docker public image build is WIP. For now, you can build the image locally:
 docker build -t someplice .
 ```
 
-Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database.
-
-```bash
-docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest sh -c "pnpm run db:migrate && node build/index.js"
-```
-
-Running the db migrations is only required the first time you run the container. After that, you can just run:
+Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database. The container runs any pending migrations automatically on every start.
 
 ```bash
 docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest

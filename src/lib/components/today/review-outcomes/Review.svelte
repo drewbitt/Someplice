@@ -150,8 +150,9 @@
 		}
 	};
 
-	function handleNewOutcomeTextChanged(event: CustomEvent<{ goalId: number; texts: string[] }>) {
-		const { goalId, texts } = event.detail;
+	function handleNewOutcomeTextChanged(detail: { goalId: number | null; texts: string[] }) {
+		const { goalId, texts } = detail;
+		if (goalId === null) return;
 
 		texts.forEach((text, index) => {
 			const newOrderNumber = maxOrderNumber + 1 + index;
@@ -211,7 +212,7 @@
 						{hasBeenSaved}
 						showTitle={true}
 						intentions={intentionsOnDate}
-						on:updateNewOutcomeTexts={handleNewOutcomeTextChanged}
+						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 					/>
 				{/each}
 			</div>

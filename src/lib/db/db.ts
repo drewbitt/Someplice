@@ -1,8 +1,11 @@
-import { dbLogger } from '$src/lib/utils/logger';
+import { dbLogger } from '../utils/logger.ts';
 import Database from 'better-sqlite3';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { DB } from '../types/data';
 import fs from 'node:fs';
+import path from 'node:path';
+
+const dbFilePath = () => process.env.DATABASE_PATH ?? './data/db.sqlite';
 
 let fileDbInstance: Kysely<DB> | null = null;
 
@@ -22,7 +25,7 @@ export class DbInstance {
 			this._db = this.initDb(betterSqlite3);
 		} else {
 			if (!fileDbInstance) {
-				const dbPath = './data/db.sqlite';
+				const dbPath = dbFilePath();
 				if (!fs.existsSync(dbPath) && process.env.NODE_ENV !== 'migration') {
 					dbLogger.fatal(new Error('No db instance found, run migrations first'));
 				}
@@ -31,12 +34,12 @@ export class DbInstance {
 
 				// Path checks for debugging
 				try {
-					fs.accessSync('./data/', fs.constants.R_OK | fs.constants.W_OK);
+					fs.accessSync(path.dirname(dbPath), fs.constants.R_OK | fs.constants.W_OK);
 				} catch (err) {
 					dbLogger.fatal('No read/write access to data directory', err);
 				}
 
-				betterSqlite3 = new Database('./data/db.sqlite');
+				betterSqlite3 = new Database(dbPath);
 				fileDbInstance = this.initDb(betterSqlite3);
 			}
 			this._db = fileDbInstance!;
@@ -45,11 +48,11 @@ export class DbInstance {
 
 	// Just in case the data directory is missing
 	private ensureDBDirectoryExists() {
-		const dirPath = './data/';
+		const dirPath = path.dirname(dbFilePath());
 
 		if (!fs.existsSync(dirPath)) {
 			try {
-				fs.mkdirSync(dirPath);
+				fs.mkdirSync(dirPath, { recursive: true });
 				dbLogger.info('data directory created');
 			} catch (err) {
 				dbLogger.fatal('Failed to create data directory', err);
@@ -59,6 +62,9 @@ export class DbInstance {
 
 	private initDb(betterSqlite3: InstanceType<typeof Database>): Kysely<DB> {
 		dbLogger.debug('Initializing db instance');
+		// WAL for concurrent read/write; foreign keys were previously decorative
+		betterSqlite3.pragma('journal_mode = WAL');
+		betterSqlite3.pragma('foreign_keys = ON');
 		// Define REGEXP function
 		betterSqlite3.function('regexp', { deterministic: true }, (regex: unknown, text: unknown) => {
 			if (typeof regex === 'string' && typeof text === 'string') {

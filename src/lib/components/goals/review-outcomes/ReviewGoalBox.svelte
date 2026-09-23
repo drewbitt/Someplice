@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { createEventDispatcher } from 'svelte';
 	import { evenEvenLighterHSLColor } from '$src/lib/utils';
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
@@ -9,10 +8,20 @@
 		goal,
 		intentions,
 		showTitle,
-		hasBeenSaved
-	}: { goal: Goal; intentions: Intention[]; showTitle: boolean; hasBeenSaved: boolean } = $props();
+		hasBeenSaved,
+		onUpdateNewOutcomeTexts,
+		onPlusNewOutcomeButtonPressed,
+		onCheckboxClicked
+	}: {
+		goal: Goal;
+		intentions: Intention[];
+		showTitle: boolean;
+		hasBeenSaved: boolean;
+		onUpdateNewOutcomeTexts?: (detail: { goalId: number | null; texts: string[] }) => void;
+		onPlusNewOutcomeButtonPressed?: (detail: { goalId: number | null }) => void;
+		onCheckboxClicked?: (detail: { intentionId: number | null }) => void;
+	} = $props();
 
-	const dispatch = createEventDispatcher();
 	let newOutcomeTexts = $state<string[]>([]);
 
 	$effect(() => {
@@ -27,17 +36,17 @@
 
 	function handlePlusNewOutcome() {
 		newOutcomeTexts = [...newOutcomeTexts, ''];
-		dispatch('plusNewOutcomeButtonPressed', { goalId: goal.id });
+		onPlusNewOutcomeButtonPressed?.({ goalId: goal.id });
 	}
 
 	function handleCheckboxClick(intentionId: number | null) {
-		dispatch('checkboxClicked', { intentionId });
+		onCheckboxClicked?.({ intentionId });
 	}
 
-	function handleNewOutcomeTextChanged(event: CustomEvent<{ value: string; index: number }>) {
-		newOutcomeTexts[event.detail.index] = event.detail.value;
+	function handleNewOutcomeTextChanged(detail: { value: string; index: number }) {
+		newOutcomeTexts[detail.index] = detail.value;
 		newOutcomeTexts = newOutcomeTexts.slice(); // create a new reference to trigger reactivity
-		dispatch('updateNewOutcomeTexts', { goalId: goal.id, texts: newOutcomeTexts });
+		onUpdateNewOutcomeTexts?.({ goalId: goal.id, texts: newOutcomeTexts });
 	}
 </script>
 
@@ -98,7 +107,7 @@
 					{goal}
 					{index}
 					newOutcomeText={text}
-					on:textChanged={(e) => handleNewOutcomeTextChanged(e)}
+					onTextChanged={handleNewOutcomeTextChanged}
 				/>
 			{/each}
 			<button

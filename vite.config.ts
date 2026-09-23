@@ -8,7 +8,20 @@ const config = {
 	plugins: [
 		tailwindcss(),
 		sveltekit(),
-		SvelteKitPWA(),
+		SvelteKitPWA({
+			manifest: {
+				name: 'Someplice',
+				short_name: 'Someplice',
+				description: 'Daily intentions and outcomes tracker',
+				theme_color: '#ffffff',
+				background_color: '#ffffff',
+				display: 'standalone',
+				icons: [
+					{ src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+					{ src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' }
+				]
+			}
+		}),
 		Icons({
 			compiler: 'svelte'
 		})

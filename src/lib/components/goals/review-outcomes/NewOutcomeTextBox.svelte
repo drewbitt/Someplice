@@ -1,16 +1,21 @@
 <script lang="ts">
 	import type { Goal } from '$src/lib/trpc/types';
-	import { createEventDispatcher } from 'svelte';
 
-	let { goal, newOutcomeText, index }: { goal: Goal; newOutcomeText: string; index: number } =
-		$props();
-
-	const dispatch = createEventDispatcher();
+	let {
+		goal,
+		newOutcomeText,
+		index,
+		onTextChanged
+	}: {
+		goal: Goal;
+		newOutcomeText: string;
+		index: number;
+		onTextChanged: (detail: { value: string; index: number }) => void;
+	} = $props();
 
 	function handleInputChange(event: Event) {
 		const target = event.target as HTMLInputElement;
-		const updatedText = target.value;
-		dispatch('textChanged', { value: updatedText, index });
+		onTextChanged({ value: target.value, index });
 	}
 </script>
 

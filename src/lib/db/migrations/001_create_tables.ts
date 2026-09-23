@@ -54,6 +54,6 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
-	await db.schema.dropTable('user').execute();
-	await db.schema.dropTable('goal').execute();
+	await db.schema.dropTable('intentions').execute();
+	await db.schema.dropTable('goals').execute();
 }

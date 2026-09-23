@@ -13,30 +13,27 @@ import { expect, test } from '@playwright/test';
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
-	expect(await page.textContent('h1')).toBe('Someplice');
+	await expect(page.getByRole('heading', { name: 'Someplice', level: 1 })).toBeVisible();
 });
 
 test('Today page shows text when no goals are set', async ({ page }) => {
 	await page.goto('/today');
-	expect(await page.textContent('#no-goals-notification > div > div')).toBe(
-		'You have no goals. Please add some goals first.'
-	);
+	await expect(
+		page.getByRole('alert').getByText('You have no goals. Please add some goals first.')
+	).toBeVisible();
 });
 
 test('GoalBox contains New goal button', async ({ page }) => {
 	await page.goto('/goals');
-	expect(await page.textContent('#new-goal-button > div')).toBe('New Goal');
+	await expect(page.getByRole('button', { name: 'New Goal' })).toBeVisible();
 });
 
 test('Pressing New Goal button adds a new goal', async ({ page }) => {
 	await page.goto('/goals');
-	await page.click('#new-goal-button');
-	await page.waitForSelector('#goals-list-container > :nth-child(1)');
-	const goalsListContainer = await page.waitForSelector('#goals-list-container');
-	const newGoalInput = await goalsListContainer.$('#input-id');
-
-	// Expect container to have 1 child (:scope = current element eval is being run on)
-	expect(await goalsListContainer.$$eval(':scope > *', (el) => el.length)).toBe(1);
-	// Expect input to have value 'Goal 1'
-	expect(await newGoalInput?.evaluate((el) => (el as HTMLInputElement).value)).toBe('Goal 1');
+	await page.getByRole('button', { name: 'New Goal' }).click();
+	const goalsListContainer = page.locator('#goals-list-container');
+	// The created goal box plus the "New Goal" box itself are the container's two children
+	await expect(goalsListContainer.locator(':scope > *')).toHaveCount(2);
+	// Adding a goal enters edit mode, so the title is rendered as an input
+	await expect(goalsListContainer.locator('.goal-box-title-editable input')).toHaveValue('Goal 1');
 });
