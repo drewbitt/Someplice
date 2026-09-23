@@ -1,6 +1,7 @@
 import { dbLogger } from '../utils/logger.ts';
-import Database from 'better-sqlite3';
-import { Kysely, SqliteDialect } from 'kysely';
+import { createNodeSqliteDialect } from './node-sqlite.ts';
+import { DatabaseSync, type SQLOutputValue } from 'node:sqlite';
+import { Kysely } from 'kysely';
 import type { DB } from '../types/data';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,11 +19,11 @@ export class DbInstance {
 			DbInstance.instance = this;
 		}
 
-		let betterSqlite3: InstanceType<typeof Database>;
+		let sqlite: DatabaseSync;
 
 		if (process.env.NODE_ENV === 'test') {
-			betterSqlite3 = new Database(':memory:');
-			this._db = this.initDb(betterSqlite3);
+			sqlite = new DatabaseSync(':memory:');
+			this._db = this.initDb(sqlite);
 		} else {
 			if (!fileDbInstance) {
 				const dbPath = dbFilePath();
@@ -39,8 +40,8 @@ export class DbInstance {
 					dbLogger.fatal('No read/write access to data directory', err);
 				}
 
-				betterSqlite3 = new Database(dbPath);
-				fileDbInstance = this.initDb(betterSqlite3);
+				sqlite = new DatabaseSync(dbPath);
+				fileDbInstance = this.initDb(sqlite);
 			}
 			this._db = fileDbInstance!;
 		}
@@ -60,22 +61,25 @@ export class DbInstance {
 		}
 	}
 
-	private initDb(betterSqlite3: InstanceType<typeof Database>): Kysely<DB> {
+	private initDb(sqlite: DatabaseSync): Kysely<DB> {
 		dbLogger.debug('Initializing db instance');
 		// WAL for concurrent read/write; foreign keys were previously decorative
-		betterSqlite3.pragma('journal_mode = WAL');
-		betterSqlite3.pragma('foreign_keys = ON');
+		sqlite.exec('PRAGMA journal_mode = WAL');
+		sqlite.exec('PRAGMA foreign_keys = ON');
 		// Define REGEXP function
-		betterSqlite3.function('regexp', { deterministic: true }, (regex: unknown, text: unknown) => {
-			if (typeof regex === 'string' && typeof text === 'string') {
-				return new RegExp(regex).test(text) ? 1 : 0;
+		sqlite.function(
+			'regexp',
+			{ deterministic: true },
+			(regex: SQLOutputValue, text: SQLOutputValue) => {
+				if (typeof regex === 'string' && typeof text === 'string') {
+					return new RegExp(regex).test(text) ? 1 : 0;
+				}
+				return null;
 			}
-		});
+		);
 
 		return new Kysely<DB>({
-			dialect: new SqliteDialect({
-				database: betterSqlite3
-			})
+			dialect: createNodeSqliteDialect(sqlite)
 		});
 	}
 
@@ -90,8 +94,8 @@ export class DbInstance {
 	setNewTestDb() {
 		if (process.env.NODE_ENV === 'test') {
 			dbLogger.info('Setting new test db');
-			const betterSqlite3 = new Database(':memory:');
-			this._db = this.initDb(betterSqlite3);
+			const sqlite = new DatabaseSync(':memory:');
+			this._db = this.initDb(sqlite);
 		}
 	}
 

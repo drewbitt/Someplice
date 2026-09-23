@@ -6,6 +6,6 @@ const stringSerializer = {
 	deserialize: (value: string) => value
 };
 
-const theme = new PersistedState('theme', 'light', { serializer: stringSerializer });
-
-export default theme;
+export const todaysIntentions = new PersistedState('todaysIntentions', '', {
+	serializer: stringSerializer
+});

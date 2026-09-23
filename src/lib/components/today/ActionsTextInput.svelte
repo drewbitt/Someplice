@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
-	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
+	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
 
 	let {
 		goals,
@@ -23,10 +23,8 @@
 	let intentionsString = $state('');
 
 	onMount(() => {
-		todaysIntentionsStore.initialize();
-
-		if ($todaysIntentionsStore && $todaysIntentionsStore.trim() !== '') {
-			intentionsString = $todaysIntentionsStore;
+		if (todaysIntentions.current && todaysIntentions.current.trim() !== '') {
+			intentionsString = todaysIntentions.current;
 		} else {
 			intentionsString = intentions
 				.map((intention: Intention) => {
@@ -40,7 +38,7 @@
 
 	$effect(() => {
 		if (intentionsString) {
-			todaysIntentionsStore.updateValue(intentionsString);
+			todaysIntentions.current = intentionsString;
 		}
 	});
 

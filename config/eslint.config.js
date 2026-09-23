@@ -3,6 +3,7 @@ import js from '@eslint/js';
 import tsEslint from 'typescript-eslint';
 import eslintPluginSvelte from 'eslint-plugin-svelte';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import svelteConfig from '../svelte.config.js';
 
 export default [
 	js.configs.recommended,
@@ -32,9 +33,10 @@ export default [
 		}
 	},
 	{
-		files: ['**/*.svelte'],
+		// eslint-plugin-svelte routes *.svelte and *.svelte.{js,ts} through svelte-eslint-parser;
+		// ts.parser is the inner parser for their script content.
+		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
-			ecmaVersion: 2020,
 			sourceType: 'module',
 			globals: {
 				...globals.node,
@@ -48,11 +50,10 @@ export default [
 				$effect: 'readonly'
 			},
 			parserOptions: {
-				parser: tsEslint.parser,
+				projectService: true,
 				extraFileExtensions: ['.svelte'],
-				svelteFeatures: {
-					experimentalGenerics: true
-				}
+				parser: tsEslint.parser,
+				svelteConfig
 			}
 		},
 		rules: {
@@ -90,6 +91,8 @@ export default [
 			'src-tauri',
 			'**/eslint.config.js',
 			'**/svelte.config.js',
+			'**/test-results',
+			'**/playwright-report',
 			'**/.pnpm-store',
 			'**/vite.config.ts.timestamp-*'
 		]

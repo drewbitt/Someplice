@@ -8,7 +8,7 @@
 	import { dayOfWeekFromDate } from '$src/lib/utils';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
-	import { todaysIntentionsStore } from '$src/lib/stores/localStorage';
+	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
 	import { onMount } from 'svelte';
 	import { appLogger } from '$src/lib/utils/logger';
 
@@ -36,8 +36,7 @@
 	});
 
 	onMount(() => {
-		todaysIntentionsStore.initialize();
-		if ($todaysIntentionsStore && !noGoals && !noIntentions) {
+		if (todaysIntentions.current && !noGoals && !noIntentions) {
 			showAdditionalIntentionsTextArea = true;
 		}
 	});
@@ -144,7 +143,7 @@
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
 
 		noIntentions ? await addIntentions() : await updateIntentions();
-		todaysIntentionsStore.clear();
+		todaysIntentions.current = '';
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {

@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
 	import { colors } from './colors';
-	import { goalPageErrorStore } from '$src/lib/stores/errors';
+	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let { addedGoal = $bindable() }: { addedGoal: boolean } = $props();
 

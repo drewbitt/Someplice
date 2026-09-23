@@ -16,7 +16,7 @@
 	let showAppendModal = $state(false);
 
 	let modalTitle = $derived(goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text);
-	let darkMode = $derived($theme === 'dark');
+	let darkMode = $derived(theme.current === 'dark');
 
 	$effect(() => {
 		if (dialog) {

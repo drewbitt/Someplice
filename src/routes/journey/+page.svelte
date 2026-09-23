@@ -13,7 +13,7 @@
 
 	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
 	let noGoals = $derived(data.goals.length === 0);
-	let darkMode = $derived($theme === 'dark');
+	let darkMode = $derived(theme.current === 'dark');
 	let dates = $derived(Object.keys(data.intentionsByDate));
 
 	let currentPage = $state(1);

@@ -12,3 +12,4 @@ vite.config.ts.timestamp-*
 .dccache
 .trunk/test-results
 playwright-report
+test-results

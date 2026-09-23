@@ -10,12 +10,12 @@
 
 	$effect(() => {
 		if (typeof document !== 'undefined') {
-			document.documentElement.setAttribute('data-theme', $theme);
+			document.documentElement.setAttribute('data-theme', theme.current);
 		}
 	});
 
 	function toggleTheme() {
-		theme.update((t) => (t === 'dark' ? 'light' : 'dark'));
+		theme.current = theme.current === 'dark' ? 'light' : 'dark';
 	}
 </script>
 

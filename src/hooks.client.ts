@@ -1,11 +1,11 @@
 import type { HandleClientError } from '@sveltejs/kit';
-import { todaysIntentionsStore } from './lib/stores/localStorage';
+import { todaysIntentions } from './lib/stores/todaysIntentions';
 import { appLogger } from './lib/utils/logger';
 
 // Clear on application restart
 // Only clear in production as dev mode HMR will cause this to run on every file change
 if (import.meta.env.PROD) {
-	todaysIntentionsStore.clear();
+	todaysIntentions.current = '';
 }
 
 export const handleError: HandleClientError = async ({ error, event }) => {

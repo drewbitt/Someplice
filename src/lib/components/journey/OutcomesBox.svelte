@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
-	import { journeyPageErrorStore } from '$src/lib/stores/errors';
+	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
 	import { appLogger } from '$src/lib/utils/logger';
