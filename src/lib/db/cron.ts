@@ -20,9 +20,8 @@ export function createCronJobs() {
 		return;
 	}
 
-	// Run at 00:00 every day
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	const outcomeCron = new Cron('0 0 * * *', { name: jobName }, async () => {
+	// Run at 00:00 every day. The Cron constructor self-registers in scheduledJobs.
+	new Cron('0 0 * * *', { name: jobName }, async () => {
 		await getDb()
 			.transaction()
 			.execute(async (db) => {

@@ -14,12 +14,18 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 				.check(sql`"date" = strftime('%Y-%m-%d', "date")`)
 				.unique()
 		)
+		.modifyEnd(sql`strict`)
 		.execute();
 
 	await db.schema
 		.createTable('outcomes_intentions')
-		.addColumn('outcomeId', 'integer', (col) => col.notNull().references('outcomes.id'))
-		.addColumn('intentionId', 'integer', (col) => col.notNull().references('intentions.id'))
+		.addColumn('outcomeId', 'integer', (col) =>
+			col.notNull().references('outcomes.id').onDelete('cascade')
+		)
+		.addColumn('intentionId', 'integer', (col) =>
+			col.notNull().references('intentions.id').onDelete('cascade')
+		)
 		.addPrimaryKeyConstraint('outcomes_intentions_pk', ['outcomeId', 'intentionId'])
+		.modifyEnd(sql`strict`)
 		.execute();
 }

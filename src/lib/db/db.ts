@@ -8,8 +8,8 @@ import path from 'node:path';
 
 const dbFilePath = () => process.env.DATABASE_PATH ?? './data/db.sqlite';
 
-// Shared by the app and tests: REGEXP must exist before migrations run
-// (intentions has a CHECK that uses it)
+// Shared by the app and tests: REGEXP must exist before any intentions writes
+// (the table has a CHECK that uses it)
 export const configureSqlite = (sqlite: DatabaseSync): void => {
 	sqlite.exec('PRAGMA journal_mode = WAL');
 	sqlite.exec('PRAGMA foreign_keys = ON');

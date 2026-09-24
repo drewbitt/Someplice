@@ -361,7 +361,8 @@ export const intentions = t.router({
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
 
-					// outcomeIds linked to this intention, before removing the links
+					// outcomeIds linked to this intention; its outcomes_intentions rows
+					// cascade away with the delete below
 					const outcomeIds = (
 						await trx
 							.selectFrom('outcomes_intentions')
@@ -370,7 +371,7 @@ export const intentions = t.router({
 							.execute()
 					).map((row) => row.outcomeId);
 
-					await trx.deleteFrom('outcomes_intentions').where('intentionId', '=', input).execute();
+					const result = await trx.deleteFrom('intentions').where('id', '=', input).execute();
 
 					// Drop outcome rows that are left with no intentions at all
 					for (const outcomeId of outcomeIds) {
@@ -385,7 +386,7 @@ export const intentions = t.router({
 						}
 					}
 
-					return await trx.deleteFrom('intentions').where('id', '=', input).execute();
+					return result;
 				});
 		}),
 	/**

@@ -110,6 +110,15 @@ docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
 
 ## Contributing
 
+Before opening a PR:
+
+```bash
+pnpm check        # svelte-check type checking
+pnpm lint         # prettier + eslint
+pnpm test:unit    # vitest unit tests
+pnpm test:e2e     # playwright e2e tests (requires the dev server)
+```
+
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an `.env` file with your database connection string:
 
 ```bash

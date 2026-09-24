@@ -11,6 +11,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('title', 'text', (col) => col.notNull())
 		.addColumn('description', 'text')
 		.addColumn('color', 'text', (col) => col.notNull())
+		.modifyEnd(sql`strict`)
 		.execute();
 
 	await db.schema
@@ -24,15 +25,16 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('text', 'text', (col) => col.notNull())
 		// lowercase letters like a, ab, abc - the sub intention of a goal e.g. 2a), 2b), 2abc)
 		.addColumn('subIntentionQualifier', 'text', (col) =>
-			col.check(sql`"subIntentionQualifier" REGEXP '[a-z]{0,3}'`)
+			col.check(sql`"subIntentionQualifier" REGEXP '^[a-z]{0,3}$'`)
 		)
 		// ISO 8601 date string
 		.addColumn('date', 'text', (col) =>
 			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)
 		)
 		.addForeignKeyConstraint('intentions_goalId_fk', ['goalId'], 'goals', ['id'], (fk) =>
-			fk.deferrable().initiallyDeferred()
+			fk.deferrable().initiallyDeferred().onDelete('cascade')
 		)
+		.modifyEnd(sql`strict`)
 		.execute();
 }
 
