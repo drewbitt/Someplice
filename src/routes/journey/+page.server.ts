@@ -1,13 +1,40 @@
 import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
+import { goalsForJourneyDay } from '$src/lib/utils';
+import type { Goal } from '$src/lib/trpc/types';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
+	const intentionsByDate = await getIntentionsByDate();
+
+	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
+	// that date, not today's active set. Inactive goals that still have intentions
+	// that day (e.g. archived the same day) are merged in.
+	const goalsByDate = Object.fromEntries(
+		await Promise.all(
+			Object.keys(intentionsByDate).map(async (date) => {
+				const [activeGoals, inactiveGoals] = await Promise.all([
+					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date: new Date(date) })),
+					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ active: 0, date: new Date(date) }))
+				]);
+				return [
+					date,
+					goalsForJourneyDay(
+						activeGoals,
+						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
+						intentionsByDate[date]
+					)
+				];
+			})
+		)
+	);
+
 	return {
 		goals: await trpcLoad(event, (t) => t.goals.list(1)),
-		intentionsByDate: await getIntentionsByDate(),
+		intentionsByDate,
+		goalsByDate,
 		outcomes: await trpcLoad(event, (t) =>
 			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
 		)

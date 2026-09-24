@@ -26,19 +26,27 @@ export function createCronJobs() {
 			.execute(async (db) => {
 				const previousDayString = localePreviousDate().toISOString().slice(0, 10);
 
-				const outcomeId = await ensureOutcomeForDate(db, previousDayString);
-				if (outcomeId === null) {
-					cronLogger.error(`outcomeCron: Could not create outcome for date: ${previousDayString}`);
-					return;
-				}
-
-				// associate the previous day's intentions with the outcome
+				// select the previous day's intentions first: a day without intentions
+				// gets no outcome row at all
 				const intentions = await db
 					.selectFrom('intentions')
 					.selectAll()
 					.where('date', '>=', `${previousDayString}T00:00:00.000Z`)
 					.where('date', '<=', `${previousDayString}T23:59:59.999Z`)
 					.execute();
+
+				if (intentions.length === 0) {
+					cronLogger.debug(
+						`outcomeCron: No intentions for date: ${previousDayString}, skipping outcome creation`
+					);
+					return;
+				}
+
+				const outcomeId = await ensureOutcomeForDate(db, previousDayString);
+				if (outcomeId === null) {
+					cronLogger.error(`outcomeCron: Could not create outcome for date: ${previousDayString}`);
+					return;
+				}
 
 				for (const intention of intentions) {
 					if (intention.id === null) {

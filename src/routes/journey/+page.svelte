@@ -5,6 +5,8 @@
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
 	import { trpc } from '$src/lib/trpc/client';
+	import type { Goal } from '$src/lib/trpc/types';
+	import { goalsForJourneyDay } from '$src/lib/utils';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 
@@ -74,6 +76,20 @@
 						: newIntentionsByDate[date];
 				}
 
+				await Promise.all(
+					Object.keys(newIntentionsByDate).map(async (date) => {
+						const [activeGoals, inactiveGoals] = await Promise.all([
+							trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
+							trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
+						]);
+						data.goalsByDate[date] = goalsForJourneyDay(
+							activeGoals,
+							inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
+							newIntentionsByDate[date]
+						);
+					})
+				);
+
 				currentPage += 1;
 			} else {
 				hasMore = false;
@@ -107,7 +123,7 @@
 		<div class="mx-4 grid gap-4 py-6 sm:mx-12 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox
-					goals={data.goals}
+					goals={data.goalsByDate[date] ?? data.goals}
 					intentions={data.intentionsByDate[date]}
 					outcomes={data.outcomes}
 				/>

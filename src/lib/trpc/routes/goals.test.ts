@@ -419,6 +419,66 @@ describe('goals', () => {
 		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id1]);
 	});
 
+	it('delete compacts active orderNumbers and logs the shifts', async () => {
+		const ids: number[] = [];
+		for (let i = 1; i <= 9; i++) {
+			const added = (await caller.goals.add({
+				...TEST_GOAL,
+				title: `Test Goal ${i}`
+			})) as GoalResult;
+			ids.push(Number(added.id));
+		}
+
+		// delete the 4th goal
+		await caller.goals.delete(ids[3]);
+
+		const remaining = await db
+			.selectFrom('goals')
+			.selectAll()
+			.orderBy('orderNumber', 'asc')
+			.execute();
+		expect(remaining).toHaveLength(8);
+		expect(remaining.map((g) => g.orderNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+
+		// each goal that shifted down gets a 'reorder' log with its new orderNumber
+		for (const [index, id] of ids.slice(4).entries()) {
+			const logs = await db
+				.selectFrom('goal_logs')
+				.selectAll()
+				.where('goalId', '=', id)
+				.orderBy('id', 'asc')
+				.execute();
+			expect(logs.map((l) => `${l.type}:${l.orderNumber}`)).toEqual([
+				`start:${index + 5}`,
+				`reorder:${index + 4}`
+			]);
+		}
+
+		// a new goal takes the freed slot at the end
+		const added = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 10' })) as GoalResult;
+		const newGoal = await db
+			.selectFrom('goals')
+			.selectAll()
+			.where('id', '=', Number(added.id))
+			.executeTakeFirstOrThrow();
+		expect(newGoal.orderNumber).toEqual(9);
+	});
+
+	it('add throws BAD_REQUEST when the goal cap is reached', async () => {
+		for (let i = 1; i <= 9; i++) {
+			(await caller.goals.add({ ...TEST_GOAL, title: `Test Goal ${i}` })) as GoalResult;
+		}
+
+		let error;
+		try {
+			await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 10' });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+		expect((error as { code?: string }).code).toEqual('BAD_REQUEST');
+	});
+
 	it('archive logs reorder entries for goals shifted into the gap', async () => {
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;

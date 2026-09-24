@@ -3,11 +3,12 @@
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import type { UpdateResult } from 'kysely';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
+	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
+	// Space toggles the focused intention's checkbox; leave keyboard drag on Enter
+	setKeyboardDragTrigger('enter');
 
 	let {
 		goals,
@@ -44,7 +45,7 @@
 
 	$effect(() => {
 		if (intentions && goalOrderNumbers) {
-			intentions = intentions.filter((intention) => {
+			const known = intentions.filter((intention) => {
 				const orderNumber = goalOrderNumbers.get(intention.goalId);
 				return (
 					intention.goalId !== -1 &&
@@ -54,6 +55,11 @@
 					orderNumber !== -1
 				);
 			});
+			// only reassign when something was dropped; a fresh array every run would
+			// re-trigger this effect through the bound state
+			if (known.length !== intentions.length) {
+				intentions = known;
+			}
 		}
 	});
 
@@ -110,6 +116,7 @@
 			currentTarget: EventTarget & HTMLSpanElement;
 		}
 	) => {
+		if ((event.target as HTMLElement).closest('dialog, input, textarea, button')) return;
 		if (event.key === ' ') {
 			event.preventDefault();
 			const checkbox = event.currentTarget.parentElement?.querySelector(
@@ -126,7 +133,8 @@
 		{#if intentions.length > 0}
 			<div class="mb-5 flex flex-wrap gap-x-5 pl-12">
 				<h2 class="text-2xl font-bold text-gray-700 tabular-nums dark:text-purple-200">
-					{intentions.length} intentions for today,
+					{intentions.length}
+					{intentions.length === 1 ? 'intention' : 'intentions'} for today,
 				</h2>
 				<h2 class="text-base-content/60 text-2xl font-bold tabular-nums">
 					{(() => {
@@ -149,7 +157,7 @@
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
-			{#each intentions as intention, index (intention)}
+			{#each intentions as intention, index (intention.id)}
 				<span
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
