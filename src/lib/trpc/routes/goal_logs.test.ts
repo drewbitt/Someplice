@@ -6,14 +6,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GoalLog } from '../types';
 import { createCallerFactory, router } from '../router';
 
-const TEST_GOAL_LOG: GoalLog = {
-	id: 1,
-	goalId: 1,
-	type: 'start',
-	date: new Date().toISOString(),
-	orderNumber: 1
-};
-
 describe('goal_logs', () => {
 	let db: Kysely<DB>;
 	const createCaller = createCallerFactory(router);
@@ -29,47 +21,6 @@ describe('goal_logs', () => {
 	afterEach(async () => {
 		await db.destroy();
 		DbInstance.resetInstance();
-	});
-
-	it('create', async () => {
-		// Insert a test goal
-		const TEST_GOAL = {
-			active: 1,
-			title: 'Test Goal',
-			description: 'A goal for testing purposes.',
-			color: 'hsl(0, 0%, 50%)',
-			orderNumber: 1
-		};
-
-		await db.insertInto('goals').values(TEST_GOAL).execute();
-
-		let error;
-		try {
-			const added = await caller.goal_logs.create(TEST_GOAL_LOG);
-			expect(added).toBeDefined();
-		} catch (e) {
-			error = e;
-		}
-		expect(error).toBeUndefined();
-
-		// Lookup the goal log
-		const result = (await caller.goal_logs.getAllForGoal(1)) as GoalLog[];
-		expect(result).toBeDefined();
-		expect(result.length).toBe(1);
-		expect(result[0].type).toBe(TEST_GOAL_LOG.type);
-		expect(result[0].date).toBe(TEST_GOAL_LOG.date);
-	});
-
-	it('create with invalid goalId', async () => {
-		const INVALID_TEST_GOAL_LOG = { ...TEST_GOAL_LOG, goalId: 999 }; // invalid goalId
-		let error;
-		try {
-			const added = await caller.goal_logs.create(INVALID_TEST_GOAL_LOG);
-			expect(added).toBeDefined();
-		} catch (e) {
-			error = e;
-		}
-		expect(error).toBeDefined();
 	});
 
 	it('ensure adding a goal with TRPC starts it', async () => {

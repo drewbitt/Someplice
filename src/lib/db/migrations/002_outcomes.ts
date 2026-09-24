@@ -6,7 +6,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		// 0 (false) or 1 (true)
-		.addColumn('reviewed', 'integer', (col) => col.notNull())
+		.addColumn('reviewed', 'integer', (col) => col.notNull().check(sql`"reviewed" IN (0, 1)`))
 		// ISO 8601 date string but without the time
 		.addColumn('date', 'text', (col) =>
 			col

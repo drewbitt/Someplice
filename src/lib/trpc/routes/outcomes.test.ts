@@ -48,43 +48,6 @@ describe('outcomes', () => {
 		expect(result).toEqual([]);
 	});
 
-	it('create inserts an outcome and its intention pairs', async () => {
-		const date = new Date().toISOString().split('T')[0];
-		const result = (await caller.outcomes.create({
-			outcome: { reviewed: 0, date },
-			outcomesIntentions: [{ intentionId: 1 }]
-		})) as { outcomeId: number };
-		expect(result.outcomeId).toBeGreaterThan(0);
-
-		const outcomes = (await caller.outcomes.list()) as Outcome[];
-		expect(outcomes.length).toBe(1);
-		expect(outcomes[0].date).toBe(date);
-		expect(outcomes[0].reviewed).toBe(0);
-
-		const pairs = (await caller.outcomes.listOutcomesIntentions(result.outcomeId)) as {
-			outcomeId: number;
-			intentionId: number;
-		}[];
-		expect(pairs).toEqual([{ outcomeId: result.outcomeId, intentionId: 1 }]);
-	});
-
-	it('create on an existing date updates reviewed instead of inserting', async () => {
-		const date = new Date().toISOString().split('T')[0];
-		await caller.outcomes.create({
-			outcome: { reviewed: 0, date },
-			outcomesIntentions: []
-		});
-		const result = (await caller.outcomes.create({
-			outcome: { reviewed: 1, date },
-			outcomesIntentions: [{ intentionId: 1 }]
-		})) as { outcomeId: number };
-
-		const outcomes = (await caller.outcomes.list()) as Outcome[];
-		expect(outcomes.length).toBe(1);
-		expect(outcomes[0].reviewed).toBe(1);
-		expect(outcomes[0].id).toBe(result.outcomeId);
-	});
-
 	it('createOrUpdateOutcome inserts associations for a new outcome', async () => {
 		const date = new Date().toISOString().split('T')[0];
 		const result = (await caller.outcomes.createOrUpdateOutcome({
@@ -92,10 +55,36 @@ describe('outcomes', () => {
 			intentionIds: [1]
 		})) as { outcomeId: number };
 
-		const pairs = (await caller.outcomes.listOutcomesIntentions(result.outcomeId)) as {
-			intentionId: number;
-		}[];
+		const pairs = await db
+			.selectFrom('outcomes_intentions')
+			.selectAll()
+			.where('outcomeId', '=', result.outcomeId)
+			.execute();
 		expect(pairs.map((pair) => pair.intentionId)).toEqual([1]);
+	});
+
+	it('createOrUpdateOutcome on an existing date updates reviewed without duplicating pairs', async () => {
+		const date = new Date().toISOString().split('T')[0];
+		await caller.outcomes.createOrUpdateOutcome({
+			outcome: { reviewed: 0, date },
+			intentionIds: [1]
+		});
+		const result = (await caller.outcomes.createOrUpdateOutcome({
+			outcome: { reviewed: 1, date },
+			intentionIds: [1]
+		})) as { outcomeId: number };
+
+		const outcomes = (await caller.outcomes.list()) as Outcome[];
+		expect(outcomes.length).toBe(1);
+		expect(outcomes[0].reviewed).toBe(1);
+		expect(outcomes[0].id).toBe(result.outcomeId);
+
+		const pairs = await db
+			.selectFrom('outcomes_intentions')
+			.selectAll()
+			.where('outcomeId', '=', result.outcomeId)
+			.execute();
+		expect(pairs.length).toBe(1);
 	});
 
 	it('list filters by date range', async () => {

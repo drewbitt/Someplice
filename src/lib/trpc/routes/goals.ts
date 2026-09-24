@@ -3,6 +3,8 @@ import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
+import type { Transaction } from 'kysely';
+import type { DB } from '$src/lib/types/data';
 import type { Goal } from '../types';
 import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
 
@@ -48,7 +50,12 @@ export const goals = t.router({
 				SELECT
 					goals.id,
 					goals.active,
-					goals.orderNumber,
+					COALESCE(
+						(SELECT gl2.orderNumber FROM goal_logs gl2
+						 WHERE gl2.goalId = goals.id
+						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
+						goals.orderNumber
+					) AS orderNumber,
 					goals.title,
 					goals.description,
 					goals.color,
@@ -115,7 +122,13 @@ export const goals = t.router({
 				GROUP BY
 					goals.id
 				ORDER BY
-					goal_logs.orderNumber ASC		
+					COALESCE(
+						(SELECT gl2.orderNumber FROM goal_logs gl2
+						 WHERE gl2.goalId = goals.id AND gl2.type IN ('start', 'reorder')
+						 AND gl2.date <= ${endDate.toISOString()}
+						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
+						goals.orderNumber
+					) ASC
 			`.execute(getDb());
 
 				return activeGoalsWithDate.rows;
@@ -141,7 +154,7 @@ export const goals = t.router({
 					AND
 						goal_logs.type = 'end'
 					ORDER BY
-						goals.orderNumber ASC
+						COALESCE(goal_logs.orderNumber, goals.orderNumber) ASC
 				`.execute(getDb());
 
 				return inactiveGoalsOnDate.rows;
@@ -215,17 +228,39 @@ export const goals = t.router({
 	 */
 	edit: t.procedure
 		.use(logger)
-		.input(GoalSchema)
+		// `active` is lifecycle-managed via archive/restore and is not editable here
+		.input(GoalSchema.omit({ active: true }))
 		.mutation(async ({ input }) => {
-			const query = getDb().updateTable('goals').set(input).where('id', '=', input.id);
-			const result = await query.executeTakeFirst();
-			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
-			// Don't want to return the id of the updated row as we would lose UpdateResult like numUpdatedRows
-			// Manual throw
-			if (Number(result?.numUpdatedRows) === 0) {
-				throw new NoResultError(query.toOperationNode());
-			}
-			return result;
+			return await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					const existing = await trx
+						.selectFrom('goals')
+						.select(['active', 'orderNumber'])
+						.where('id', '=', input.id)
+						.executeTakeFirstOrThrow();
+
+					const query = trx
+						.updateTable('goals')
+						.set({
+							orderNumber: input.orderNumber,
+							title: input.title,
+							description: input.description,
+							color: input.color
+						})
+						.where('id', '=', input.id);
+					const result = await query.executeTakeFirst();
+					// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
+					// Don't want to return the id of the updated row as we would lose UpdateResult like numUpdatedRows
+					// Manual throw
+					if (Number(result?.numUpdatedRows) === 0) {
+						throw new NoResultError(query.toOperationNode());
+					}
+
+					await insertReorderLog(trx, input.id as number, existing, input.orderNumber);
+
+					return result;
+				});
 		}),
 	/**
 	 * Update all goals in the database with an array of `Goal` objects.
@@ -236,30 +271,100 @@ export const goals = t.router({
 		.use(logger)
 		.input(
 			z.object({
-				goals: z.array(GoalSchema)
+				// `active` is lifecycle-managed via archive/restore and is not editable here
+				goals: z.array(GoalSchema.omit({ active: true }))
 			})
 		)
 		.mutation(async ({ input }) => {
-			const results = await getDb()
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					return await Promise.all(
-						input.goals.map(async (goal) => {
-							if (goal.id) {
-								const result = await trx
-									.updateTable('goals')
-									.set(goal)
-									.where('id', '=', goal.id)
-									.execute();
-								return result;
-							} else {
-								return await trx.insertInto('goals').values(goal).execute();
-							}
-						})
-					);
-				});
+					const existingGoals = await trx
+						.selectFrom('goals')
+						.select(['id', 'orderNumber', 'active'])
+						.execute();
+					const existingById = new Map(existingGoals.map((g) => [g.id, g]));
 
-			return results;
+					const updates = input.goals.filter((goal) => goal.id !== null);
+					const inserts = input.goals.filter((goal) => goal.id === null);
+
+					// New goals are always active; reject payloads that would exceed the goal cap
+					if (existingGoals.filter((g) => g.active === 1).length + inserts.length > 9) {
+						throw new Error(`You have reached the maximum number of 9 goals. 
+						Please delete or archive a goal to add a new one.`);
+					}
+
+					// The partial unique index on goals.orderNumber can't be deferred, so a
+					// permutation update (e.g. swapping two goals' positions) would collide
+					// mid-way. Move the affected rows to a scratch range first, then apply
+					// the final values.
+					if (updates.length > 0) {
+						await trx
+							.updateTable('goals')
+							.set({ orderNumber: sql`"orderNumber" + 100000` })
+							.where(
+								'id',
+								'in',
+								updates.map((goal) => goal.id as number)
+							)
+							.execute();
+					}
+
+					const results = [];
+					const now = localeCurrentDate().toISOString();
+
+					for (const goal of updates) {
+						const existing = existingById.get(goal.id as number);
+						if (!existing) {
+							throw new NoResultError(
+								trx
+									.selectFrom('goals')
+									.selectAll()
+									.where('id', '=', goal.id as number)
+									.toOperationNode()
+							);
+						}
+						results.push(
+							await trx
+								.updateTable('goals')
+								.set({
+									orderNumber: goal.orderNumber,
+									title: goal.title,
+									description: goal.description,
+									color: goal.color
+								})
+								.where('id', '=', goal.id)
+								.execute()
+						);
+						await insertReorderLog(trx, goal.id as number, existing, goal.orderNumber);
+					}
+
+					for (const goal of inserts) {
+						const result = await trx
+							.insertInto('goals')
+							.values({
+								active: 1,
+								orderNumber: goal.orderNumber,
+								title: goal.title,
+								description: goal.description,
+								color: goal.color
+							})
+							.returning('id')
+							.executeTakeFirstOrThrow();
+						await trx
+							.insertInto('goal_logs')
+							.values({
+								goalId: result.id as number,
+								type: 'start',
+								date: now,
+								orderNumber: goal.orderNumber
+							})
+							.execute();
+						results.push(result);
+					}
+
+					return results;
+				});
 		}),
 	/**
 	 * Delete a goal by its `id`.
@@ -367,13 +472,13 @@ export const goals = t.router({
 					// find the orderNumber of the goal that is to be archived
 					const archivedGoal = await trx
 						.selectFrom('goals')
-						.select(['orderNumber'])
+						.select(['orderNumber', 'active'])
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
-					const archivedGoalOrder = archivedGoal?.orderNumber;
-					if (!archivedGoalOrder) {
-						throw new Error('ARCHIVE_GOAL_ERROR: archivedGoalOrder is undefined');
+					if (archivedGoal.active === 0) {
+						throw new Error('ARCHIVE_GOAL_ERROR: goal is already archived');
 					}
+					const archivedGoalOrder = archivedGoal.orderNumber;
 
 					// set the archived goal as inactive and set orderNumber to 0
 					const result = await trx
@@ -475,7 +580,8 @@ export const goals = t.router({
 							.values({
 								goalId: input,
 								type: 'start',
-								date: localeCurrentDate().toISOString()
+								date: localeCurrentDate().toISOString(),
+								orderNumber: restoredOrderNumber
 							})
 							.executeTakeFirst();
 					}
@@ -484,3 +590,26 @@ export const goals = t.router({
 				});
 		})
 });
+
+/**
+ * Write a 'reorder' goal_log when an active goal's orderNumber changed.
+ * Archived goals are not logged: their position comes from the 'end' log.
+ */
+async function insertReorderLog(
+	trx: Transaction<DB>,
+	goalId: number,
+	existing: { active: number; orderNumber: number },
+	newOrderNumber: number
+) {
+	if (existing.active === 1 && existing.orderNumber !== newOrderNumber) {
+		await trx
+			.insertInto('goal_logs')
+			.values({
+				goalId,
+				type: 'reorder',
+				date: localeCurrentDate().toISOString(),
+				orderNumber: newOrderNumber
+			})
+			.execute();
+	}
+}

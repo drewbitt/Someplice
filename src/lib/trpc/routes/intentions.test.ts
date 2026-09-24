@@ -1,7 +1,7 @@
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
-import { NoResultError, type Kysely, type QueryResult, type UpdateResult } from 'kysely';
+import { NoResultError, type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
 import { createCallerFactory, router } from '../router';
@@ -141,9 +141,9 @@ describe('intentions', () => {
 
 	it('edit', async () => {
 		// Add a new intention
-		const added = (await caller.intentions.updateIntentions({
+		const added = await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION]
-		})) as QueryResult<Intention>[];
+		});
 		expect(added).toBeDefined();
 
 		// Edit the intention based on the id
@@ -159,9 +159,9 @@ describe('intentions', () => {
 	});
 
 	it('edit with invalid id', async () => {
-		const added = (await caller.intentions.updateIntentions({
+		const added = await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION]
-		})) as QueryResult<Intention>[];
+		});
 		expect(added).toBeDefined();
 
 		const editedIntention = { ...TEST_INTENTION, id: 9999 }; // Invalid id
@@ -176,9 +176,9 @@ describe('intentions', () => {
 
 	it('appendText', async () => {
 		// Add a new intention
-		const added = (await caller.intentions.updateIntentions({
+		const added = await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION]
-		})) as QueryResult<Intention>[];
+		});
 		expect(added).toBeDefined();
 
 		// Append text to the intention
@@ -200,9 +200,9 @@ describe('intentions', () => {
 	});
 
 	it('appendText with invalid id', async () => {
-		const added = (await caller.intentions.updateIntentions({
+		const added = await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION]
-		})) as QueryResult<Intention>[];
+		});
 		expect(added).toBeDefined();
 
 		const appendText = '';
@@ -265,5 +265,105 @@ describe('intentions', () => {
 		if (error instanceof Error) {
 			expect(error.cause).toBeInstanceOf(NoResultError);
 		}
+	});
+
+	it('updateIntentions swaps orderNumbers without tripping the unique index', async () => {
+		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });
+
+		// Swap their positions: a permutation that only succeeds via the two-phase update
+		const swapped = [
+			{ ...TEST_INTENTION, orderNumber: 2 },
+			{ ...intention2, orderNumber: 1 }
+		];
+		await caller.intentions.updateIntentions({ intentions: swapped });
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result).toHaveLength(2);
+		expect(result.find((i) => i.id === 1)?.orderNumber).toEqual(2);
+		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(1);
+	});
+
+	it('updateIntentions is an upsert, not a duplicate insert', async () => {
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await caller.intentions.updateIntentions({
+			intentions: [{ ...TEST_INTENTION, text: 'updated text' }]
+		});
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result).toHaveLength(1);
+		expect(result[0].text).toEqual('updated text');
+	});
+
+	it('addMany rejects duplicate orderNumbers on the same day', async () => {
+		await caller.intentions.addMany([TEST_INTENTION]);
+
+		let error;
+		try {
+			// same DATE(date) and orderNumber as TEST_INTENTION, different time/id
+			await caller.intentions.addMany([{ ...TEST_INTENTION, date: '2023-07-01T09:00:00.000Z' }]);
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+	});
+
+	it('delete removes the intention, its outcome links, and an orphaned outcome', async () => {
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		const outcome = await db
+			.insertInto('outcomes')
+			.values({ reviewed: 1, date: '2023-07-01' })
+			.returning('id')
+			.executeTakeFirstOrThrow();
+		await db
+			.insertInto('outcomes_intentions')
+			.values({ outcomeId: outcome.id as number, intentionId: TEST_INTENTION.id as number })
+			.execute();
+
+		await caller.intentions.delete(TEST_INTENTION.id as number);
+
+		const intentions = (await caller.intentions.list(undefined)) as Intention[];
+		expect(intentions).toHaveLength(0);
+		const links = await db.selectFrom('outcomes_intentions').selectAll().execute();
+		expect(links).toHaveLength(0);
+		const outcomes = await db.selectFrom('outcomes').selectAll().execute();
+		expect(outcomes).toHaveLength(0);
+	});
+
+	it('delete keeps an outcome that still has other intentions', async () => {
+		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });
+		const outcome = await db
+			.insertInto('outcomes')
+			.values({ reviewed: 1, date: '2023-07-01' })
+			.returning('id')
+			.executeTakeFirstOrThrow();
+		await db
+			.insertInto('outcomes_intentions')
+			.values([
+				{ outcomeId: outcome.id as number, intentionId: TEST_INTENTION.id as number },
+				{ outcomeId: outcome.id as number, intentionId: intention2.id as number }
+			])
+			.execute();
+
+		await caller.intentions.delete(TEST_INTENTION.id as number);
+
+		const intentions = (await caller.intentions.list(undefined)) as Intention[];
+		expect(intentions).toHaveLength(1);
+		const outcomes = await db.selectFrom('outcomes').selectAll().execute();
+		expect(outcomes).toHaveLength(1);
+		const links = await db.selectFrom('outcomes_intentions').selectAll().execute();
+		expect(links).toHaveLength(1);
+		expect(links[0].intentionId).toEqual(intention2.id);
+	});
+
+	it('delete a non-existent intention errors', async () => {
+		let error;
+		try {
+			await caller.intentions.delete(9999);
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
 	});
 });

@@ -6,7 +6,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		.addColumn('goalId', 'integer', (col) => col.notNull().references('goals.id'))
 		.addColumn('orderNumber', 'integer')
-		.addColumn('type', 'text', (col) => col.notNull().check(sql`"type" IN ('start', 'end')`))
+		.addColumn('type', 'text', (col) =>
+			col.notNull().check(sql`"type" IN ('start', 'end', 'reorder')`)
+		)
 		// ISO 8601 date string
 		.addColumn('date', 'text', (col) =>
 			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)

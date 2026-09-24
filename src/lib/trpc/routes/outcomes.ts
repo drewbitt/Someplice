@@ -1,7 +1,6 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
-import { sql } from 'kysely';
 import { z } from 'zod';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -11,11 +10,6 @@ export const OutcomeSchema = z.object({
 	reviewed: z.number(),
 	// date is ISOString without the time
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-});
-
-export const OutcomeIntentionSchema = z.object({
-	outcomeId: z.number(),
-	intentionId: z.number()
 });
 
 export const outcomes = t.router({
@@ -74,81 +68,6 @@ export const outcomes = t.router({
 			return query.execute();
 		}),
 	/**
-	 * List all intentions associated with an outcome.
-	 * @param input - The outcome id.
-	 * @returns An array of `OutcomeIntention` objects.
-	 */
-	listOutcomesIntentions: t.procedure
-		.use(logger)
-		.input(z.number())
-		.query(({ input }) => {
-			return getDb()
-				.selectFrom('outcomes_intentions')
-				.select(['outcomeId', 'intentionId'])
-				.where('outcomeId', '=', input)
-				.execute();
-		}),
-	/**
-	 * Create a new outcome.
-	 * @param input.outcome - The `Outcome` object, omitting `id`.
-	 * @param input.outcomesIntentions - Array of objects containing `intentionId`.
-	 * @returns An object containing the `outcomeId` of the created outcome.
-	 * @throws {NoResultError} - If the outcome could not be created or updated.
-	 * @throws {NoResultError} - If the `outcome_intentions` could not be created.
-	 */
-	create: t.procedure
-		.use(logger)
-		.input(
-			z.object({
-				outcome: OutcomeSchema.omit({ id: true }),
-				outcomesIntentions: z.array(OutcomeIntentionSchema.pick({ intentionId: true }))
-			})
-		)
-		// deepcode ignore Sqli: incorrectly reports sql injection
-		.mutation(async ({ input }) => {
-			const result = await getDb()
-				.transaction()
-				.execute(async (trx) => {
-					// First, check if there's an outcome, as outcome dates are unique
-					const existingOutcome = await trx
-						.selectFrom('outcomes')
-						.selectAll()
-						.where('date', '=', input.outcome.date)
-						.executeTakeFirst();
-
-					if (existingOutcome) {
-						// Just update the reviewed of the outcome
-						const updatedOutcome = await trx
-							.updateTable('outcomes')
-							.set({ reviewed: input.outcome.reviewed })
-							.where('id', '=', existingOutcome.id)
-							.returning('id')
-							.executeTakeFirstOrThrow();
-
-						return { outcomeId: updatedOutcome.id };
-					} else {
-						const outcome = await trx
-							.insertInto('outcomes')
-							.values(input.outcome)
-							.returning('id')
-							.executeTakeFirstOrThrow();
-
-						if (!outcome.id) throw new Error('Outcome id is null');
-
-						for (const outcomesIntentionsInput of input.outcomesIntentions) {
-							await trx
-								.insertInto('outcomes_intentions')
-								.values({ ...outcomesIntentionsInput, outcomeId: outcome.id })
-								.executeTakeFirstOrThrow();
-						}
-
-						return { outcomeId: outcome.id };
-					}
-				});
-
-			return result;
-		}),
-	/**
 	 * Create or update an outcome based on the provided data.
 	 * This method either creates a new outcome if it doesn't exist based on its date,
 	 * or updates the 'reviewed' status if the outcome already exists.
@@ -187,11 +106,11 @@ export const outcomes = t.router({
 
 						// Upsert associations for existing outcome
 						for (const intentionId of input.intentionIds) {
-							await sql<{
-								outcomeId: number;
-								intentionId: number;
-							}>`INSERT OR REPLACE INTO outcomes_intentions (outcomeId, intentionId) 
-                          VALUES (${updatedOutcome.id}, ${intentionId})`.execute(trx);
+							await trx
+								.insertInto('outcomes_intentions')
+								.values({ outcomeId: updatedOutcome.id as number, intentionId })
+								.onConflict((oc) => oc.doNothing())
+								.execute();
 						}
 
 						return { outcomeId: updatedOutcome.id };

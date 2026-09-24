@@ -332,6 +332,151 @@ describe('goals', () => {
 		expect(rows[0].active).toEqual(1);
 	});
 
+	it('restore logs the restored orderNumber', async () => {
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const id = Number(added.id);
+
+		await caller.goals.archive(id);
+		await caller.goals.restore(id);
+
+		const logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id)
+			.orderBy('id', 'asc')
+			.execute();
+
+		expect(logs).toHaveLength(3);
+		expect(logs[2].type).toEqual('start');
+		expect(logs[2].orderNumber).toEqual(1);
+	});
+
+	it('archive an already archived goal errors', async () => {
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const id = Number(added.id);
+
+		await caller.goals.archive(id);
+
+		let error;
+		try {
+			await caller.goals.archive(id);
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+	});
+
+	it('edit cannot change the active flag', async () => {
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const id = Number(added.id);
+
+		const goalToEdit = await db
+			.selectFrom('goals')
+			.selectAll()
+			.where('id', '=', id)
+			.executeTakeFirst();
+
+		// `active` is stripped from the input even if the caller provides it
+		await caller.goals.edit({ ...goalToEdit, active: 0 } as Goal);
+
+		const row = await db
+			.selectFrom('goals')
+			.select('active')
+			.where('id', '=', id)
+			.executeTakeFirst();
+		expect(row?.active).toEqual(1);
+	});
+
+	it('updateGoals reordering writes reorder logs and does not trip the unique index', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const added3 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 3' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+		const id3 = Number(added3.id);
+
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		// Swap positions 1 and 3: a permutation that only succeeds via the two-phase update
+		const reordered = rows.map((row) => ({
+			...row,
+			orderNumber: row.orderNumber === 1 ? 3 : row.orderNumber === 3 ? 1 : 2
+		}));
+		await caller.goals.updateGoals({ goals: reordered as Goal[] });
+
+		const updated = await db
+			.selectFrom('goals')
+			.selectAll()
+			.orderBy('orderNumber', 'asc')
+			.execute();
+		expect(updated[0].id).toEqual(id3);
+		expect(updated[2].id).toEqual(id1);
+
+		const goal1Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id1)
+			.execute();
+		const goal2Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id2)
+			.execute();
+		const goal3Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id3)
+			.execute();
+
+		expect(goal1Logs.map((l) => l.type)).toEqual(['start', 'reorder']);
+		expect(goal1Logs[1].orderNumber).toEqual(3);
+		// goal2 did not move, so no reorder log
+		expect(goal2Logs.map((l) => l.type)).toEqual(['start']);
+		expect(goal3Logs.map((l) => l.type)).toEqual(['start', 'reorder']);
+		expect(goal3Logs[1].orderNumber).toEqual(1);
+	});
+
+	it('updateGoals rejects duplicate orderNumbers for active goals', async () => {
+		(await caller.goals.add(TEST_GOAL)) as GoalResult;
+		(await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		const duplicated = rows.map((row) => ({ ...row, orderNumber: 1 }));
+
+		let error;
+		try {
+			await caller.goals.updateGoals({ goals: duplicated as Goal[] });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+
+		// And nothing was persisted
+		const after = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		expect(after[0].orderNumber).toEqual(1);
+		expect(after[1].orderNumber).toEqual(2);
+	});
+
+	it('listGoalsOnDate reflects reorder logs on a later date', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+
+		// Reorder: goal2 moves to the front
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		const reordered = rows.map((row) => ({
+			...row,
+			orderNumber: row.orderNumber === 1 ? 2 : 1
+		}));
+		await caller.goals.updateGoals({ goals: reordered as Goal[] });
+
+		const goalsOnDate = (await caller.goals.listGoalsOnDate({
+			active: 1,
+			date: new Date()
+		})) as Goal[];
+		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id1]);
+	});
+
 	it('restore a non-existent goal', async () => {
 		const id = 99999; // Non-existing ID
 		let error;
