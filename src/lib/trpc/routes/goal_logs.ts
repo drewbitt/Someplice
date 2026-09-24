@@ -8,27 +8,12 @@ const getDb = () => DbInstance.getInstance().db;
 export const GoalLogSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
-	type: z.string(),
+	type: z.enum(['start', 'end', 'reorder']),
 	date: z.string(),
-	orderNumber: z.number()
+	orderNumber: z.number().nullable()
 });
 
 export const goal_logs = t.router({
-	/**
-	 * Create a new goal log.
-	 * @param input - The `GoalLog` object to create.
-	 * @returns An `InsertResult` object.
-	 * @throws {NoResultError} If could not create the goal log.
-	 */
-	create: t.procedure
-		.use(logger)
-		.input(GoalLogSchema)
-		.mutation(async ({ input }) => {
-			return await getDb()
-				.insertInto('goal_logs')
-				.values({ ...input })
-				.executeTakeFirstOrThrow();
-		}),
 	/**
 	 * Get all goal logs for a goal.
 	 * @param input - The goal ID.

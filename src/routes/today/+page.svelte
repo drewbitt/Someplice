@@ -143,7 +143,7 @@
 		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
 
 		noIntentions ? await addIntentions() : await updateIntentions();
-		todaysIntentions.current = '';
+		todaysIntentions.current = null;
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {

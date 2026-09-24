@@ -21,9 +21,11 @@
 	type Goal = (typeof goals)[0];
 
 	let intentionsString = $state('');
+	let intentionsStringInitialized = $state(false);
 
 	onMount(() => {
-		if (todaysIntentions.current && todaysIntentions.current.trim() !== '') {
+		if (todaysIntentions.current !== null) {
+			// a draft exists — including an intentionally cleared one
 			intentionsString = todaysIntentions.current;
 		} else {
 			intentionsString = intentions
@@ -34,10 +36,13 @@
 				})
 				.join('\n');
 		}
+		intentionsStringInitialized = true;
 	});
 
+	// Persist the draft to the store — including a cleared value, so wiping the
+	// editor does not resurrect old intentions on the next remount.
 	$effect(() => {
-		if (intentionsString) {
+		if (intentionsStringInitialized) {
 			todaysIntentions.current = intentionsString;
 		}
 	});
@@ -74,6 +79,12 @@
 		return null;
 	}
 
+	let maxOrderNumber = $derived(
+		existingIntentions
+			? Math.max(...existingIntentions.map((intention) => intention.orderNumber), 0)
+			: 0
+	);
+
 	function buildIntention(
 		parsedData: [number, string | null, string],
 		index: number
@@ -93,12 +104,6 @@
 		}
 		return null;
 	}
-
-	let maxOrderNumber = $derived(
-		existingIntentions
-			? Math.max(...existingIntentions.map((intention) => intention.orderNumber))
-			: 0
-	);
 
 	const highlight = (value: string) => {
 		// Match lines that start with a number followed by a letter or letters and a closing parenthesis

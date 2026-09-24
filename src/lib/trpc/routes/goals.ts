@@ -3,7 +3,10 @@ import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
+import type { Transaction } from 'kysely';
+import type { DB } from '$src/lib/types/data';
 import type { Goal } from '../types';
+import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -48,7 +51,12 @@ export const goals = t.router({
 				SELECT
 					goals.id,
 					goals.active,
-					goals.orderNumber,
+					COALESCE(
+						(SELECT gl2.orderNumber FROM goal_logs gl2
+						 WHERE gl2.goalId = goals.id
+						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
+						goals.orderNumber
+					) AS orderNumber,
 					goals.title,
 					goals.description,
 					goals.color,
@@ -91,7 +99,13 @@ export const goals = t.router({
 				SELECT
 					goals.id,
 					goals.active,
-					goal_logs.orderNumber,
+					COALESCE(
+						(SELECT gl2.orderNumber FROM goal_logs gl2
+						 WHERE gl2.goalId = goals.id AND gl2.type IN ('start', 'reorder')
+						 AND gl2.date <= ${endDate.toISOString()}
+						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
+						goals.orderNumber
+					) AS orderNumber,
 					goals.title,
 					goals.description,
 					goals.color,
@@ -115,7 +129,7 @@ export const goals = t.router({
 				GROUP BY
 					goals.id
 				ORDER BY
-					goal_logs.orderNumber ASC		
+					orderNumber ASC
 			`.execute(getDb());
 
 				return activeGoalsWithDate.rows;
@@ -124,7 +138,7 @@ export const goals = t.router({
 				const inactiveGoalsOnDate = await sql<Goal>`
 					SELECT
 						goals.id,
-						goals.orderNumber,
+						COALESCE(goal_logs.orderNumber, goals.orderNumber) AS orderNumber,
 						goals.title,
 						goals.description,
 						goals.color
@@ -141,7 +155,7 @@ export const goals = t.router({
 					AND
 						goal_logs.type = 'end'
 					ORDER BY
-						goals.orderNumber ASC
+						COALESCE(goal_logs.orderNumber, goals.orderNumber) ASC
 				`.execute(getDb());
 
 				return inactiveGoalsOnDate.rows;
@@ -163,16 +177,13 @@ export const goals = t.router({
 				.execute(async (trx) => {
 					// get orderNumber by getting the max orderNumber and adding 1
 					// Could make this a trigger in kysely with raw sql
-					const maxOrderNumber = await trx
-						.selectFrom('goals')
-						.select('orderNumber')
-						.orderBy('orderNumber', 'desc')
-						.executeTakeFirst()
-						.then((res) => res?.orderNumber)
-						// catch is not needed
-						.catch((err) => {
-							throw new Error(err);
-						});
+					const maxOrderNumber = (
+						await trx
+							.selectFrom('goals')
+							.select('orderNumber')
+							.orderBy('orderNumber', 'desc')
+							.executeTakeFirst()
+					)?.orderNumber;
 
 					if (maxOrderNumber && maxOrderNumber >= 9) {
 						throw new Error(`You have reached the maximum number of 9 goals. 
@@ -184,7 +195,8 @@ export const goals = t.router({
 
 					const result = await trx
 						.insertInto('goals')
-						.values({ ...input, orderNumber })
+						// added goals are always active; archive/restore manage `active` elsewhere
+						.values({ ...input, active: 1, orderNumber })
 						.returning('id')
 						.executeTakeFirstOrThrow();
 
@@ -207,27 +219,6 @@ export const goals = t.router({
 				});
 		}),
 	/**
-	 * Update a goal in the database with a given `Goal` object by `id`.
-	 * @param input - `Goal` object to update.
-	 * @param input.id - ID of the goal to update.
-	 * @returns An `UpdateResult` object.
-	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
-	 */
-	edit: t.procedure
-		.use(logger)
-		.input(GoalSchema)
-		.mutation(async ({ input }) => {
-			const query = getDb().updateTable('goals').set(input).where('id', '=', input.id);
-			const result = await query.executeTakeFirst();
-			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
-			// Don't want to return the id of the updated row as we would lose UpdateResult like numUpdatedRows
-			// Manual throw
-			if (Number(result?.numUpdatedRows) === 0) {
-				throw new NoResultError(query.toOperationNode());
-			}
-			return result;
-		}),
-	/**
 	 * Update all goals in the database with an array of `Goal` objects.
 	 * @param input.goals - Array of `Goal` objects to update.
 	 * @returns An array of now current `Goal` objects.
@@ -236,30 +227,102 @@ export const goals = t.router({
 		.use(logger)
 		.input(
 			z.object({
-				goals: z.array(GoalSchema)
+				// `active` is lifecycle-managed via archive/restore and is not editable here
+				goals: z.array(GoalSchema.omit({ active: true }))
 			})
 		)
 		.mutation(async ({ input }) => {
-			const results = await getDb()
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					return await Promise.all(
-						input.goals.map(async (goal) => {
-							if (goal.id) {
-								const result = await trx
-									.updateTable('goals')
-									.set(goal)
-									.where('id', '=', goal.id)
-									.execute();
-								return result;
-							} else {
-								return await trx.insertInto('goals').values(goal).execute();
-							}
-						})
-					);
-				});
+					const existingGoals = await trx
+						.selectFrom('goals')
+						.select(['id', 'orderNumber', 'active'])
+						.execute();
+					const existingById = new Map(existingGoals.map((g) => [g.id, g]));
 
-			return results;
+					const updates = input.goals.filter((goal) => goal.id !== null);
+					const inserts = input.goals.filter((goal) => goal.id === null);
+
+					// New goals are always active; reject payloads that would exceed the goal cap
+					if (existingGoals.filter((g) => g.active === 1).length + inserts.length > 9) {
+						throw new Error(`You have reached the maximum number of 9 goals. 
+						Please delete or archive a goal to add a new one.`);
+					}
+
+					// The partial unique index on goals.orderNumber can't be deferred, so a
+					// permutation update (e.g. swapping two goals' positions) would collide
+					// mid-way. Move the affected rows to a scratch range first, then apply
+					// the final values.
+					if (updates.length > 0) {
+						await trx
+							.updateTable('goals')
+							.set({
+								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "goals") + 1)`
+							})
+							.where(
+								'id',
+								'in',
+								updates.map((goal) => goal.id as number)
+							)
+							.execute();
+					}
+
+					const results = [];
+					const now = localeCurrentDate().toISOString();
+
+					for (const goal of updates) {
+						const existing = existingById.get(goal.id as number);
+						if (!existing) {
+							throw new NoResultError(
+								trx
+									.selectFrom('goals')
+									.selectAll()
+									.where('id', '=', goal.id as number)
+									.toOperationNode()
+							);
+						}
+						results.push(
+							await trx
+								.updateTable('goals')
+								.set({
+									orderNumber: goal.orderNumber,
+									title: goal.title,
+									description: goal.description,
+									color: goal.color
+								})
+								.where('id', '=', goal.id)
+								.execute()
+						);
+						await insertReorderLog(trx, goal.id as number, existing, goal.orderNumber);
+					}
+
+					for (const goal of inserts) {
+						const result = await trx
+							.insertInto('goals')
+							.values({
+								active: 1,
+								orderNumber: goal.orderNumber,
+								title: goal.title,
+								description: goal.description,
+								color: goal.color
+							})
+							.returning('id')
+							.executeTakeFirstOrThrow();
+						await trx
+							.insertInto('goal_logs')
+							.values({
+								goalId: result.id as number,
+								type: 'start',
+								date: now,
+								orderNumber: goal.orderNumber
+							})
+							.execute();
+						results.push(result);
+					}
+
+					return results;
+				});
 		}),
 	/**
 	 * Delete a goal by its `id`.
@@ -282,79 +345,29 @@ export const goals = t.router({
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
 
-					// Need to deal with references first
-
-					// Find the intentionIds associated with the goal
-					const intentions = await trx
-						.selectFrom('intentions')
-						.select('id')
-						.where('goalId', '=', input)
-						.execute();
-
-					// Fetch the associated outcomeIds before deleting the associations
-					// Used in the deleteOrphanedOutcomes function
-					const associatedOutcomes = await trx
-						.selectFrom('outcomes_intentions')
-						.select('outcomeId')
-						.where(
-							'intentionId',
-							'in',
-							intentions.map((i) => i.id)
-						)
-						.execute();
-
-					const associatedOutcomeIds = [
-						...new Set(associatedOutcomes.map((outcome) => outcome.outcomeId))
-					];
-
-					// Delete from outcomes_intentions table
-					for (const intention of intentions) {
+					// Collect the outcomeIds linked to this goal's intentions before deleting;
+					// the intentions / outcomes_intentions / goal_logs rows cascade away with the goal
+					const associatedOutcomeIds = (
 						await trx
-							.deleteFrom('outcomes_intentions')
-							.where('intentionId', '=', intention.id)
-							.execute();
-					}
+							.selectFrom('outcomes_intentions')
+							.innerJoin('intentions', 'intentions.id', 'outcomes_intentions.intentionId')
+							.select('outcomeId')
+							.where('intentions.goalId', '=', input)
+							.execute()
+					).map((row) => row.outcomeId);
 
-					// Handle the deletion of orphaned outcomes
-					await deleteOrphanedOutcomes(associatedOutcomeIds);
+					const result = await trx.deleteFrom('goals').where('id', '=', input).execute();
 
-					// Delete from intentions table
-					await trx.deleteFrom('intentions').where('goalId', '=', input).execute();
+					await deleteOrphanedOutcomes(trx, associatedOutcomeIds);
 
-					// Delete from goal_logs table
-					await trx.deleteFrom('goal_logs').where('goalId', '=', input).execute();
-
-					// Delete from goals table
-					return await trx.deleteFrom('goals').where('id', '=', input).execute();
-
-					/**
-					 * Delete outcomes that have no associated intentions.
-					 * @param associatedOutcomeIds - Array of associated outcome IDs.
-					 */
-					async function deleteOrphanedOutcomes(associatedOutcomeIds: number[]) {
-						// For each of these outcomes, check if there are any remaining intentions associated with them
-						for (const outcomeId of associatedOutcomeIds) {
-							const intentionsCountResult = await trx
-								.selectFrom('outcomes_intentions')
-								.select(({ fn }) => [fn.countAll<number>().as('count')])
-								.where('outcomeId', '=', outcomeId)
-								.execute();
-
-							const intentionsCount = intentionsCountResult[0]?.count || 0;
-
-							// If an outcome does not have any associated intentions, delete the outcome
-							if (intentionsCount === 0) {
-								await trx.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
-							}
-						}
-					}
+					return result;
 				});
 		}),
 	/**
 	 * Archive a goal by its `id`.
 	 * @param input - `id` of the goal to archive.
 	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
-	 * @throws {Error} If the goal's `orderNumber` is undefined.
+	 * @throws {Error} If the goal is already archived.
 	 * @returns An `UpdateResult` object.
 	 */
 	archive: t.procedure
@@ -367,13 +380,13 @@ export const goals = t.router({
 					// find the orderNumber of the goal that is to be archived
 					const archivedGoal = await trx
 						.selectFrom('goals')
-						.select(['orderNumber'])
+						.select(['orderNumber', 'active'])
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
-					const archivedGoalOrder = archivedGoal?.orderNumber;
-					if (!archivedGoalOrder) {
-						throw new Error('ARCHIVE_GOAL_ERROR: archivedGoalOrder is undefined');
+					if (archivedGoal.active === 0) {
+						throw new Error('ARCHIVE_GOAL_ERROR: goal is already archived');
 					}
+					const archivedGoalOrder = archivedGoal.orderNumber;
 
 					// set the archived goal as inactive and set orderNumber to 0
 					const result = await trx
@@ -385,25 +398,27 @@ export const goals = t.router({
 					// get all active goals with orderNumber greater than the archived one
 					const goalsToUpdate = await trx
 						.selectFrom('goals')
-						.select(['id', 'orderNumber'])
+						.selectAll()
 						.where('orderNumber', '>', archivedGoalOrder)
 						.where('active', '=', 1)
 						.orderBy('orderNumber', 'asc')
 						.execute();
 
-					// decrement the orderNumber of each goal sequentially
-					const updatePromises = goalsToUpdate.map((goal) =>
-						trx
+					const endDate = localeCurrentDate().toISOString();
+
+					// close the gap and log each shift so historical queries see post-archive positions
+					for (const goal of goalsToUpdate) {
+						const newOrderNumber = goal.orderNumber - 1;
+						await trx
 							.updateTable('goals')
-							.set({ orderNumber: goal.orderNumber - 1 })
+							.set({ orderNumber: newOrderNumber })
 							.where('id', '=', goal.id)
-							.execute()
-					);
-					await Promise.all(updatePromises);
+							.execute();
+						await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, endDate);
+					}
 
 					// Update the goal_logs when a goal is archived
 					if (result) {
-						const endDate = localeCurrentDate().toISOString();
 						await trx
 							.insertInto('goal_logs')
 							.values({
@@ -475,7 +490,8 @@ export const goals = t.router({
 							.values({
 								goalId: input,
 								type: 'start',
-								date: localeCurrentDate().toISOString()
+								date: localeCurrentDate().toISOString(),
+								orderNumber: restoredOrderNumber
 							})
 							.executeTakeFirst();
 					}
@@ -484,3 +500,27 @@ export const goals = t.router({
 				});
 		})
 });
+
+/**
+ * Write a 'reorder' goal_log when an active goal's orderNumber changed.
+ * Archived goals are not logged: their position comes from the 'end' log.
+ */
+async function insertReorderLog(
+	trx: Transaction<DB>,
+	goalId: number,
+	existing: { active: number; orderNumber: number },
+	newOrderNumber: number,
+	date = localeCurrentDate().toISOString()
+) {
+	if (existing.active === 1 && existing.orderNumber !== newOrderNumber) {
+		await trx
+			.insertInto('goal_logs')
+			.values({
+				goalId,
+				type: 'reorder',
+				date,
+				orderNumber: newOrderNumber
+			})
+			.execute();
+	}
+}

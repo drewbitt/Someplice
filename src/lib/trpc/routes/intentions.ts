@@ -4,6 +4,7 @@ import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
+import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -51,30 +52,24 @@ export const intentions = t.router({
 				.optional()
 		)
 		.query(async ({ input }) => {
-			let query = getDb().selectFrom('intentions').selectAll();
+			let query = getDb()
+				.selectFrom('intentions')
+				.selectAll()
+				.orderBy('orderNumber', input?.order ?? 'asc');
 
-			if (input) {
-				query = query.orderBy('orderNumber', input.order);
+			if (input?.startDate && input?.endDate) {
+				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 
-				if (input.startDate && input.endDate) {
-					const { startDate, endDate } = adjustToUTCStartAndEndOfDay(
-						input.startDate,
-						input.endDate
-					);
+				query = query
+					.where('date', '>=', startDate.toISOString())
+					.where('date', '<=', endDate.toISOString());
+			}
 
-					query = query
-						.where('date', '>=', startDate.toISOString())
-						.where('date', '<=', endDate.toISOString());
-				}
-
-				if (input.limit) {
-					query = query.limit(input.limit);
-				}
-				if (input.offset) {
-					query = query.offset(input.offset);
-				}
-			} else {
-				query = query.orderBy('orderNumber', 'asc');
+			if (input?.limit) {
+				query = query.limit(input.limit);
+			}
+			if (input?.offset) {
+				query = query.offset(input.offset);
 			}
 
 			return await query.execute();
@@ -216,20 +211,6 @@ export const intentions = t.router({
 		}
 	}),
 	/**
-	 * Add new intentions.
-	 * This can be used instead of `updateIntentions`'s upsert if you only want to add new intentions.
-	 * @param input - An array of intentions to add, omitting the 'id' property.
-	 * @returns The ids of the created intentions.
-	 */
-	addMany: t.procedure
-		.use(logger)
-		.input(z.array(IntentionsSchema.omit({ id: true })))
-		.mutation(async ({ input }) => {
-			const result = await getDb().insertInto('intentions').values(input).returning('id').execute();
-
-			return result;
-		}),
-	/**
 	 * Edit single intention
 	 * @param {IntentionsSchema} input - The intention to edit
 	 * @returns {UpdateResult}
@@ -305,55 +286,82 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const results = await getDb()
+			if (input.intentions.length === 0) {
+				return [];
+			}
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					return await Promise.all(
-						input.intentions.map((intention) => {
-							return sql<
-								typeof intention
-							>`INSERT OR REPLACE INTO intentions (id, goalId, orderNumber, completed, text, subIntentionQualifier, date)
-										 VALUES (${intention.id}, ${intention.goalId}, ${intention.orderNumber}, ${intention.completed},
-										${intention.text}, ${intention.subIntentionQualifier}, ${intention.date}) RETURNING *`.execute(trx);
-						})
-					);
+					const updateIds = input.intentions
+						.filter((intention) => intention.id !== null)
+						.map((intention) => intention.id as number);
+
+					// The unique index on (DATE(date), orderNumber) can't be deferred, so a
+					// permutation (e.g. swapping two intentions) would collide mid-statement.
+					// Move the rows being updated to a scratch range first.
+					if (updateIds.length > 0) {
+						await trx
+							.updateTable('intentions')
+							.set({
+								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
+							})
+							.where('id', 'in', updateIds)
+							.execute();
+					}
+
+					return await trx
+						.insertInto('intentions')
+						.values(input.intentions)
+						.onConflict((oc) =>
+							oc.column('id').doUpdateSet((eb) => ({
+								goalId: eb.ref('excluded.goalId'),
+								orderNumber: eb.ref('excluded.orderNumber'),
+								completed: eb.ref('excluded.completed'),
+								text: eb.ref('excluded.text'),
+								subIntentionQualifier: eb.ref('excluded.subIntentionQualifier'),
+								date: eb.ref('excluded.date')
+							}))
+						)
+						.returningAll()
+						.execute();
 				});
-			return results;
 		}),
 	/**
-	 * Update the completion status of intentions based on their IDs.
-	 * @param input - An array of objects containing `intentionId` and `completed`.
-	 * @throws {NoResultError} If could not update the intention's completion status.
+	 * Delete an intention by its `id`.
+	 * Also removes its outcome associations and any outcome left with no intentions.
+	 * @param input - `id` of the intention to delete.
+	 * @returns A `DeleteResult` object.
+	 * @throws {NoResultError} If no intention with the provided `id` exists.
 	 */
-	updateIntentionCompletionStatus: t.procedure
+	delete: t.procedure
 		.use(logger)
-		.input(
-			z.array(
-				z.object({
-					intentionId: z.number(),
-					completed: z.number()
-				})
-			)
-		)
+		.input(z.number())
 		.mutation(async ({ input }) => {
-			await getDb()
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					await Promise.all(
-						input.map(async (intentionUpdate) => {
-							const query = trx
-								.updateTable('intentions')
-								.set({ completed: intentionUpdate.completed })
-								.where('id', '=', intentionUpdate.intentionId);
+					// Check if the intention exists
+					await trx
+						.selectFrom('intentions')
+						.select('id')
+						.where('id', '=', input)
+						.executeTakeFirstOrThrow();
 
-							const result = await query.executeTakeFirst();
+					// outcomeIds linked to this intention; its outcomes_intentions rows
+					// cascade away with the delete below
+					const outcomeIds = (
+						await trx
+							.selectFrom('outcomes_intentions')
+							.select('outcomeId')
+							.where('intentionId', '=', input)
+							.execute()
+					).map((row) => row.outcomeId);
 
-							// If no row is updated, throw an error
-							if (Number(result?.numUpdatedRows) === 0) {
-								throw new NoResultError(query.toOperationNode());
-							}
-						})
-					);
+					const result = await trx.deleteFrom('intentions').where('id', '=', input).execute();
+
+					await deleteOrphanedOutcomes(trx, outcomeIds);
+
+					return result;
 				});
 		})
 });

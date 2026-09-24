@@ -6,7 +6,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		// autoIncrement after the primaryKey prevents reuse of the id after deletion
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		// 0 (false) or 1 (true)
-		.addColumn('reviewed', 'integer', (col) => col.notNull())
+		.addColumn('reviewed', 'integer', (col) => col.notNull().check(sql`"reviewed" IN (0, 1)`))
 		// ISO 8601 date string but without the time
 		.addColumn('date', 'text', (col) =>
 			col
@@ -14,12 +14,18 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 				.check(sql`"date" = strftime('%Y-%m-%d', "date")`)
 				.unique()
 		)
+		.modifyEnd(sql`strict`)
 		.execute();
 
 	await db.schema
 		.createTable('outcomes_intentions')
-		.addColumn('outcomeId', 'integer', (col) => col.notNull().references('outcomes.id'))
-		.addColumn('intentionId', 'integer', (col) => col.notNull().references('intentions.id'))
+		.addColumn('outcomeId', 'integer', (col) =>
+			col.notNull().references('outcomes.id').onDelete('cascade')
+		)
+		.addColumn('intentionId', 'integer', (col) =>
+			col.notNull().references('intentions.id').onDelete('cascade')
+		)
 		.addPrimaryKeyConstraint('outcomes_intentions_pk', ['outcomeId', 'intentionId'])
+		.modifyEnd(sql`strict`)
 		.execute();
 }

@@ -42,7 +42,7 @@ describe('stores', () => {
 	it('theme and intentions defaults are readable without a browser', () => {
 		// PersistedState treats storage as source of truth; writes drop headless
 		expect(theme.current).toBe('light');
-		expect(todaysIntentions.current).toBe('');
+		expect(todaysIntentions.current).toBeNull();
 	});
 
 	it('PersistedState writes raw strings, preserving the localStorage format', () => {

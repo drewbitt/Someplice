@@ -1,7 +1,11 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import type { Goal, Intention } from '$src/lib/trpc/types';
+	import { trpc } from '$src/lib/trpc/client';
+	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
+	import Trash2 from 'virtual:icons/lucide/trash-2';
 	import AppendModal from './AppendModal.svelte';
 
 	let {
@@ -39,6 +43,21 @@
 		showAppendModal = false;
 		opened = false;
 	};
+
+	const deleteIntention = async () => {
+		if (intention.id != null) {
+			try {
+				await trpc().intentions.delete.mutate(intention.id);
+				opened = false;
+				dialog?.close();
+				await invalidateAll();
+			} catch (error) {
+				if (error instanceof Error) {
+					todayPageErrorStore.setError(error.message);
+				}
+			}
+		}
+	};
 </script>
 
 <dialog bind:this={dialog} class="modal" onclose={closeIntentionsModal}>
@@ -57,6 +76,16 @@
 					>
 						<TextCursorInput class="h-6 w-6" />
 						<span>Append Text</span>
+					</button>
+				</li>
+				<li>
+					<button
+						class="focus:text-base-content flex items-center gap-3"
+						style="grid-template-columns: 0.5rem auto;"
+						onclick={deleteIntention}
+					>
+						<Trash2 class="h-6 w-6" />
+						<span>Delete</span>
 					</button>
 				</li>
 			</ul>

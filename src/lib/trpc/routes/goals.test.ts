@@ -1,7 +1,7 @@
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
-import type { Kysely, UpdateResult } from 'kysely';
+import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Goal } from '../types';
 import { createCallerFactory, router } from '../router';
@@ -164,43 +164,6 @@ describe('goals', () => {
 		expect(logEntries[0].type).toEqual('start');
 	});
 
-	it('edit', async () => {
-		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
-		const id = Number(added.id);
-
-		const goalToEdit = await db
-			.selectFrom('goals')
-			.selectAll()
-			.where('id', '=', id)
-			.executeTakeFirst();
-		const editedGoal = { ...goalToEdit, title: 'Modified Test Goal' };
-
-		const result = (await caller.goals.edit(editedGoal as Goal)) as UpdateResult;
-		expect(Number(result.numUpdatedRows)).toEqual(1);
-
-		const editedGoalFromDb = await db
-			.selectFrom('goals')
-			.select('title')
-			.where('id', '=', id)
-			.executeTakeFirst();
-		expect(editedGoalFromDb).toBeDefined();
-		if (editedGoalFromDb) {
-			expect(editedGoalFromDb.title).toEqual('Modified Test Goal');
-		}
-	});
-
-	it('edit a non-existent goal', async () => {
-		const id = 99999; // Non-existing ID
-		const orderNumber = 1;
-		let error;
-		try {
-			await caller.goals.edit({ ...TEST_GOAL, id, orderNumber });
-		} catch (e) {
-			error = e;
-		}
-		expect(error).toBeDefined();
-	});
-
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
@@ -330,6 +293,161 @@ describe('goals', () => {
 
 		const rows = await db.selectFrom('goals').selectAll().execute();
 		expect(rows[0].active).toEqual(1);
+	});
+
+	it('restore logs the restored orderNumber', async () => {
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const id = Number(added.id);
+
+		await caller.goals.archive(id);
+		await caller.goals.restore(id);
+
+		const logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id)
+			.orderBy('id', 'asc')
+			.execute();
+
+		expect(logs).toHaveLength(3);
+		expect(logs[2].type).toEqual('start');
+		expect(logs[2].orderNumber).toEqual(1);
+	});
+
+	it('archive an already archived goal errors', async () => {
+		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const id = Number(added.id);
+
+		await caller.goals.archive(id);
+
+		let error;
+		try {
+			await caller.goals.archive(id);
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+	});
+
+	it('updateGoals reordering writes reorder logs and does not trip the unique index', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const added3 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 3' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+		const id3 = Number(added3.id);
+
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		// Swap positions 1 and 3: a permutation that only succeeds via the two-phase update
+		const reordered = rows.map((row) => ({
+			...row,
+			orderNumber: row.orderNumber === 1 ? 3 : row.orderNumber === 3 ? 1 : 2
+		}));
+		await caller.goals.updateGoals({ goals: reordered as Goal[] });
+
+		const updated = await db
+			.selectFrom('goals')
+			.selectAll()
+			.orderBy('orderNumber', 'asc')
+			.execute();
+		expect(updated[0].id).toEqual(id3);
+		expect(updated[2].id).toEqual(id1);
+
+		const goal1Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id1)
+			.execute();
+		const goal2Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id2)
+			.execute();
+		const goal3Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id3)
+			.execute();
+
+		expect(goal1Logs.map((l) => l.type)).toEqual(['start', 'reorder']);
+		expect(goal1Logs[1].orderNumber).toEqual(3);
+		// goal2 did not move, so no reorder log
+		expect(goal2Logs.map((l) => l.type)).toEqual(['start']);
+		expect(goal3Logs.map((l) => l.type)).toEqual(['start', 'reorder']);
+		expect(goal3Logs[1].orderNumber).toEqual(1);
+	});
+
+	it('updateGoals rejects duplicate orderNumbers for active goals', async () => {
+		(await caller.goals.add(TEST_GOAL)) as GoalResult;
+		(await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		const duplicated = rows.map((row) => ({ ...row, orderNumber: 1 }));
+
+		let error;
+		try {
+			await caller.goals.updateGoals({ goals: duplicated as Goal[] });
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+
+		// And nothing was persisted
+		const after = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		expect(after[0].orderNumber).toEqual(1);
+		expect(after[1].orderNumber).toEqual(2);
+	});
+
+	it('listGoalsOnDate reflects reorder logs on a later date', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+
+		// Reorder: goal2 moves to the front
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		const reordered = rows.map((row) => ({
+			...row,
+			orderNumber: row.orderNumber === 1 ? 2 : 1
+		}));
+		await caller.goals.updateGoals({ goals: reordered as Goal[] });
+
+		const goalsOnDate = (await caller.goals.listGoalsOnDate({
+			active: 1,
+			date: new Date()
+		})) as Goal[];
+		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id1]);
+	});
+
+	it('archive logs reorder entries for goals shifted into the gap', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const added3 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 3' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+		const id3 = Number(added3.id);
+
+		await caller.goals.archive(id1);
+
+		const goal2Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id2)
+			.execute();
+		const goal3Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id3)
+			.execute();
+		expect(goal2Logs.map((l) => `${l.type}:${l.orderNumber}`)).toEqual(['start:2', 'reorder:1']);
+		expect(goal3Logs.map((l) => `${l.type}:${l.orderNumber}`)).toEqual(['start:3', 'reorder:2']);
+
+		// A review after the archive sees the shifted positions, not the pre-archive ones
+		const goalsOnDate = (await caller.goals.listGoalsOnDate({
+			active: 1,
+			date: new Date()
+		})) as Goal[];
+		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id3]);
 	});
 
 	it('restore a non-existent goal', async () => {
