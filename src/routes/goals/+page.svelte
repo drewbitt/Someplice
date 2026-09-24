@@ -5,10 +5,9 @@
 	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { GoalLog } from '$src/lib/trpc/types';
-	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
+	import { dndzone } from 'svelte-dnd-action';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageServerData } from './$types';
-	overrideItemIdKeyNameBeforeInitialisingDndZones('id');
 
 	let { data }: { data: PageServerData } = $props();
 	type Goals = (typeof data.goals)[0];

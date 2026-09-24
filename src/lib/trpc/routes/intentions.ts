@@ -292,24 +292,42 @@ export const intentions = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const updateIds = input.intentions
-						.filter((intention) => intention.id !== null)
-						.map((intention) => intention.id as number);
+					const inputByDate = new Map<string, typeof input.intentions>();
+					for (const intention of input.intentions) {
+						const dateKey = intention.date.slice(0, 10);
+						inputByDate.set(dateKey, [...(inputByDate.get(dateKey) ?? []), intention]);
+					}
 
 					// The unique index on (DATE(date), orderNumber) can't be deferred, so a
 					// permutation (e.g. swapping two intentions) would collide mid-statement.
-					// Move the rows being updated to a scratch range first.
-					if (updateIds.length > 0) {
+					// Move ALL rows on each touched date to a scratch range first: the client
+					// may send a subset of the date's rows (hidden intentions of inactive
+					// goals), and their untouched orderNumbers could collide with the input's.
+					// Dates whose input only inserts new rows are append-only and skipped.
+					const reorderedDates = new Set<string>();
+					for (const [dateKey, rows] of inputByDate) {
+						const inputIds = rows
+							.filter((intention) => intention.id !== null)
+							.map((intention) => intention.id as number);
+						if (inputIds.length === 0) continue;
+						const existing = await trx
+							.selectFrom('intentions')
+							.select('id')
+							.where(sql`DATE("date")`, '=', dateKey)
+							.where('id', 'in', inputIds)
+							.execute();
+						if (existing.length === 0) continue;
+						reorderedDates.add(dateKey);
 						await trx
 							.updateTable('intentions')
 							.set({
 								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
 							})
-							.where('id', 'in', updateIds)
+							.where(sql`DATE("date")`, '=', dateKey)
 							.execute();
 					}
 
-					return await trx
+					const results = await trx
 						.insertInto('intentions')
 						.values(input.intentions)
 						.onConflict((oc) =>
@@ -324,6 +342,33 @@ export const intentions = t.router({
 						)
 						.returningAll()
 						.execute();
+
+					// Same-date rows that were not part of the input trail the input's
+					// orderNumbers, keeping their prior relative order.
+					const persistedIds = new Set(results.map((row) => row.id));
+					for (const dateKey of reorderedDates) {
+						const rows = inputByDate.get(dateKey)!;
+						const maxInputOrderNumber = Math.max(...rows.map((intention) => intention.orderNumber));
+						let leftoverQuery = trx
+							.selectFrom('intentions')
+							.select(['id', 'orderNumber'])
+							.where(sql`DATE("date")`, '=', dateKey)
+							.orderBy('orderNumber', 'asc');
+						if (persistedIds.size > 0) {
+							leftoverQuery = leftoverQuery.where('id', 'not in', [...persistedIds]);
+						}
+						const leftovers = await leftoverQuery.execute();
+						let orderNumber = maxInputOrderNumber + 1;
+						for (const leftover of leftovers) {
+							await trx
+								.updateTable('intentions')
+								.set({ orderNumber: orderNumber++ })
+								.where('id', '=', leftover.id)
+								.execute();
+						}
+					}
+
+					return results;
 				});
 		}),
 	/**

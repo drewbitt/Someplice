@@ -3,15 +3,10 @@
 	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
 	import type { UpdateResult } from 'kysely';
 	import { SvelteMap } from 'svelte/reactivity';
-	import {
-		dndzone,
-		overrideItemIdKeyNameBeforeInitialisingDndZones,
-		setKeyboardDragTrigger
-	} from 'svelte-dnd-action';
+	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	overrideItemIdKeyNameBeforeInitialisingDndZones('id');
 	// Space toggles the focused intention's checkbox; leave keyboard drag on Enter
 	setKeyboardDragTrigger('enter');
 
