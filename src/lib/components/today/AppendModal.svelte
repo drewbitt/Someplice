@@ -66,7 +66,7 @@
 		</p>
 		<div class="flex flex-col items-center">
 			<span class="w-11/12">
-				<input class="input input-bordered h-12 w-full text-xl" id="append-text" />
+				<input class="input h-12 w-full text-xl" id="append-text" />
 			</span>
 			<span class="append-buttons mt-8 flex gap-2">
 				<button

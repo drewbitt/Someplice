@@ -5,7 +5,7 @@
 
 	let { goalColor = $bindable() }: { goalColor: string } = $props();
 
-	let opened = false;
+	let opened = $state(false);
 	let dialogEl: HTMLDialogElement;
 
 	$effect(() => {

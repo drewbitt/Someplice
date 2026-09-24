@@ -19,7 +19,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<input
 				bind:value={title}
-				class="input input-bordered border-opacity-20 w-full max-w-lg bg-transparent px-0 text-3xl dark:text-white"
+				class="input w-full max-w-lg bg-transparent px-0 text-3xl dark:text-white"
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
