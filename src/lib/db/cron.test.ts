@@ -1,5 +1,5 @@
 import { DbInstance } from '$src/lib/db/db';
-import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
+import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -50,7 +50,7 @@ describe('checkMissingOutcomes', () => {
 		const dbInstance = DbInstance.getInstance();
 		dbInstance.setNewTestDb();
 		db = dbInstance.db;
-		await migrateToLatest(db);
+		await runMigrations(db);
 	});
 
 	it('creates an outcome and links for days that only have intentions', async () => {

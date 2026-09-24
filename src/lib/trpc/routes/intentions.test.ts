@@ -1,5 +1,5 @@
 import { DbInstance } from '$src/lib/db/db';
-import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
+import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import { type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -25,7 +25,7 @@ describe('intentions', () => {
 		const dbInstance = DbInstance.getInstance();
 		dbInstance.setNewTestDb();
 		db = dbInstance.db;
-		await migrateToLatest(db);
+		await runMigrations(db);
 
 		// Insert a test goal
 		const TEST_GOAL = {

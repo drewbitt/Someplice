@@ -15,8 +15,7 @@
 		"lint": "prettier --cache --ignore-path ./config/.prettierignore --check . && eslint -c ./config/eslint.config.js .",
 		"format": "prettier --cache --ignore-path ./config/.prettierignore --write .",
 		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
-		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts",
-		"db:migrate:single": "node ./src/lib/db/migrate-to-latest.ts --migration"
+		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts"
 	},
 	"dependencies": {
 		"@trpc/client": "^11.19.0",

@@ -78,8 +78,6 @@ jobs:
 
       - name: Migrate a fresh database
         run: pnpm run db:migrate
-        env:
-          NODE_ENV: migration
 
       - name: Seed smoke test
         run: node ./src/lib/db/insert-fake-data.ts
