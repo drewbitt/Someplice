@@ -151,7 +151,7 @@
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>
 	{#if data.goals.length > 0 || data.inactiveGoals.length > 0}
-		<h1 class="text-3xl font-bold">Inactive Goals</h1>
+		<h2 class="text-3xl font-bold">Inactive Goals</h2>
 		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
 			{#each data.inactiveGoals as goal, i (goal)}
 				<GoalBoxComponent

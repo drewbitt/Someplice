@@ -66,7 +66,7 @@
 		</p>
 		<div class="flex flex-col items-center">
 			<span class="w-11/12">
-				<input class="input h-12 w-full text-xl" id="append-text" />
+				<input class="input h-12 w-full text-xl" id="append-text" aria-label="Text to append" />
 			</span>
 			<span class="append-buttons mt-8 flex gap-2">
 				<button

@@ -20,10 +20,10 @@
 	class:bg-gray-950={theme.current === 'dark'}
 	class:bg-white={theme.current !== 'dark'}
 >
-	<h3
+	<h2
 		class="ml-5 text-xl font-bold"
-		class:text-gray-700={theme.current === 'dark'}
-		class:text-gray-300={theme.current !== 'dark'}
+		class:text-gray-400={theme.current === 'dark'}
+		class:text-gray-500={theme.current !== 'dark'}
 	>
 		{(() => {
 			const dateObj = new Date(date);
@@ -36,7 +36,7 @@
 			});
 			return formatter.format(dateObj).replace(/\//g, '-');
 		})()}
-	</h3>
+	</h2>
 	<div class="grid grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
 		<OutcomesBox {goals} {intentions} {outcomes} />

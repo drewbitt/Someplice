@@ -30,6 +30,8 @@
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"
+					aria-label="Archive goal"
+					aria-haspopup="dialog"
 					class="btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
 					onclick={handleArchiveGoal}
 				>
@@ -37,7 +39,8 @@
 				</button>
 				<button
 					id="goal-box-delete-button"
-					aria-haspopup="true"
+					aria-label="Delete goal"
+					aria-haspopup="dialog"
 					class="btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
 					onclick={handleDeleteGoal}
 				>
@@ -53,6 +56,8 @@
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"
+					aria-label="Restore goal"
+					aria-haspopup="dialog"
 					class="btn-sm mr-2 rounded-lg bg-blue-600 p-1.5"
 					onclick={handleRestoreGoal}
 				>
@@ -60,7 +65,8 @@
 				</button>
 				<button
 					id="goal-box-delete-button"
-					aria-haspopup="true"
+					aria-label="Delete goal"
+					aria-haspopup="dialog"
 					class="btn-sm mr-3.5 rounded-lg bg-red-600 p-1.5"
 					onclick={handleDeleteGoal}
 				>

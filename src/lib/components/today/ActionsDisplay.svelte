@@ -111,10 +111,12 @@
 		}
 	) => {
 		if (event.key === ' ') {
+			event.preventDefault();
 			const checkbox = event.currentTarget.querySelector(
 				'input[type="checkbox"]'
 			) as HTMLInputElement;
-			checkbox.checked = !checkbox.checked;
+			// click() toggles and fires 'change' so updateIntention persists
+			checkbox.click();
 		}
 	};
 </script>
@@ -126,7 +128,7 @@
 				<h2 class="text-2xl font-bold text-gray-700 dark:text-purple-200">
 					{intentions.length} intentions for today,
 				</h2>
-				<h2 class="ml-5 text-2xl font-bold text-gray-300 dark:text-gray-600">
+				<h2 class="ml-5 text-2xl font-bold text-gray-500 dark:text-gray-400">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {
@@ -177,7 +179,7 @@
 							<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
 						{/if}
 						<button
-							aria-haspopup="true"
+							aria-haspopup="dialog"
 							aria-label="Open intention menu"
 							class="cursor-pointer py-0.5 hover:bg-gray-400"
 							onclick={() => {
@@ -211,7 +213,7 @@
 					<input
 						tabindex={-1}
 						id="intention-{intention.id}"
-						aria-labelledby="intention-{intention.id}"
+						aria-labelledby="intention-text-{intention.id}"
 						type="checkbox"
 						class={index === firstIncompleteIntentionIndex
 							? 'checkbox-md ml-0.5'
@@ -222,10 +224,17 @@
 					<span
 						role="button"
 						tabindex={0}
-						aria-haspopup="true"
+						id="intention-text-{intention.id}"
+						aria-haspopup="dialog"
 						oncontextmenu={(e) => {
 							e.preventDefault();
 							showIntentionModal = true;
+						}}
+						onkeydown={(e) => {
+							if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+								e.preventDefault();
+								showIntentionModal = true;
+							}
 						}}
 						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
 						style="color: {intention.completed

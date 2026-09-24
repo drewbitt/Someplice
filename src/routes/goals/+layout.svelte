@@ -8,7 +8,11 @@
 {#if goalPageErrorStore.current}
 	<div class="toast toast-center">
 		<div class="alert alert-error flex gap-2">
-			<button class="btn btn-circle btn-sm" onclick={() => goalPageErrorStore.setError(null)}>
+			<button
+				class="btn btn-circle btn-sm"
+				aria-label="Dismiss notification"
+				onclick={() => goalPageErrorStore.setError(null)}
+			>
 				<X />
 			</button>
 			<p>{goalPageErrorStore.current}</p>

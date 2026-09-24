@@ -11,11 +11,7 @@
 	class:bg-gray-950={theme.current === 'dark'}
 	class:bg-white={theme.current !== 'dark'}
 >
-	<h4
-		class="ml-5 text-lg font-bold"
-		class:text-gray-500={theme.current === 'dark'}
-		class:text-gray-400={theme.current !== 'dark'}
-	>
+	<h2 class="ml-5 text-lg font-bold text-gray-500">
 		{numDays} blank days
-	</h4>
+	</h2>
 </div>
