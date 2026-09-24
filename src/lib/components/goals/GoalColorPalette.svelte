@@ -36,7 +36,7 @@
 		<h3 class="text-lg font-bold">Choose Goal Color</h3>
 		<div class="grid grid-cols-4 gap-2">
 			{#await availableColorsPromise}
-				<div class="col-span-4 text-center">Loading...</div>
+				<div class="col-span-4 text-center">Loading…</div>
 			{:then availColors}
 				{#each availColors as color (color)}
 					<div class="flex justify-center">
@@ -44,7 +44,7 @@
 							tabindex="0"
 							role="button"
 							style="background-color: {color}"
-							class="h-10 w-10 cursor-pointer rounded-full"
+							class="size-10 cursor-pointer rounded-full"
 							onclick={() => {
 								goalColor = color;
 								opened = false;
@@ -78,5 +78,5 @@
 		}
 	}}
 >
-	<div style="background-color: {goalColor}" class="h-6 w-6 border"></div>
+	<div style="background-color: {goalColor}" class="size-6 border"></div>
 </div>

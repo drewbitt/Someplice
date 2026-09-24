@@ -59,8 +59,8 @@
 	<div class="modal-box">
 		<h3 class="text-center text-lg font-bold">Append to this intention</h3>
 		<p
-			class="mb-8 text-center text-lg font-bold"
-			style="color: {goalColorForIntention(intention, goals)}"
+			class="goal-text mb-8 text-center text-lg font-bold"
+			style="--goal-color: {goalColorForIntention(intention, goals)}"
 		>
 			{modalTitle}
 		</p>

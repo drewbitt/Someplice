@@ -61,20 +61,19 @@
 </script>
 
 <dialog bind:this={dialog} class="modal" onclose={closeIntentionsModal}>
-	<div class="modal-box" style="border-top: 4px solid var(--goal-color)">
-		<h3 class="text-lg font-bold" style="color: var(--goal-color)">{modalTitle}</h3>
+	<div class="modal-box border-t-4 border-t-(--goal-color)">
+		<h3 class="goal-text text-lg font-bold">{modalTitle}</h3>
 		<div class="py-4">
 			<ul class="menu w-56 text-lg">
 				<li>
 					<button
 						class="focus:text-base-content flex items-center gap-3"
-						style="grid-template-columns: 0.5rem auto;"
 						onclick={() => {
 							showAppendModal = true;
 							closeIntentionsModal();
 						}}
 					>
-						<TextCursorInput class="h-6 w-6" />
+						<TextCursorInput class="size-6" />
 						<span>Append Text</span>
 					</button>
 				</li>

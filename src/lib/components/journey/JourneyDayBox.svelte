@@ -15,7 +15,7 @@
 <div
 	role="listitem"
 	aria-label="Journey Day Box"
-	class="border-base-300 bg-base-100 grid w-full flex-col gap-3 border py-3 shadow-lg"
+	class="border-base-300 bg-base-100 grid w-full gap-3 border py-3 shadow-lg"
 >
 	<h2 class="text-base-content/60 ml-5 text-xl font-bold tabular-nums">
 		{(() => {
@@ -30,7 +30,7 @@
 			return formatter.format(dateObj).replace(/\//g, '-');
 		})()}
 	</h2>
-	<div class="grid grid-cols-2">
+	<div class="grid md:grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
 		<OutcomesBox {goals} {intentions} {outcomes} />
 	</div>
