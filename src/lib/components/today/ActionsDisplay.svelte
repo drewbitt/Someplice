@@ -7,7 +7,7 @@
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
+	overrideItemIdKeyNameBeforeInitialisingDndZones('id');
 
 	let {
 		goals,
@@ -110,6 +110,7 @@
 			currentTarget: EventTarget & HTMLSpanElement;
 		}
 	) => {
+		if ((event.target as HTMLElement).closest('dialog, input, textarea, button')) return;
 		if (event.key === ' ') {
 			event.preventDefault();
 			const checkbox = event.currentTarget.querySelector(
@@ -126,7 +127,8 @@
 		{#if intentions.length > 0}
 			<span class="mb-5 flex pl-12">
 				<h2 class="text-2xl font-bold text-gray-700 tabular-nums dark:text-purple-200">
-					{intentions.length} intentions for today,
+					{intentions.length}
+					{intentions.length === 1 ? 'intention' : 'intentions'} for today,
 				</h2>
 				<h2 class="text-base-content/60 ml-5 text-2xl font-bold tabular-nums">
 					{(() => {
@@ -149,7 +151,7 @@
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
-			{#each intentions as intention, index (intention)}
+			{#each intentions as intention, index (intention.id)}
 				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<span
 					role="listitem"

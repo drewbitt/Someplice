@@ -1,19 +1,31 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
 	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
+	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import type { GoalLog } from '$src/lib/trpc/types';
 	import { dndzone, overrideItemIdKeyNameBeforeInitialisingDndZones } from 'svelte-dnd-action';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageServerData } from './$types';
-	overrideItemIdKeyNameBeforeInitialisingDndZones('orderNumber');
+	overrideItemIdKeyNameBeforeInitialisingDndZones('id');
 
 	let { data }: { data: PageServerData } = $props();
 	type Goals = (typeof data.goals)[0];
-	let noGoals = $derived(data.goals.length === 0);
+
+	// svelte-ignore state_referenced_locally
+	let goals = $state(data.goals);
+	// svelte-ignore state_referenced_locally
+	let inactiveGoals = $state(data.inactiveGoals);
+	$effect(() => {
+		goals = data.goals;
+		inactiveGoals = data.inactiveGoals;
+	});
+
+	let noGoals = $derived(goals.length === 0);
 
 	// do not allow Save if goal does not have title
-	let saveButtonEnabled = $derived(data.goals.every((goal) => goal.title.length > 0));
+	let saveButtonEnabled = $derived(goals.every((goal) => goal.title.length > 0));
 
 	let dragDisabled = $state(true);
 	let editButtonActive = $state(false);
@@ -25,22 +37,29 @@
 	$effect(() => {
 		if (addedGoal) {
 			addedGoal = false;
-			backupGoals = data.goals.map((goal) => {
+			backupGoals = goals.map((goal) => {
 				return { ...goal };
 			});
 			editButtonActive = true;
 		}
 	});
 
-	function handleEditButtonClick() {
+	async function handleEditButtonClick() {
 		if (editButtonActive) {
-			data.goals = data.goals.map((goal) => {
+			goals = goals.map((goal) => {
 				return { ...goal, color: goal.color };
 			});
 
-			trpc().goals.updateGoals.mutate({ goals: data.goals });
+			try {
+				await trpc().goals.updateGoals.mutate({ goals });
+				await invalidateAll();
+			} catch (error) {
+				if (error instanceof Error) {
+					goalPageErrorStore.setError(error.message);
+				}
+			}
 		} else {
-			backupGoals = data.goals.map((goal) => {
+			backupGoals = goals.map((goal) => {
 				return { ...goal };
 			});
 		}
@@ -48,14 +67,14 @@
 	}
 	function handleCancelButtonClick() {
 		const deletedGoals = backupGoals.filter((goal) => {
-			return !data.goals.some((goal2) => goal2.id === goal.id);
+			return !goals.some((goal2) => goal2.id === goal.id);
 		});
 		if (deletedGoals.length > 0) {
 			backupGoals = backupGoals.filter((goal) => {
 				return !deletedGoals.some((goal2) => goal2.id === goal.id);
 			});
 		} else {
-			data.goals = backupGoals;
+			goals = backupGoals;
 		}
 		editButtonActive = false;
 	}
@@ -64,19 +83,26 @@
 		dragDisabled = !dragDisabled;
 	}
 	const handleDndConsider = (event: CustomEvent<DndEvent<Goals>>) => {
-		data.goals = event.detail.items;
+		goals = event.detail.items;
 	};
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Goals>>) => {
 		const items: Goals[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
 		});
-		data.goals = items;
+		goals = items;
 
-		await trpc().goals.updateGoals.mutate({ goals: items });
+		try {
+			await trpc().goals.updateGoals.mutate({ goals: items });
+			await invalidateAll();
+		} catch (error) {
+			if (error instanceof Error) {
+				goalPageErrorStore.setError(error.message);
+			}
+		}
 	};
 
 	async function sortInactiveGoals() {
-		const allInactiveGoals = data.inactiveGoals;
+		const allInactiveGoals = inactiveGoals;
 		const goalDateMap = new SvelteMap<number, string>();
 		for (const iGoal of allInactiveGoals) {
 			if (!iGoal.id) continue;
@@ -97,7 +123,7 @@
 			if (!aValue || !bValue) return 0;
 			return new Date(bValue).valueOf() - new Date(aValue).valueOf();
 		});
-		data.inactiveGoals = allInactiveGoals;
+		inactiveGoals = allInactiveGoals;
 	}
 	$effect(() => {
 		sortInactiveGoals();
@@ -141,21 +167,21 @@
 		role="list"
 		id="goals-list-container"
 		class="mt-2.5 grid gap-2.5 overflow-hidden"
-		use:dndzone={{ items: data.goals, dragDisabled }}
+		use:dndzone={{ items: goals, dragDisabled }}
 		onconsider={handleDndConsider}
 		onfinalize={handleDndFinalize}
 	>
-		{#each data.goals as goal, i (goal)}
-			<GoalBoxComponent bind:goal={data.goals[i]} currentlyEditing={editButtonActive} />
+		{#each goals as goal, i (goal.id)}
+			<GoalBoxComponent bind:goal={goals[i]} currentlyEditing={editButtonActive} />
 		{/each}
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>
-	{#if data.goals.length > 0 || data.inactiveGoals.length > 0}
+	{#if goals.length > 0 || inactiveGoals.length > 0}
 		<h2 class="text-3xl font-bold">Inactive Goals</h2>
 		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
-			{#each data.inactiveGoals as goal, i (goal)}
+			{#each inactiveGoals as goal, i (goal.id)}
 				<GoalBoxComponent
-					bind:goal={data.inactiveGoals[i]}
+					bind:goal={inactiveGoals[i]}
 					currentlyEditing={editButtonActive}
 					isInactiveGoal={true}
 				/>
