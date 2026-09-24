@@ -1,7 +1,7 @@
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
-import type { Kysely, UpdateResult } from 'kysely';
+import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Goal } from '../types';
 import { createCallerFactory, router } from '../router';
