@@ -10,7 +10,7 @@ on:
 
 jobs:
   test-workflow:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -55,7 +55,7 @@ jobs:
         run: pnpm test:unit --run
 
   db:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       DATABASE_PATH: /tmp/ci-test.sqlite
 
@@ -90,17 +90,17 @@ jobs:
           git diff --exit-code -- src/lib/types/data.d.ts
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -115,7 +115,7 @@ jobs:
           docker logs --tail 30 app
 
   e2e:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
