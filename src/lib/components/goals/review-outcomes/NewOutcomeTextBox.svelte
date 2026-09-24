@@ -27,6 +27,7 @@
 		placeholder="What did you do?"
 		value={newOutcomeText}
 		oninput={handleInputChange}
+		autocomplete="off"
 		class="input w-full sm:w-3/5"
 	/>
 </div>

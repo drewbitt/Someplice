@@ -2,7 +2,7 @@
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
 	import { appLogger } from '$src/lib/utils/logger';
 
@@ -24,6 +24,15 @@
 	);
 
 	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
+
+	beforeNavigate((navigation) => {
+		if (!newIntentionsToInsert.length) return;
+		if (navigation.willUnload) {
+			navigation.cancel();
+		} else if (!confirm('Discard unsaved outcome text?')) {
+			navigation.cancel();
+		}
+	});
 
 	const handleReviewGoalBoxChange = () => {
 		showSaveButton = true;
@@ -75,6 +84,7 @@
 
 			hasBeenSaved = true;
 			showSaveButton = false;
+			newIntentionsToInsert = [];
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);

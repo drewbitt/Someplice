@@ -14,3 +14,13 @@
 }
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@layer base {
+	html {
+		touch-action: manipulation;
+	}
+
+	.modal-box {
+		overscroll-behavior: contain;
+	}
+}

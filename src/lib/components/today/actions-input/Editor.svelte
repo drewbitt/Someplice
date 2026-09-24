@@ -31,6 +31,7 @@
 	<pre class="goal__editor__pre" aria-hidden="true"></pre>
 	<textarea
 		class="goal__editor__textarea rounded-field border-base-content caret-base-content border transition duration-200 ease-in-out"
+		spellcheck="false"
 		bind:this={input}
 		bind:value
 		tabindex="0"

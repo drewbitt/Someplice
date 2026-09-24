@@ -66,7 +66,12 @@
 		</p>
 		<div class="flex flex-col items-center">
 			<span class="w-11/12">
-				<input class="input h-12 w-full text-xl" id="append-text" aria-label="Text to append" />
+				<input
+					class="input h-12 w-full text-xl"
+					id="append-text"
+					aria-label="Text to append"
+					autocomplete="off"
+				/>
 			</span>
 			<span class="append-buttons mt-8 flex gap-2">
 				<button
@@ -89,7 +94,7 @@
 
 {#if showDBErrorNotification}
 	<div class="toast">
-		<div class="alert alert-error">
+		<div role="alert" class="alert alert-error">
 			<div>
 				<span>Error saving intention</span>
 			</div>
