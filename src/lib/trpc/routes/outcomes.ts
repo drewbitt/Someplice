@@ -75,7 +75,7 @@ export const outcomes = t.router({
 	 * transaction so a failed save leaves nothing behind and can be retried.
 	 * @param input.outcome - `date` and `reviewed` for the outcome row.
 	 * @param input.newIntentions - New intentions to insert (without ids).
-	 * @param input.completions - `intentionId`/`completed` pairs for existing intentions.
+	 * @param input.statuses - `intentionId`/`status` pairs for existing intentions.
 	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
 	saveReview: t.procedure
@@ -84,14 +84,19 @@ export const outcomes = t.router({
 			z.object({
 				outcome: OutcomeSchema.omit({ id: true }),
 				newIntentions: z.array(IntentionsSchema.omit({ id: true })),
-				completions: z.array(z.object({ intentionId: z.number(), completed: z.number() }))
+				statuses: z.array(
+					z.object({
+						intentionId: z.number(),
+						status: z.enum(['pending', 'done', 'not_today'])
+					})
+				)
 			})
 		)
 		.mutation(async ({ input }) => {
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const intentionIds = input.completions.map((c) => c.intentionId);
+					const intentionIds = input.statuses.map((c) => c.intentionId);
 
 					if (input.newIntentions.length > 0) {
 						const inserted = await trx
@@ -104,10 +109,10 @@ export const outcomes = t.router({
 						}
 					}
 
-					for (const { intentionId, completed } of input.completions) {
+					for (const { intentionId, status } of input.statuses) {
 						await trx
 							.updateTable('intentions')
-							.set({ completed })
+							.set({ status })
 							.where('id', '=', intentionId)
 							.executeTakeFirstOrThrow();
 					}

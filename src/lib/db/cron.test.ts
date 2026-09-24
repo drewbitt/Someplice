@@ -33,7 +33,7 @@ const insertIntention = async (
 		.values({
 			goalId,
 			orderNumber,
-			completed: 0,
+			status: 'pending',
 			text: 'test intention',
 			subIntentionQualifier: null,
 			date

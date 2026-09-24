@@ -10,7 +10,7 @@ const TEST_INTENTION: Intention = {
 	id: 1,
 	goalId: 1,
 	orderNumber: 1,
-	completed: 0,
+	status: 'pending',
 	text: 'test',
 	subIntentionQualifier: null,
 	date: '2023-07-01T00:01:00.000Z'
