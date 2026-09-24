@@ -105,7 +105,7 @@
 	const clearPriority = async () => {
 		if (!priority?.id) return;
 		try {
-			await trpc().priorities.clear.mutate({ goalId: priority.goalId });
+			await trpc().priorities.clear.mutate(priority.goalId);
 			editing = false;
 			await invalidateAll();
 		} catch (error) {
