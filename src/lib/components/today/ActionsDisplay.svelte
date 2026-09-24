@@ -112,7 +112,7 @@
 	) => {
 		if (event.key === ' ') {
 			event.preventDefault();
-			const checkbox = event.currentTarget.querySelector(
+			const checkbox = event.currentTarget.parentElement?.querySelector(
 				'input[type="checkbox"]'
 			) as HTMLInputElement;
 			// click() toggles and fires 'change' so updateIntention persists
@@ -150,7 +150,6 @@
 			onfinalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
-				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<span
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
@@ -170,9 +169,6 @@
 						if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
 						showMousoverMenu = false;
 						showMousoverIndex = null;
-					}}
-					onkeydown={(event) => {
-						handleButtonPressIntention(event);
 					}}
 				>
 					{#if showMousoverMenu && showMousoverIndex === intention.id}
@@ -227,6 +223,7 @@
 							showIntentionModal = true;
 						}}
 						onkeydown={(e) => {
+							handleButtonPressIntention(e);
 							if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
 								e.preventDefault();
 								showIntentionModal = true;
