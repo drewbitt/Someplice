@@ -113,7 +113,7 @@
 				/>
 			{/each}
 			<button
-				class="tooltip md:tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
+				class="md:tooltip md:tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
 				onclick={handlePlusNewOutcome}

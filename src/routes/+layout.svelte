@@ -39,7 +39,7 @@
 	<header class="bg-base-100 sticky top-0 z-50 flex h-14 items-center shadow-sm">
 		<HeaderContent {toggleTheme} />
 	</header>
-	<main id="main" class="p-4">
+	<main id="main" class="mx-auto max-w-screen-2xl p-4">
 		{@render children()}
 	</main>
 </div>
