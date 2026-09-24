@@ -101,6 +101,17 @@
 			reportError(error);
 		}
 	};
+
+	const clearPriority = async () => {
+		if (!priority?.id) return;
+		try {
+			await trpc().priorities.clear.mutate({ goalId: priority.goalId });
+			editing = false;
+			await invalidateAll();
+		} catch (error) {
+			reportError(error);
+		}
+	};
 </script>
 
 {#if editing}
@@ -133,6 +144,9 @@
 			aria-label="Priority description"
 			bind:value={descriptionDraft}></textarea>
 		<div class="flex justify-end gap-2">
+			{#if priority}
+				<button type="button" class="btn mr-auto" onclick={clearPriority}>Clear</button>
+			{/if}
 			<button type="button" class="btn" onclick={() => (editing = false)}>Cancel</button>
 			<button type="submit" class="btn btn-primary" disabled={!textDraft.trim()}>Save</button>
 		</div>
@@ -182,23 +196,21 @@
 	</button>
 {/if}
 
-{#if showCompletePrompt}
-	<dialog bind:this={completeDialog} class="modal" onclose={() => (showCompletePrompt = false)}>
-		<div class="modal-box">
-			<h3 class="text-lg font-bold">Complete top priority</h3>
-			<p class="py-2">"{priority?.text}"</p>
-			<textarea
-				class="textarea textarea-bordered w-full"
-				placeholder="Reflection (optional)"
-				aria-label="Reflection"
-				bind:value={reflectionDraft}></textarea>
-			<div class="modal-action">
-				<button class="btn" onclick={() => (showCompletePrompt = false)}>Cancel</button>
-				<button class="btn btn-primary" onclick={completePriority}>Complete</button>
-			</div>
+<dialog bind:this={completeDialog} class="modal" onclose={() => (showCompletePrompt = false)}>
+	<div class="modal-box">
+		<h3 class="text-lg font-bold">Complete top priority</h3>
+		<p class="py-2">"{priority?.text}"</p>
+		<textarea
+			class="textarea textarea-bordered w-full"
+			placeholder="Reflection (optional)"
+			aria-label="Reflection"
+			bind:value={reflectionDraft}></textarea>
+		<div class="modal-action">
+			<button class="btn" onclick={() => (showCompletePrompt = false)}>Cancel</button>
+			<button class="btn btn-primary" onclick={completePriority}>Complete</button>
 		</div>
-		<form method="dialog" class="modal-backdrop">
-			<button>close</button>
-		</form>
-	</dialog>
-{/if}
+	</div>
+	<form method="dialog" class="modal-backdrop">
+		<button>close</button>
+	</form>
+</dialog>
