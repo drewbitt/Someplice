@@ -286,6 +286,9 @@ export const intentions = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
+			if (input.intentions.length === 0) {
+				return [];
+			}
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
