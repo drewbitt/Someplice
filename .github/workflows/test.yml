@@ -16,31 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@v6
-        name: Install pnpm
-        with:
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v6
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Check types and Svelte components
         run: pnpm check
@@ -63,18 +39,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@v6
-        name: Install pnpm
-        with:
-          run_install: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Migrate a fresh database
         run: pnpm run db:migrate
@@ -82,7 +47,7 @@ jobs:
           NODE_ENV: migration
 
       - name: Seed smoke test
-        run: node ./src/lib/db/insert-fake-data.ts
+        run: pnpm run db:seed
 
       - name: Schema matches generated types
         run: |
@@ -121,18 +86,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: '.node-version'
-
-      - uses: pnpm/action-setup@v6
-        name: Install pnpm
-        with:
-          run_install: false
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium

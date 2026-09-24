@@ -1,10 +1,8 @@
 reset-db:
-        if [ -f ./data/db.sqlite ]; then rm ./data/db.sqlite; fi
-        pnpm run db:migrate
-        pnpm run db:codegen
+    pnpm run db:reset
 
 db-migrate-single m="":
     pnpm run db:migrate:single -- {{m}}
 
 insert-fake-data:
-    node src/lib/db/insert-fake-data.ts
+    pnpm run db:seed

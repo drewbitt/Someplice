@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"build:deno": "cross-env BUILD_ENV=deno vite build",
+		"build:deno": "BUILD_ENV=deno vite build",
 		"preview": "vite preview",
 		"test:e2e": "playwright test",
 		"test:unit": "vitest",
@@ -16,7 +16,10 @@
 		"format": "prettier --cache --ignore-path ./config/.prettierignore --write .",
 		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
 		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts",
-		"db:migrate:single": "node ./src/lib/db/migrate-to-latest.ts --migration"
+		"db:migrate:single": "node ./src/lib/db/migrate-to-latest.ts --migration",
+		"db:reset": "rm -f ./data/db.sqlite && pnpm run db:migrate && pnpm run db:codegen",
+		"db:seed": "node ./src/lib/db/insert-fake-data.ts",
+		"prepare": "lefthook install"
 	},
 	"dependencies": {
 		"@trpc/client": "^11.19.0",
@@ -32,6 +35,7 @@
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.3",
 		"@commitlint/config-conventional": "^21.2.3",
+		"@deno/svelte-adapter": "^0.2.1",
 		"@eslint/js": "^10.0.1",
 		"@iconify-json/lucide": "^1.2.135",
 		"@ngneat/falso": "^8.0.2",
@@ -43,23 +47,21 @@
 		"@types/node": "^24.13.6",
 		"@typescript/native": "npm:typescript@^7.0.2",
 		"@vite-pwa/sveltekit": "^1.1.0",
-		"better-sqlite3": "^13.0.3",
-		"cross-env": "^10.1.0",
+		"better-sqlite3": "^12.11.1",
 		"daisyui": "^5.7.42",
 		"eslint": "^10.11.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.0",
 		"globals": "^17.12.0",
 		"kysely-codegen": "^0.20.0",
+		"lefthook": "^2.1.14",
 		"prettier": "^3.9.8",
 		"prettier-plugin-svelte": "^4.1.1",
 		"prettier-plugin-tailwindcss": "^0.8.1",
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.7.6",
 		"svelte-dnd-action": "^0.9.79",
-		"sveltekit-adapter-deno": "^0.16.1",
 		"tailwindcss": "^4.3.3",
-		"tslib": "^2.8.1",
 		"typescript": "npm:@typescript/typescript6@^6.0.2",
 		"typescript-eslint": "^8.70.1",
 		"unplugin-icons": "^24.0.0",
@@ -72,6 +74,13 @@
 	"type": "module",
 	"engines": {
 		"node": ">=24.21.0"
+	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "^24.21.0",
+			"onFail": "download"
+		}
 	},
 	"packageManager": "pnpm@12.5.1"
 }

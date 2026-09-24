@@ -9,16 +9,15 @@ node_modules
 LICENSE
 *.md
 .prettierignore
-.eslintignore
 .DS_Store
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.sqlite
 Dockerfile
-.node-version
 justfile
 .gitignore
-.dccache
+.dockerignore
+../.deno-deploy
 
 # Ignore images
 *.png
@@ -32,10 +31,6 @@ justfile
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
-
-# Ignore devbox
-devbox.json
-devbox.lock
 
 test-results
 playwright-report
