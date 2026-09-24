@@ -35,7 +35,7 @@
 	class="bg-base-100 sr-only z-[100] p-2 focus:not-sr-only focus:absolute focus:top-0 focus:left-0"
 	>Skip to content</a
 >
-<div class="bg-base-100 min-h-screen">
+<div class="bg-base-100 min-h-dvh">
 	<header class="bg-base-100 sticky top-0 z-50 flex h-14 items-center shadow-sm">
 		<HeaderContent {toggleTheme} />
 	</header>

@@ -30,7 +30,7 @@
 			return formatter.format(dateObj).replace(/\//g, '-');
 		})()}
 	</h2>
-	<div class="grid grid-cols-2">
+	<div class="grid md:grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
 		<OutcomesBox {goals} {intentions} {outcomes} />
 	</div>

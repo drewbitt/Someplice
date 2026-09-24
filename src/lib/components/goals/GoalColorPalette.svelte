@@ -36,7 +36,7 @@
 		<h3 class="text-lg font-bold">Choose Goal Color</h3>
 		<div class="grid grid-cols-4 gap-2">
 			{#await availableColorsPromise}
-				<div class="col-span-4 text-center">Loading...</div>
+				<div class="col-span-4 text-center">Loading…</div>
 			{:then availColors}
 				{#each availColors as color (color)}
 					<div class="flex justify-center">

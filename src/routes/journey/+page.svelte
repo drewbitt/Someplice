@@ -91,7 +91,7 @@
 </svelte:head>
 
 <div class="w-full pb-3 shadow-md">
-	<div class="mx-12 grid gap-4">
+	<div class="mx-4 grid gap-4 sm:mx-12">
 		<h1 class="text-3xl font-bold text-balance">My daily progress</h1>
 		<GoalBadges goals={data.goals} />
 	</div>
@@ -104,7 +104,7 @@
 	</div>
 {:else}
 	<section class="bg-base-200">
-		<div class="mx-12 grid gap-4 py-6 xl:mx-36">
+		<div class="mx-4 grid gap-4 py-6 sm:mx-12 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox
 					goals={data.goals}

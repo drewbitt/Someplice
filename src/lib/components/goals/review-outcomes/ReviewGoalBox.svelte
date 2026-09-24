@@ -96,8 +96,8 @@
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="text-lg leading-6 font-semibold"
-							style="color: {goal.color}">{intention.text}</label
+							class="goal-text text-lg leading-6 font-semibold"
+							style="--goal-color: {goal.color}">{intention.text}</label
 						>
 					</div>
 				{/each}
@@ -113,7 +113,7 @@
 				/>
 			{/each}
 			<button
-				class="tooltip tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
+				class="tooltip md:tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
 				onclick={handlePlusNewOutcome}

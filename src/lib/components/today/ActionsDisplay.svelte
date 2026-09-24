@@ -124,11 +124,11 @@
 <div class="rounded-box bg-base-100 shadow-sm">
 	<div class="flex flex-col gap-1.5">
 		{#if intentions.length > 0}
-			<span class="mb-5 flex pl-12">
+			<div class="mb-5 flex flex-wrap gap-x-5 pl-12">
 				<h2 class="text-2xl font-bold text-gray-700 tabular-nums dark:text-purple-200">
 					{intentions.length} intentions for today,
 				</h2>
-				<h2 class="text-base-content/60 ml-5 text-2xl font-bold tabular-nums">
+				<h2 class="text-base-content/60 text-2xl font-bold tabular-nums">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {
@@ -140,7 +140,7 @@
 						return formatter.format(dateObj);
 					})()}
 				</h2>
-			</span>
+			</div>
 		{/if}
 		<section
 			role="list"
@@ -162,11 +162,12 @@
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					onfocus={() => {
+					onfocusin={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					onblur={() => {
+					onfocusout={(event) => {
+						if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
 						showMousoverMenu = false;
 						showMousoverIndex = null;
 					}}
@@ -206,7 +207,7 @@
 								></svg
 							>
 						</button>
-						<Menu class="w-5" color="grey" />
+						<Menu class="w-5" color="grey" aria-hidden="true" />
 					{:else}
 						<div class="w-9"></div>
 					{/if}
@@ -236,8 +237,10 @@
 								showIntentionModal = true;
 							}
 						}}
-						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
-						style="color: {intention.completed
+						class="goal-text ml-2 font-bold {index === firstIncompleteIntentionIndex
+							? 'text-xl'
+							: 'text-lg'}"
+						style="--goal-color: {intention.completed
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
 						>{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ?? ''}) {intention.text}</span

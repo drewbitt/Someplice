@@ -15,6 +15,14 @@
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
+@utility goal-text {
+	color: var(--goal-color);
+
+	@variant dark {
+		color: oklch(from var(--goal-color) max(l, 0.7) c h);
+	}
+}
+
 @layer base {
 	html {
 		touch-action: manipulation;
