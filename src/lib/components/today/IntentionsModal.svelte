@@ -1,18 +1,20 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import type { Goal, Intention } from '$src/lib/trpc/types';
+	import type { Goal } from '$src/lib/trpc/types';
 	import { trpc } from '$src/lib/trpc/client';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import { goalColorForIntention, goalOrderNumberForId, type IntentionRow } from '$src/lib/utils';
+	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import Trash2 from 'virtual:icons/lucide/trash-2';
+	import Undo2 from 'virtual:icons/lucide/undo-2';
 	import AppendModal from './AppendModal.svelte';
 
 	let {
 		goals,
 		opened = $bindable(),
 		intention
-	}: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
+	}: { goals: Goal[]; opened: boolean; intention: IntentionRow } = $props();
 
 	let dialog: HTMLDialogElement;
 	let intentionsModalOpened = $state(opened);
@@ -58,6 +60,20 @@
 			}
 		}
 	};
+
+	const toggleNotToday = async () => {
+		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
+		try {
+			await trpc().intentions.edit.mutate({ ...intention, status });
+			opened = false;
+			dialog?.close();
+			await invalidateAll();
+		} catch (error) {
+			if (error instanceof Error) {
+				todayPageErrorStore.setError(error.message);
+			}
+		}
+	};
 </script>
 
 <dialog bind:this={dialog} class="modal" onclose={closeIntentionsModal}>
@@ -75,6 +91,17 @@
 					>
 						<TextCursorInput class="size-6" />
 						<span>Append Text</span>
+					</button>
+				</li>
+				<li>
+					<button class="focus:text-base-content flex items-center gap-3" onclick={toggleNotToday}>
+						{#if intention.status === 'not_today'}
+							<Undo2 class="size-6" />
+							<span>Mark pending</span>
+						{:else}
+							<CalendarX class="size-6" />
+							<span>Not today</span>
+						{/if}
 					</button>
 				</li>
 				<li>

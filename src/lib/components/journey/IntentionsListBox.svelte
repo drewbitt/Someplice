@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import type { Goal } from '$src/lib/trpc/types';
+	import { goalColorForIntention, goalOrderNumberForId, type IntentionRow } from '$src/lib/utils';
 
-	let { goals, intentions }: { goals: Goal[]; intentions: Intention[] } = $props();
+	let { goals, intentions }: { goals: Goal[]; intentions: IntentionRow[] } = $props();
 
 	let numIntentions = $derived(intentions.length);
 </script>
@@ -17,9 +17,11 @@
 			<div class="flex">
 				<span
 					style="--goal-color: {goalColorForIntention(intention, goals)}"
-					class="goal-text me-1 text-lg"
+					class="goal-text me-1 text-lg {intention.status === 'not_today'
+						? 'italic opacity-60'
+						: ''}"
 				>
-					{goalOrderNumberForId(intention.goalId, goals)}{intention.subIntentionQualifier ?? ''}) {intention.text}
+					{intention.status === 'not_today' ? '-' : ''}{goalOrderNumberForId(intention.goalId, goals)}{intention.subIntentionQualifier ?? ''}) {intention.text}
 				</span>
 			</div>
 		{/each}

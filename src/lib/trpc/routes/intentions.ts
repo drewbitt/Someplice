@@ -3,15 +3,15 @@ import { t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import type { Intention } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 
+export const INTENTION_STATUSES = ['pending', 'done', 'not_today'] as const;
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
 	orderNumber: z.number(),
-	completed: z.number(),
+	status: z.enum(INTENTION_STATUSES),
 	text: z.string(),
 	subIntentionQualifier: z.string().nullable(),
 	date: z.string()
@@ -114,7 +114,7 @@ export const intentions = t.router({
 
 			// Group intentions by date
 			const intentionsByDate = intentions.reduce(
-				(acc: Record<string, Intention[]>, intention: Intention) => {
+				(acc: Record<string, typeof intentions>, intention) => {
 					// Set key to date in format YYYY-MM-DD
 					const date = intention.date.slice(0, 10);
 					if (!acc[date]) {
@@ -205,7 +205,7 @@ export const intentions = t.router({
 
 			return result;
 		} else {
-			return [] as Intention[];
+			return [];
 		}
 	}),
 	/**
@@ -219,18 +219,15 @@ export const intentions = t.router({
 		.input(
 			// Only the fields edit is allowed to change; orderNumber is owned by
 			// updateIntentions so reordering via edit can't trip the unique index.
-			IntentionsSchema.pick({
-				id: true,
-				completed: true,
-				text: true,
-				subIntentionQualifier: true
-			}).extend({ id: z.number() })
+			IntentionsSchema
 		)
 		.mutation(async ({ input }) => {
 			const query = getDb()
 				.updateTable('intentions')
 				.set({
-					completed: input.completed,
+					goalId: input.goalId,
+					orderNumber: input.orderNumber,
+					status: input.status,
 					text: input.text,
 					subIntentionQualifier: input.subIntentionQualifier
 				})
@@ -338,7 +335,7 @@ export const intentions = t.router({
 							oc.column('id').doUpdateSet((eb) => ({
 								goalId: eb.ref('excluded.goalId'),
 								orderNumber: eb.ref('excluded.orderNumber'),
-								completed: eb.ref('excluded.completed'),
+								status: eb.ref('excluded.status'),
 								text: eb.ref('excluded.text'),
 								subIntentionQualifier: eb.ref('excluded.subIntentionQualifier'),
 								date: eb.ref('excluded.date')

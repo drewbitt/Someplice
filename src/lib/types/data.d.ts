@@ -28,11 +28,11 @@ export interface Goals {
 }
 
 export interface Intentions {
-	completed: number;
 	date: string;
 	goalId: number;
 	id: Generated<number | null>;
 	orderNumber: number;
+	status: Generated<string>;
 	subIntentionQualifier: string | null;
 	text: string;
 }

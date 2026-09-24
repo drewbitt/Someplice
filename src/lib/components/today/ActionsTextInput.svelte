@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
+	import NotDonesPanel from './NotDonesPanel.svelte';
 	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
 
 	let {
@@ -96,7 +97,7 @@
 				id: null,
 				goalId: goal.id,
 				orderNumber: index + maxOrderNumber + 1,
-				completed: 0,
+				status: 'pending',
 				subIntentionQualifier: subIntention,
 				text: text,
 				date: localeCurrentDate().toISOString()
@@ -127,6 +128,16 @@
 		});
 		return highlightedLines.join('\n');
 	};
+	const appendIntentionLine = (line: string) => {
+		intentionsString = intentionsString.trim() ? `${intentionsString.trimEnd()}\n${line}` : line;
+	};
 </script>
 
-<Editor {highlight} bind:value={intentionsString} />
+<div class="flex flex-col gap-2">
+	<NotDonesPanel
+		{goals}
+		plannedIntentions={[...(existingIntentions ?? []), ...intentions]}
+		onImport={appendIntentionLine}
+	/>
+	<Editor {highlight} bind:value={intentionsString} />
+</div>
