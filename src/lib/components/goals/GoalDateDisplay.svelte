@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import { evenLighterHSLColor } from '$src/lib/utils';
+	import { lightenHSL } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
@@ -32,7 +32,7 @@
 
 <div
 	class="mx-5 flex items-center justify-between px-1 py-1"
-	style="background-color: {evenLighterHSLColor(goal.color)}"
+	style="background-color: {lightenHSL(goal.color, 0.4)}"
 >
 	<span>
 		Start: {startDate.slice(0, 10)}

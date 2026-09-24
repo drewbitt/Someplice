@@ -7,12 +7,18 @@ import { DatabaseSync } from 'node:sqlite';
 import type { DB } from '../types/data';
 import { createNodeSqliteDialect } from './node-sqlite.ts';
 import { configureSqlite } from './db.ts';
-import { migrateToLatest, runMigrations } from './migrate-to-latest.ts';
-import * as m001 from './migrations/001_create_tables.ts';
-import * as m003 from './migrations/003_goal_logs.ts';
-import * as m004 from './migrations/004_indexes.ts';
+import { runMigrations } from './migrate-to-latest.ts';
+import * as m001 from './migrations/001_schema.ts';
 
 const APP_TABLES = ['goal_logs', 'goals', 'intentions', 'outcomes', 'outcomes_intentions'].sort();
+const APP_INDEXES = [
+	'idx_goal_logs_goalId_date',
+	'idx_intentions_date',
+	'idx_intentions_goalId',
+	'idx_outcomes_intentions_intentionId',
+	'uq_goals_active_orderNumber',
+	'uq_intentions_date_orderNumber'
+].sort();
 
 const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
 	(
@@ -34,7 +40,7 @@ describe('migrations', () => {
 		configureSqlite(sqlite);
 		db = new Kysely<DB>({ dialect: createNodeSqliteDialect(sqlite) });
 		migrationDb = db as unknown as Kysely<unknown>;
-		await migrateToLatest(db);
+		await runMigrations(db);
 	});
 
 	afterAll(async () => {
@@ -44,7 +50,7 @@ describe('migrations', () => {
 
 	it('creates all app tables and indexes on a fresh database', async () => {
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
-		expect((await listObjects(db, 'index')).length).toBeGreaterThan(0);
+		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});
 
 	it('runMigrations is idempotent on a fresh in-memory database', async () => {
@@ -62,29 +68,14 @@ describe('migrations', () => {
 		}
 	});
 
-	it('migrateToLatest is idempotent', async () => {
-		await migrateToLatest(db);
-		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
-	});
-
-	it('every migration with a down() rolls back cleanly', async () => {
-		await m004.down(migrationDb);
+	it('down leaves no app tables', async () => {
+		await m001.down(migrationDb);
+		expect(await listObjects(db, 'table')).toEqual([]);
 		expect(await listObjects(db, 'index')).toEqual([]);
 
-		await m003.down(migrationDb);
-		expect(await listObjects(db, 'table')).not.toContain('goal_logs');
-
-		// m002 has no down(), so the outcomes tables it created remain
-		await m001.down(migrationDb);
-		expect((await listObjects(db, 'table')).sort()).toEqual(
-			['outcomes', 'outcomes_intentions'].sort()
-		);
-
-		// re-apply to prove the pairs are symmetric
+		// re-apply to prove the pair is symmetric
 		await m001.up(migrationDb);
-		await m003.up(migrationDb);
-		await m004.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
-		expect((await listObjects(db, 'index')).length).toBeGreaterThan(0);
+		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});
 });

@@ -1,5 +1,5 @@
-import { DbInstance } from '$src/lib/db/db';
-import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
+import { createDb, getDb, setDb } from '$src/lib/db/db';
+import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -12,15 +12,13 @@ describe('goal_logs', () => {
 	const caller = createCaller({});
 
 	beforeEach(async () => {
-		const dbInstance = DbInstance.getInstance();
-		dbInstance.setNewTestDb();
-		db = dbInstance.db;
-		await migrateToLatest(db);
+		setDb(createDb(':memory:'));
+		db = getDb();
+		await runMigrations(db);
 	});
 
 	afterEach(async () => {
 		await db.destroy();
-		DbInstance.resetInstance();
 	});
 
 	it('ensure adding a goal with TRPC starts it', async () => {

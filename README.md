@@ -65,6 +65,8 @@ There are three ways to install Someplice: with pnpm, nix, or Docker. Choose the
 
 #### Option 1: pnpm
 
+Requires Node.js >= 24 (for `node:sqlite`).
+
 1. Clone the repository
 2. Install dependencies
 
@@ -73,11 +75,7 @@ cd Someplice
 pnpm install
 ```
 
-3. Database migrations run automatically when the app starts. Optionally, they can also be run manually via the CLI:
-
-```bash
-pnpm run db:migrate
-```
+3. Database migrations run automatically on startup. `pnpm run db:migrate` is only needed for `pnpm run db:codegen` and CI.
 
 4. Start the application
 
@@ -106,6 +104,10 @@ Then run the container. Replace `/host/dataFolder` with the absolute path to the
 docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
 ```
 
+#### Time zone
+
+Day boundaries (today, yesterday, outcomes) use the server's local time zone. Docker defaults to UTC — set `TZ` to your zone, e.g. `docker run -e TZ=America/New_York ...` or `TZ: Your/Zone` in compose.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Contributing
@@ -119,11 +121,11 @@ pnpm test:unit    # vitest unit tests
 pnpm test:e2e     # playwright e2e tests (requires the dev server)
 ```
 
-When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, create an `.env` file with your database connection string:
+When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, copy `.env.example` to `.env` — `DATABASE_PATH` points the app at the database file and `DATABASE_URL` points kysely-codegen at it:
 
 ```bash
-# SQLite
-DATABASE_URL=YOUR_ABSOLUTE_PATH_TO/Someplice/src/lib/db/
+DATABASE_PATH=./data/db.sqlite
+DATABASE_URL=./data/db.sqlite
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
