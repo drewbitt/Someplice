@@ -147,8 +147,12 @@
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
+		if (intention.id === null) return;
 		try {
-			const updatedIntention = await trpc().intentions.edit.mutate(intention);
+			const updatedIntention = await trpc().intentions.edit.mutate({
+				...intention,
+				id: intention.id
+			});
 			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
 				showDBErrorNotification = true;
 			}

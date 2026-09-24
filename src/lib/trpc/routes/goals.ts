@@ -23,6 +23,53 @@ async function activeGoalCount(trx: Transaction<DB>): Promise<number> {
 	return Number(result.count);
 }
 
+/**
+ * Insert a goal as active and write its 'start' goal_log.
+ */
+async function insertGoal(trx: Transaction<DB>, goal: Omit<Goal, 'id' | 'active'>, now: string) {
+	const result = await trx
+		.insertInto('goals')
+		.values({ ...goal, active: 1 })
+		.returning('id')
+		.executeTakeFirstOrThrow();
+
+	await trx
+		.insertInto('goal_logs')
+		.values({
+			goalId: result.id as number,
+			type: 'start',
+			date: now,
+			orderNumber: goal.orderNumber
+		})
+		.execute();
+
+	return result;
+}
+
+/**
+ * Shift every active goal positioned after `orderNumber` down by one and log
+ * each shift, closing the gap left by a deleted or archived goal.
+ */
+async function compactActiveGoalsAfter(trx: Transaction<DB>, orderNumber: number, now: string) {
+	const goalsToUpdate = await trx
+		.selectFrom('goals')
+		.selectAll()
+		.where('orderNumber', '>', orderNumber)
+		.where('active', '=', 1)
+		.orderBy('orderNumber', 'asc')
+		.execute();
+
+	for (const goal of goalsToUpdate) {
+		const newOrderNumber = goal.orderNumber - 1;
+		await trx
+			.updateTable('goals')
+			.set({ orderNumber: newOrderNumber })
+			.where('id', '=', goal.id)
+			.execute();
+		await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, now);
+	}
+}
+
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
 	active: z.number(),
@@ -198,29 +245,12 @@ export const goals = t.router({
 
 					const orderNumber = count + 1;
 
-					const result = await trx
-						.insertInto('goals')
-						// added goals are always active; archive/restore manage `active` elsewhere
-						.values({ ...input, active: 1, orderNumber })
-						.returning('id')
-						.executeTakeFirstOrThrow();
-
-					// Insert into goal_logs after the goal is added
-					if (result.id) {
-						const date = localeCurrentDate().toISOString();
-						await trx
-							.insertInto('goal_logs')
-							.values({
-								goalId: result.id,
-								type: 'start',
-								date: date,
-								orderNumber: orderNumber
-							})
-							.returning('id')
-							.executeTakeFirstOrThrow();
-					}
-
-					return result;
+					// added goals are always active; archive/restore manage `active` elsewhere
+					return await insertGoal(
+						trx,
+						{ ...input, orderNumber },
+						localeCurrentDate().toISOString()
+					);
 				});
 		}),
 	/**
@@ -306,27 +336,18 @@ export const goals = t.router({
 					}
 
 					for (const goal of inserts) {
-						const result = await trx
-							.insertInto('goals')
-							.values({
-								active: 1,
-								orderNumber: goal.orderNumber,
-								title: goal.title,
-								description: goal.description,
-								color: goal.color
-							})
-							.returning('id')
-							.executeTakeFirstOrThrow();
-						await trx
-							.insertInto('goal_logs')
-							.values({
-								goalId: result.id as number,
-								type: 'start',
-								date: now,
-								orderNumber: goal.orderNumber
-							})
-							.execute();
-						results.push(result);
+						results.push(
+							await insertGoal(
+								trx,
+								{
+									orderNumber: goal.orderNumber,
+									title: goal.title,
+									description: goal.description,
+									color: goal.color
+								},
+								now
+							)
+						);
 					}
 
 					return results;
@@ -368,25 +389,11 @@ export const goals = t.router({
 
 					// close the gap left by an active goal and log each shift, mirroring archive
 					if (goalToDelete.active === 1) {
-						const goalsToUpdate = await trx
-							.selectFrom('goals')
-							.selectAll()
-							.where('orderNumber', '>', goalToDelete.orderNumber)
-							.where('active', '=', 1)
-							.orderBy('orderNumber', 'asc')
-							.execute();
-
-						const now = localeCurrentDate().toISOString();
-
-						for (const goal of goalsToUpdate) {
-							const newOrderNumber = goal.orderNumber - 1;
-							await trx
-								.updateTable('goals')
-								.set({ orderNumber: newOrderNumber })
-								.where('id', '=', goal.id)
-								.execute();
-							await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, now);
-						}
+						await compactActiveGoalsAfter(
+							trx,
+							goalToDelete.orderNumber,
+							localeCurrentDate().toISOString()
+						);
 					}
 
 					await deleteOrphanedOutcomes(trx, associatedOutcomeIds);
@@ -429,27 +436,10 @@ export const goals = t.router({
 						.where('id', '=', input)
 						.execute();
 
-					// get all active goals with orderNumber greater than the archived one
-					const goalsToUpdate = await trx
-						.selectFrom('goals')
-						.selectAll()
-						.where('orderNumber', '>', archivedGoalOrder)
-						.where('active', '=', 1)
-						.orderBy('orderNumber', 'asc')
-						.execute();
-
 					const endDate = localeCurrentDate().toISOString();
 
 					// close the gap and log each shift so historical queries see post-archive positions
-					for (const goal of goalsToUpdate) {
-						const newOrderNumber = goal.orderNumber - 1;
-						await trx
-							.updateTable('goals')
-							.set({ orderNumber: newOrderNumber })
-							.where('id', '=', goal.id)
-							.execute();
-						await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, endDate);
-					}
+					await compactActiveGoalsAfter(trx, archivedGoalOrder, endDate);
 
 					// Update the goal_logs when a goal is archived
 					if (result) {

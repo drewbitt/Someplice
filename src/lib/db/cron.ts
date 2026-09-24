@@ -1,8 +1,9 @@
 import { Cron, scheduledJobs } from 'croner';
+import { sql } from 'kysely';
 import { DbInstance } from './db';
 import { ensureOutcomeForDate, linkIntentionToOutcome } from './queries';
 import { cronLogger } from '../utils/logger';
-import { localePreviousDate } from '../utils';
+import { localeCurrentDate, localePreviousDate } from '../utils';
 
 const jobName = 'outcomeCron';
 
@@ -65,20 +66,28 @@ export function createCronJobs() {
 }
 
 export async function checkMissingOutcomes() {
-	// Hooks.server.ts is run every time the application is restarted and does not preserve state.
-	// So, a hack is needed to check for missing outcomes from past days when the application is restarted.
-	// We can look if the cron, which is also started in hooks.server.ts, has already been established.
-	// This requires checkMissingOutcomes to be called first in hooks.server.ts, so it runs at least once before createCronJobs.
-	const existingJob = scheduledJobs.find((j) => j.name === jobName);
-	if (existingJob) {
-		return;
-	}
-
 	cronLogger.info(
 		'checkMissingOutcomes: Checking for missing outcomes from past days when the application is restarted'
 	);
 
-	const intentions = await getDb().selectFrom('intentions').selectAll().execute();
+	// Only past days get outcomes backfilled: today's intentions get theirs from
+	// the midnight job. An intention with no outcomes_intentions link is by
+	// definition missing its outcome's association.
+	const today = localeCurrentDate().toISOString().slice(0, 10);
+	const intentions = await getDb()
+		.selectFrom('intentions')
+		.selectAll()
+		.where(sql`DATE("date")`, '<', today)
+		.where(({ not, exists, selectFrom }) =>
+			not(
+				exists(
+					selectFrom('outcomes_intentions')
+						.select('outcomes_intentions.intentionId')
+						.whereRef('outcomes_intentions.intentionId', '=', 'intentions.id')
+				)
+			)
+		)
+		.execute();
 
 	// Group intentions by day so each date's outcome is ensured and linked once
 	const intentionsByDate = new Map<string, typeof intentions>();

@@ -140,7 +140,10 @@ describe('intentions', () => {
 
 		// Edit the intention based on the id
 		const editedIntention = { ...TEST_INTENTION, text: 'Edited Text' };
-		const edit = (await caller.intentions.edit(editedIntention)) as UpdateResult;
+		const edit = (await caller.intentions.edit({
+			...editedIntention,
+			id: editedIntention.id as number
+		})) as UpdateResult;
 		expect(edit).toBeDefined();
 
 		// Check that the intention was edited using list
@@ -148,6 +151,23 @@ describe('intentions', () => {
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(expect.objectContaining(editedIntention));
+	});
+
+	it('edit cannot rewrite orderNumber', async () => {
+		const intentions = [1, 2, 3].map((orderNumber) => ({
+			...TEST_INTENTION,
+			id: orderNumber,
+			orderNumber
+		}));
+		await caller.intentions.updateIntentions({ intentions });
+
+		// the client sends the whole row; a stale orderNumber must be ignored
+		const row2 = intentions[1];
+		await caller.intentions.edit({ ...row2, orderNumber: 1, text: 'edited' } as never);
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(2);
+		expect(result.find((i) => i.id === 2)?.text).toEqual('edited');
 	});
 
 	it('edit with invalid id', async () => {

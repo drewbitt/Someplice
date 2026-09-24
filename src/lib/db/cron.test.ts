@@ -3,6 +3,7 @@ import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { localeCurrentDate, localePreviousDate } from '$src/lib/utils';
 import { checkMissingOutcomes } from './cron';
 
 const TEST_GOAL = {
@@ -107,6 +108,24 @@ describe('checkMissingOutcomes', () => {
 
 		const pairs = await db.selectFrom('outcomes_intentions').selectAll().execute();
 		expect(pairs).toEqual([{ outcomeId: outcome.id, intentionId }]);
+	});
+
+	it('backfills only past days, never today', async () => {
+		const goalId = await insertGoal(db);
+		const today = localeCurrentDate().toISOString().slice(0, 10);
+		const yesterday = localePreviousDate().toISOString().slice(0, 10);
+		await insertIntention(db, goalId, `${yesterday}T12:00:00.000Z`, 1);
+		await insertIntention(db, goalId, `${today}T12:00:00.000Z`, 1);
+
+		await checkMissingOutcomes();
+
+		const outcomes = await db.selectFrom('outcomes').selectAll().execute();
+		expect(outcomes).toHaveLength(1);
+		expect(outcomes[0].date).toBe(yesterday);
+
+		const pairs = await db.selectFrom('outcomes_intentions').selectAll().execute();
+		expect(pairs).toHaveLength(1);
+		expect(pairs[0].outcomeId).toBe(outcomes[0].id);
 	});
 
 	it('does nothing when there are no intentions', async () => {
