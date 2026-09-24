@@ -10,15 +10,24 @@ import { configureSqlite } from './db.ts';
 import { runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_schema.ts';
 import * as m002 from './migrations/002_intention_status.ts';
+import * as m003 from './migrations/003_outcome_verdicts.ts';
 
-const APP_TABLES = ['goal_logs', 'goals', 'intentions', 'outcomes', 'outcomes_intentions'].sort();
+const APP_TABLES = [
+	'goal_logs',
+	'goals',
+	'intentions',
+	'outcome_verdicts',
+	'outcomes',
+	'outcomes_intentions'
+].sort();
 const APP_INDEXES = [
 	'idx_goal_logs_goalId_date',
 	'idx_intentions_date',
 	'idx_intentions_goalId',
 	'idx_outcomes_intentions_intentionId',
 	'uq_goals_active_orderNumber',
-	'uq_intentions_date_orderNumber'
+	'uq_intentions_date_orderNumber',
+	'uq_outcome_verdicts_outcomeId_goalId'
 ].sort();
 
 const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
@@ -32,7 +41,6 @@ const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
 describe('migrations', () => {
 	let dir: string;
 	let db: Kysely<DB>;
-	// migration fns take Kysely<unknown>; one alias instead of a cast per call
 	let migrationDb: Kysely<unknown>;
 
 	beforeAll(async () => {
@@ -61,7 +69,6 @@ describe('migrations', () => {
 		try {
 			await runMigrations(memDb);
 			expect((await listObjects(memDb, 'table')).sort()).toEqual(APP_TABLES);
-			// second call runs 0 migrations and does not throw
 			await runMigrations(memDb);
 			expect((await listObjects(memDb, 'table')).sort()).toEqual(APP_TABLES);
 		} finally {
@@ -70,7 +77,6 @@ describe('migrations', () => {
 	});
 
 	it('intention status backfills from completed on upgrade and downgrade', async () => {
-		// oldest schema: intentions has completed (0/1), no status
 		await m002.down(migrationDb);
 
 		await db
@@ -84,7 +90,6 @@ describe('migrations', () => {
 			})
 			.execute();
 
-		// pre-migration rows — the `completed` column predates the typed schema
 		await sql`
 			insert into intentions (goalId, orderNumber, completed, text, subIntentionQualifier, date)
 			values (1, 1, 1, 'done item', null, '2023-07-01T00:01:00.000Z'),
@@ -109,14 +114,15 @@ describe('migrations', () => {
 	});
 
 	it('every migration with a down() rolls back cleanly', async () => {
+		await m003.down(migrationDb);
 		await m002.down(migrationDb);
 		await m001.down(migrationDb);
 		expect(await listObjects(db, 'table')).toEqual([]);
 		expect(await listObjects(db, 'index')).toEqual([]);
 
-		// re-apply to prove the pair is symmetric
 		await m001.up(migrationDb);
 		await m002.up(migrationDb);
+		await m003.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});

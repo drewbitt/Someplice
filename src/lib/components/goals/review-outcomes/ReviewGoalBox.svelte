@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { lightenHSL } from '$src/lib/utils';
+	import type { Goal, Intention, VerdictValue } from '$src/lib/trpc/types';
+	import { evenEvenLighterHSLColor, lightenHSL } from '$src/lib/utils';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
 	import Undo2 from 'virtual:icons/lucide/undo-2';
@@ -11,19 +11,29 @@
 		intentions,
 		showTitle,
 		hasBeenSaved,
+		verdict = null,
+		verdictAsBar = false,
 		onUpdateNewOutcomeTexts,
 		onPlusNewOutcomeButtonPressed,
 		onCheckboxClicked,
-		onNotTodayToggled
+		onNotTodayToggled,
+		onVerdictChanged
 	}: {
 		goal: Goal;
 		intentions: Intention[];
 		showTitle: boolean;
 		hasBeenSaved: boolean;
+		verdict?: { verdict: VerdictValue | null; note: string | null } | null;
+		verdictAsBar?: boolean;
 		onUpdateNewOutcomeTexts?: (detail: { goalId: number | null; texts: string[] }) => void;
 		onPlusNewOutcomeButtonPressed?: (detail: { goalId: number | null }) => void;
 		onCheckboxClicked?: (detail: { intentionId: number | null }) => void;
 		onNotTodayToggled?: (detail: { intention: Intention }) => void;
+		onVerdictChanged?: (detail: {
+			goalId: number;
+			verdict: VerdictValue | null;
+			note: string | null;
+		}) => void;
 	} = $props();
 
 	let newOutcomeTexts = $state<string[]>([]);
@@ -34,9 +44,7 @@
 		}
 	});
 
-	const lighterGoalColor = (color: string) => {
-		return lightenHSL(color, 0.65);
-	};
+	const lighterGoalColor = (color: string) => evenEvenLighterHSLColor(color);
 
 	function handlePlusNewOutcome() {
 		newOutcomeTexts = [...newOutcomeTexts, ''];
@@ -49,9 +57,37 @@
 
 	function handleNewOutcomeTextChanged(detail: { value: string; index: number }) {
 		newOutcomeTexts[detail.index] = detail.value;
-		newOutcomeTexts = newOutcomeTexts.slice(); // create a new reference to trigger reactivity
+		newOutcomeTexts = newOutcomeTexts.slice();
 		onUpdateNewOutcomeTexts?.({ goalId: goal.id, texts: newOutcomeTexts });
 	}
+
+	function emitVerdict(next: VerdictValue | null, note: string | null) {
+		if (goal.id === null) return;
+		onVerdictChanged?.({ goalId: goal.id, verdict: next, note });
+	}
+
+	function handleVerdictButton(next: VerdictValue) {
+		emitVerdict(
+			verdict?.verdict === next ? null : next,
+			verdict?.verdict === next ? null : (verdict?.note ?? null)
+		);
+	}
+
+	function handleVerdictNoteInput(event: Event) {
+		if (!verdict?.verdict) return;
+		emitVerdict(verdict.verdict, (event.currentTarget as HTMLInputElement).value);
+	}
+
+	const barText = $derived(
+		verdict?.note ? `${goal.orderNumber} ⬅ ${verdict.note}` : `${goal.orderNumber}`
+	);
+	const barClass = $derived(
+		verdict?.verdict === 'enough'
+			? ''
+			: verdict?.verdict === 'day_off'
+				? 'border border-dashed bg-transparent'
+				: 'bg-base-300 text-base-content'
+	);
 </script>
 
 <div
@@ -87,7 +123,9 @@
 					{goal.description}
 				</p>
 			{/if}
-			{#if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
+			{#if verdict?.verdict === 'day_off'}
+				<p class="text-base-content/60 italic">day off</p>
+			{:else if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
 				{#each intentions.filter((intention) => intention.goalId === goal.id) as intention (intention.id)}
 					<div class="flex items-center">
 						<input
@@ -100,34 +138,30 @@
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="goal-text text-lg leading-6 font-semibold {intention.status === 'not_today'
-								? 'italic opacity-60'
-								: ''}"
-							style="--goal-color: {goal.color}"
-							>{#if intention.status === 'not_today'}-{goal.orderNumber}{intention.subIntentionQualifier ??
-									''})
-							{/if}{intention.text}</label
+							class="goal-text text-lg leading-6 font-semibold"
+							style="--goal-color: {goal.color}">{intention.text}</label
 						>
 						{#if onNotTodayToggled}
 							<button
-								class="md:tooltip md:tooltip-right ml-1 flex opacity-40 transition-opacity hover:opacity-100"
-								data-tip={intention.status === 'not_today' ? 'Mark pending' : 'Not today'}
+								type="button"
+								class="btn btn-ghost btn-xs ml-1"
 								aria-label={intention.status === 'not_today'
-									? `Mark ${intention.text} as pending`
-									: `Mark ${intention.text} as not today`}
-								onclick={() => onNotTodayToggled({ intention })}
+									? 'Restore intention'
+									: 'Mark not today'}
+								title={intention.status === 'not_today' ? 'Restore intention' : 'Mark not today'}
+								onclick={() => onNotTodayToggled?.({ intention })}
 							>
 								{#if intention.status === 'not_today'}
-									<Undo2 class="hover:bg-base-300 size-4" />
+									<Undo2 class="size-4" />
 								{:else}
-									<CalendarX class="hover:bg-base-300 size-4" />
+									<CalendarX class="size-4" />
 								{/if}
 							</button>
 						{/if}
 					</div>
 				{/each}
 			{:else}
-				<p class="text-base-content/60">No intentions for this goal occurred</p>
+				<p class="text-base-content/60 italic">NOTHING</p>
 			{/if}
 			{#each newOutcomeTexts as text, index (index)}
 				<NewOutcomeTextBox
@@ -145,6 +179,54 @@
 			>
 				<Plus class="hover:bg-base-300 size-5" />
 			</button>
+			{#if onVerdictChanged}
+				{#if verdictAsBar && verdict?.verdict}
+					<span
+						class={`w-fit px-1.5 font-mono text-lg leading-none font-bold ${barClass}`}
+						style={verdict.verdict === 'enough'
+							? `background-color: ${lightenHSL(goal.color, 0.2)}; color: ${goal.color}`
+							: ''}
+					>
+						{barText}
+					</span>
+				{:else}
+					<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+						<span class="text-base-content/80 text-sm">Is this enough?</span>
+						<button
+							type="button"
+							class="btn btn-xs"
+							class:btn-active={verdict?.verdict === 'enough'}
+							onclick={() => handleVerdictButton('enough')}
+						>
+							yes
+						</button>
+						<button
+							type="button"
+							class="btn btn-xs"
+							class:btn-active={verdict?.verdict === 'not_enough'}
+							onclick={() => handleVerdictButton('not_enough')}
+						>
+							no
+						</button>
+						<button
+							type="button"
+							class="btn btn-xs"
+							class:btn-active={verdict?.verdict === 'day_off'}
+							onclick={() => handleVerdictButton('day_off')}
+						>
+							day off
+						</button>
+						<input
+							type="text"
+							class="input input-xs min-w-32 flex-1"
+							placeholder="say more…"
+							value={verdict?.verdict ? (verdict.note ?? '') : ''}
+							disabled={!verdict?.verdict}
+							oninput={handleVerdictNoteInput}
+						/>
+					</div>
+				{/if}
+			{/if}
 		</div>
 	</div>
 </div>

@@ -1,16 +1,23 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, OutcomeVerdict, VerdictValue } from '$src/lib/trpc/types';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
 	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
 		goals,
 		intentions,
-		outcomes
-	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+		outcomes,
+		verdicts = []
+	}: {
+		goals: Goal[];
+		intentions: Intention[];
+		outcomes: Outcome[];
+		verdicts?: OutcomeVerdict[];
+	} = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
@@ -24,9 +31,22 @@
 	);
 
 	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
+	let storedVerdictMap = $derived(
+		new Map(
+			verdicts
+				.filter((verdict) => verdict.outcomeId === outcomeForDate?.id)
+				.map((verdict) => [verdict.goalId, { verdict: verdict.verdict, note: verdict.note }])
+		)
+	);
+	let verdictEdits = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
+
+	const verdictForGoal = (goalId: number | null) => {
+		if (goalId === null) return null;
+		return verdictEdits.get(goalId) ?? storedVerdictMap.get(goalId) ?? null;
+	};
 
 	beforeNavigate((navigation) => {
-		if (!newIntentionsToInsert.length) return;
+		if (!newIntentionsToInsert.length && verdictEdits.size === 0) return;
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -35,6 +55,20 @@
 	});
 
 	const handleReviewGoalBoxChange = () => {
+		showSaveButton = true;
+	};
+
+	const handleVerdictChanged = (detail: {
+		goalId: number;
+		verdict: VerdictValue | null;
+		note: string | null;
+	}) => {
+		const { goalId, verdict, note } = detail;
+		if (verdict === null && !note) {
+			verdictEdits.delete(goalId);
+		} else {
+			verdictEdits.set(goalId, { verdict, note });
+		}
 		showSaveButton = true;
 	};
 
@@ -60,12 +94,19 @@
 			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
 				newIntentions: newIntentionsToInsert,
-				statuses
+				statuses,
+				verdicts: [...new Map([...storedVerdictMap, ...verdictEdits]).entries()].flatMap(
+					([goalId, verdict]) =>
+						verdict.verdict === null
+							? []
+							: [{ goalId, verdict: verdict.verdict, note: verdict.note }]
+				)
 			});
 			saved = true;
 			hasBeenSaved = true;
 			showSaveButton = false;
 			newIntentionsToInsert = [];
+			verdictEdits.clear();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
@@ -81,18 +122,15 @@
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
 
-		// Rebuild this goal's pending rows from its latest texts, then renumber
-		// across all pending rows — (DATE(date), orderNumber) must stay unique
-		// across goals, so numbering per goal would collide.
 		newIntentionsToInsert = newIntentionsToInsert.filter(
 			(intention) => intention.goalId !== goalId
 		);
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId: goalId,
-					text: text,
-					date: date,
+					goalId,
+					text,
+					date,
 					status: 'done',
 					subIntentionQualifier: null,
 					orderNumber: 0
@@ -136,10 +174,13 @@
 				{intentions}
 				{hasBeenSaved}
 				showTitle={false}
+				verdict={verdictForGoal(goal.id)}
+				verdictAsBar={!showSaveButton}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
 				onCheckboxClicked={handleReviewGoalBoxChange}
 				onNotTodayToggled={handleNotTodayToggled}
+				onVerdictChanged={handleVerdictChanged}
 			/>
 		{/if}
 	{/each}

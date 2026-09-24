@@ -5,7 +5,7 @@ import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
-import { INTENTION_STATUSES as intentionStatuses } from '../intention-statuses';
+import { INTENTION_STATUSES as intentionStatuses } from '../enums';
 
 export const INTENTION_STATUSES = intentionStatuses;
 export const IntentionsSchema = z.object({

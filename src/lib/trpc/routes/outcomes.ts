@@ -3,13 +3,20 @@ import { t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
-import { INTENTION_STATUSES, IntentionsSchema } from './intentions';
+import { INTENTION_STATUSES, VERDICTS } from '../enums';
+import { IntentionsSchema } from './intentions';
 
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),
 	reviewed: z.number(),
 	// date is ISOString without the time
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+});
+
+export const VerdictSchema = z.object({
+	goalId: z.number(),
+	verdict: z.enum(VERDICTS),
+	note: z.string().nullable().optional()
 });
 
 export const outcomes = t.router({
@@ -21,7 +28,7 @@ export const outcomes = t.router({
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @param input.order - The order to sort the results by (asc or desc, default is asc).
-	 * @param input.orderBy - The column to order the results by (either 'id' or 'date', default is 'id').
+	 * @param input.orderBy - The order column (id or date, default is id).
 	 * @returns An array of `Outcome` objects.
 	 */
 	list: t.procedure
@@ -60,7 +67,7 @@ export const outcomes = t.router({
 				if (input.offset) {
 					query = query.offset(input.offset);
 				}
-				query = query.orderBy(input.orderBy || 'id', input.order);
+				query = query.orderBy(input.orderBy, input.order);
 			} else {
 				query = query.orderBy('id', 'asc');
 			}
@@ -68,13 +75,26 @@ export const outcomes = t.router({
 			return query.execute();
 		}),
 	/**
-	 * Save a review atomically: insert new intentions, apply completion updates,
-	 * upsert the day's outcome, and link every intention to it — all in one
-	 * transaction so a failed save leaves nothing behind and can be retried.
-	 * @param input.outcome - `date` and `reviewed` for the outcome row.
-	 * @param input.newIntentions - New intentions to insert (without ids).
-	 * @param input.statuses - `intentionId`/`status` pairs for existing intentions.
-	 * @returns `{ outcomeId }` of the upserted outcome.
+	 * List per-goal verdicts for the given outcomes (used by the journey page,
+	 * where each day-card knows its outcomeId).
+	 */
+	verdictsByOutcomeIds: t.procedure
+		.use(logger)
+		.input(z.object({ outcomeIds: z.array(z.number()) }))
+		.query(({ input }) => {
+			if (input.outcomeIds.length === 0) {
+				return [];
+			}
+			return getDb()
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', 'in', input.outcomeIds)
+				.execute();
+		}),
+	/**
+	 * Save a review atomically: insert new intentions, apply status updates,
+	 * upsert the day's outcome, link every intention to it, and rewrite the
+	 * day's per-goal verdicts.
 	 */
 	saveReview: t.procedure
 		.use(logger)
@@ -87,14 +107,15 @@ export const outcomes = t.router({
 						intentionId: z.number(),
 						status: z.enum(INTENTION_STATUSES)
 					})
-				)
+				),
+				verdicts: z.array(VerdictSchema).default([])
 			})
 		)
 		.mutation(async ({ input }) => {
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const intentionIds = input.statuses.map((c) => c.intentionId);
+					const intentionIds = input.statuses.map((status) => status.intentionId);
 
 					if (input.newIntentions.length > 0) {
 						const inserted = await trx
@@ -115,7 +136,6 @@ export const outcomes = t.router({
 							.executeTakeFirstOrThrow();
 					}
 
-					// outcomes.date is UNIQUE: insert, or update `reviewed` on the existing row
 					const outcome = await trx
 						.insertInto('outcomes')
 						.values(input.outcome)
@@ -129,6 +149,24 @@ export const outcomes = t.router({
 
 					for (const intentionId of intentionIds) {
 						await linkIntentionToOutcome(trx, outcome.id as number, intentionId);
+					}
+
+					await trx
+						.deleteFrom('outcome_verdicts')
+						.where('outcomeId', '=', outcome.id as number)
+						.execute();
+					if (input.verdicts.length > 0) {
+						await trx
+							.insertInto('outcome_verdicts')
+							.values(
+								input.verdicts.map((verdict) => ({
+									outcomeId: outcome.id as number,
+									goalId: verdict.goalId,
+									verdict: verdict.verdict,
+									note: verdict.note ?? null
+								}))
+							)
+							.execute();
 					}
 
 					return { outcomeId: outcome.id };
