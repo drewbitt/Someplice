@@ -73,7 +73,7 @@ cd Someplice
 pnpm install
 ```
 
-3. Run database migrations
+3. Database migrations run automatically when the app starts. Optionally, they can also be run manually via the CLI:
 
 ```bash
 pnpm run db:migrate
