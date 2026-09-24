@@ -27,6 +27,6 @@
 		placeholder="What did you do?"
 		value={newOutcomeText}
 		oninput={handleInputChange}
-		class="input input-bordered w-full sm:w-3/5"
+		class="input w-full sm:w-3/5"
 	/>
 </div>
