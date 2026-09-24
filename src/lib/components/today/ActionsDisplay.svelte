@@ -125,10 +125,10 @@
 	<div class="flex flex-col gap-1.5">
 		{#if intentions.length > 0}
 			<span class="mb-5 flex pl-12">
-				<h2 class="text-2xl font-bold text-gray-700 dark:text-purple-200">
+				<h2 class="text-2xl font-bold text-gray-700 tabular-nums dark:text-purple-200">
 					{intentions.length} intentions for today,
 				</h2>
-				<h2 class="text-base-content/60 ml-5 text-2xl font-bold">
+				<h2 class="text-base-content/60 ml-5 text-2xl font-bold tabular-nums">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {

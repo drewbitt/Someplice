@@ -19,6 +19,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<input
 				bind:value={title}
+				autocomplete="off"
 				class="input text-base-content w-full max-w-lg bg-transparent px-0 text-3xl"
 			/>
 		</div>

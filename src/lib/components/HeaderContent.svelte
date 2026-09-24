@@ -36,12 +36,13 @@
 				height="35"
 				style="transform: scale(1.8); filter: invert(39%) sepia(96%) saturate(1162%) hue-rotate(187deg) brightness(96%) contrast(87%);"
 			/>
-			<span class="hidden text-xl text-blue-500 sm:block">Someplice</span>
+			<span translate="no" class="hidden text-xl text-blue-500 sm:block">Someplice</span>
 		</a>
 		<ul class="menu menu-horizontal flex gap-1 p-0">
 			<li>
 				<a
 					href="/today"
+					aria-current={$page.url.pathname === '/today' ? 'page' : undefined}
 					class:active={$page.url.pathname === '/today'}
 					class="rounded-md"
 					class:bg-primary={$page.url.pathname === '/today'}
@@ -51,6 +52,7 @@
 			<li>
 				<a
 					href="/goals"
+					aria-current={$page.url.pathname === '/goals' ? 'page' : undefined}
 					class:active={$page.url.pathname === '/goals'}
 					class="rounded-md"
 					class:bg-primary={$page.url.pathname === '/goals'}
@@ -60,6 +62,7 @@
 			<li>
 				<a
 					href="/journey"
+					aria-current={$page.url.pathname === '/journey' ? 'page' : undefined}
 					class:active={$page.url.pathname === '/journey'}
 					class="rounded-md"
 					class:bg-primary={$page.url.pathname === '/journey'}

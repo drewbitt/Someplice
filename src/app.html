@@ -7,9 +7,15 @@
 		<link rel="icon" type="image/png" sizes="32x32" href="%sveltekit.assets%/favicon-32x32.png" />
 		<link rel="icon" type="image/png" sizes="16x16" href="%sveltekit.assets%/favicon-16x16.png" />
 		<meta name="viewport" content="width=device-width" />
+		<meta name="theme-color" content="#ffffff" />
 		<script>
 			// Apply the persisted theme before first paint to avoid a flash of the light theme.
-			document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+			const theme = localStorage.getItem('theme') || 'light';
+			document.documentElement.setAttribute('data-theme', theme);
+			// Keep browser chrome in sync with the page background (--color-base-100).
+			document
+				.querySelector('meta[name="theme-color"]')
+				.setAttribute('content', theme === 'dark' ? 'oklch(25.33% 0.016 252.42)' : '#ffffff');
 		</script>
 		%sveltekit.head%
 	</head>

@@ -92,7 +92,7 @@
 
 <div class="w-full pb-3 shadow-md">
 	<div class="mx-12 grid gap-4">
-		<h1 class="text-3xl font-bold">My daily progress</h1>
+		<h1 class="text-3xl font-bold text-balance">My daily progress</h1>
 		<GoalBadges goals={data.goals} />
 	</div>
 </div>

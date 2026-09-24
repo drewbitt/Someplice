@@ -109,7 +109,7 @@
 </svelte:head>
 
 <div>
-	<h1 class="flex text-3xl font-bold">
+	<h1 class="flex text-3xl font-bold text-balance">
 		Goals
 		<div class="indicator">
 			<span class={editButtonActive ? 'badge indicator-item badge-secondary translate-x-1/4' : ''}
