@@ -27,7 +27,11 @@ function ensureInitialized(): Promise<void> {
 			await runMigrations(DbInstance.getInstance().db);
 			await checkMissingOutcomes();
 			createCronJobs();
-		})();
+		})().catch((error) => {
+			// allow the next request to retry rather than pinning a failed init
+			initPromise = null;
+			throw error;
+		});
 	}
 	return initPromise;
 }
