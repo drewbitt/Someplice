@@ -23,7 +23,6 @@
 	let descriptionDraft = $state(priority?.description ?? '');
 	let showCompletePrompt = $state(false);
 	let reflectionDraft = $state('');
-	// svelte-ignore non_reactive_update
 	let completeDialog: HTMLDialogElement;
 
 	$effect(() => {
