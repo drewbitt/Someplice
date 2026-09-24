@@ -106,7 +106,7 @@
 		style="background-color: {goalColor}"
 		class="mx-5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
 	>
-		<span class="pl-2 font-mono text-7xl dark:text-white">
+		<span class="text-base-content pl-2 font-mono text-7xl">
 			{goal.active ? goal.orderNumber : 'X'}
 		</span>
 		{#if showDeletionPrompt}

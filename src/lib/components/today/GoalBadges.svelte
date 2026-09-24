@@ -7,7 +7,7 @@
 <div class="flex items-center gap-2">
 	{#each goals as goal (goal.id)}
 		<span
-			class="badge border border-gray-200 px-4"
+			class="badge border-base-300 border px-4"
 			style="background-color: {goal.color}; color: white"
 		>
 			<span class="pr-1 font-mono text-xl">
