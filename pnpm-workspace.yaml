@@ -2,10 +2,8 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   lefthook: true
-minimumReleaseAge: 1440
 trustPolicy: no-downgrade
 trustPolicyExclude:
   - '@trickfilm400/rollup-plugin-off-main-thread@3.0.0-pre1'
-  - 'chokidar@4.0.3'
-  - 'semver@6.3.1'
+trustPolicyIgnoreAfter: 525600
 shellEmulator: true
