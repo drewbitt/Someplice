@@ -5,7 +5,7 @@ import { Kysely } from 'kysely';
 import { FileMigrationProvider, Migrator, type Migration } from 'kysely/migration';
 import type { DB } from '../types/data';
 import { dbLogger } from '../utils/logger.ts';
-import { DbInstance } from './db.ts';
+import { getDb } from './db.ts';
 
 // Under Vite the migration modules must be discovered statically so they get
 // bundled; import.meta.env exists only there. The CLI path runs under plain
@@ -49,9 +49,8 @@ export async function runMigrations(db: Kysely<DB>): Promise<void> {
 const isMainModule =
 	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
-	const { db } = DbInstance.getInstance();
-	runMigrations(db)
-		.then(() => db.destroy())
+	runMigrations(getDb())
+		.then(() => getDb().destroy())
 		.catch(() => {
 			process.exitCode = 1;
 		});

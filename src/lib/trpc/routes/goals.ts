@@ -1,6 +1,6 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { DbInstance } from '$src/lib/db/db';
+import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Transaction } from 'kysely';
@@ -9,8 +9,6 @@ import type { Goal } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
 import { TRPCError } from '@trpc/server';
-
-const getDb = () => DbInstance.getInstance().db;
 
 const MAX_GOALS = 9;
 

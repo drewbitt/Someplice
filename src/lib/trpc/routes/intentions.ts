@@ -1,13 +1,11 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { DbInstance } from '$src/lib/db/db';
+import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
-
-const getDb = () => DbInstance.getInstance().db;
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),

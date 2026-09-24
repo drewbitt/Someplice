@@ -1,4 +1,4 @@
-import { DbInstance } from '$src/lib/db/db';
+import { createDb, getDb, setDb } from '$src/lib/db/db';
 import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
@@ -29,9 +29,8 @@ describe('outcomes', () => {
 	const caller = createCaller({});
 
 	beforeEach(async () => {
-		const dbInstance = DbInstance.getInstance();
-		dbInstance.setNewTestDb();
-		db = dbInstance.db;
+		setDb(createDb(':memory:'));
+		db = getDb();
 		await runMigrations(db);
 
 		await db.insertInto('goals').values(TEST_GOAL).execute();
@@ -40,7 +39,6 @@ describe('outcomes', () => {
 
 	afterEach(async () => {
 		await db.destroy();
-		DbInstance.resetInstance();
 	});
 
 	it('list returns an empty array when there are no outcomes', async () => {

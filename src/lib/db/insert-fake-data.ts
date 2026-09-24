@@ -11,10 +11,10 @@ import {
 	randText,
 	randTextRange
 } from '@ngneat/falso';
-import { DbInstance } from './db.ts';
+import { getDb } from './db.ts';
 import { dbLogger } from '../utils/logger.ts';
 
-const { db } = DbInstance.getInstance();
+const db = getDb();
 
 const numberOfGoals = 9;
 const incrementalNumberFactory = incrementalNumber();

@@ -25,49 +25,9 @@ export const configureSqlite = (sqlite: DatabaseSync): void => {
 	);
 };
 
-let fileDbInstance: Kysely<DB> | null = null;
-
-export class DbInstance {
-	private static instance: DbInstance | null = null;
-	private _db: Kysely<DB>;
-
-	constructor() {
-		if (!DbInstance.instance) {
-			DbInstance.instance = this;
-		}
-
-		let sqlite: DatabaseSync;
-
-		if (process.env.NODE_ENV === 'test') {
-			sqlite = new DatabaseSync(':memory:');
-			this._db = this.initDb(sqlite);
-		} else {
-			if (!fileDbInstance) {
-				const dbPath = dbFilePath();
-				if (!fs.existsSync(dbPath)) {
-					dbLogger.info('No database file found; it will be created and migrated on startup');
-				}
-
-				this.ensureDBDirectoryExists();
-
-				// Path checks for debugging
-				try {
-					fs.accessSync(path.dirname(dbPath), fs.constants.R_OK | fs.constants.W_OK);
-				} catch (err) {
-					dbLogger.fatal('No read/write access to data directory', err);
-				}
-
-				sqlite = new DatabaseSync(dbPath);
-				fileDbInstance = this.initDb(sqlite);
-			}
-			this._db = fileDbInstance!;
-		}
-	}
-
-	// Just in case the data directory is missing
-	private ensureDBDirectoryExists() {
-		const dirPath = path.dirname(dbFilePath());
-
+export const createDb = (filePath: string): Kysely<DB> => {
+	if (filePath !== ':memory:') {
+		const dirPath = path.dirname(filePath);
 		if (!fs.existsSync(dirPath)) {
 			try {
 				fs.mkdirSync(dirPath, { recursive: true });
@@ -78,34 +38,33 @@ export class DbInstance {
 		}
 	}
 
-	private initDb(sqlite: DatabaseSync): Kysely<DB> {
-		dbLogger.debug('Initializing db instance');
-		configureSqlite(sqlite);
+	dbLogger.debug('Initializing db instance');
+	const sqlite = new DatabaseSync(filePath);
+	configureSqlite(sqlite);
 
-		return new Kysely<DB>({
-			dialect: createNodeSqliteDialect(sqlite)
-		});
-	}
+	return new Kysely<DB>({
+		dialect: createNodeSqliteDialect(sqlite)
+	});
+};
 
-	static getInstance(): DbInstance {
-		return DbInstance.instance || new DbInstance();
-	}
+let db: Kysely<DB> | null = null;
 
-	get db() {
-		return this._db;
-	}
-
-	setNewTestDb() {
+export const getDb = (): Kysely<DB> => {
+	if (!db) {
 		if (process.env.NODE_ENV === 'test') {
-			dbLogger.info('Setting new test db');
-			const sqlite = new DatabaseSync(':memory:');
-			this._db = this.initDb(sqlite);
+			db = createDb(':memory:');
+		} else {
+			const filePath = dbFilePath();
+			if (!fs.existsSync(filePath)) {
+				dbLogger.info('No database file found; it will be created and migrated on startup');
+			}
+			db = createDb(filePath);
 		}
 	}
+	return db;
+};
 
-	static resetInstance() {
-		if (process.env.NODE_ENV === 'test') {
-			DbInstance.instance = null;
-		}
-	}
-}
+// Tests only: point getDb() at a fresh database (usually createDb(':memory:'))
+export const setDb = (newDb: Kysely<DB>): void => {
+	db = newDb;
+};

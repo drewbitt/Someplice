@@ -65,6 +65,8 @@ There are three ways to install Someplice: with pnpm, nix, or Docker. Choose the
 
 #### Option 1: pnpm
 
+Requires Node.js >= 24 (for `node:sqlite`).
+
 1. Clone the repository
 2. Install dependencies
 
@@ -101,6 +103,10 @@ Then run the container. Replace `/host/dataFolder` with the absolute path to the
 ```bash
 docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
 ```
+
+#### Time zone
+
+Day boundaries (today, yesterday, outcomes) use the server's local time zone. Docker defaults to UTC — set `TZ` to your zone, e.g. `docker run -e TZ=America/New_York ...` or `TZ: Your/Zone` in compose.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

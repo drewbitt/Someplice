@@ -1,4 +1,4 @@
-import { DbInstance } from '$src/lib/db/db';
+import { createDb, getDb, setDb } from '$src/lib/db/db';
 import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
@@ -24,15 +24,13 @@ describe('goals', () => {
 	const caller = createCaller({});
 
 	beforeEach(async () => {
-		const dbInstance = DbInstance.getInstance();
-		dbInstance.setNewTestDb();
-		db = dbInstance.db;
+		setDb(createDb(':memory:'));
+		db = getDb();
 		await runMigrations(db);
 	});
 
 	afterEach(async () => {
 		await db.destroy();
-		DbInstance.resetInstance();
 	});
 
 	it('list goals for both active and inactive', async () => {

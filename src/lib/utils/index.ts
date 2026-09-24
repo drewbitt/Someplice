@@ -39,31 +39,12 @@ export const dayOfWeekFromDate = (date: Date) => {
 	return formatter.format(date);
 };
 
-export const lighterHSLColor = (color: string): string => {
+export const lightenHSL = (color: string, amount: number): string => {
 	const [hue, saturation, lightness] = color
 		.slice(4, -1)
 		.split(' ')
 		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * 0.2;
-	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
-};
-
-export const evenLighterHSLColor = (color: string): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * 0.4;
-	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
-};
-
-// OK, this is getting ridiculous
-export const evenEvenLighterHSLColor = (color: string): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * 0.65;
+	const lighterLightness = lightness + (100 - lightness) * amount;
 	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 };
 

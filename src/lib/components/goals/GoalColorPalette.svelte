@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import { lighterHSLColor } from '$src/lib/utils';
+	import { lightenHSL } from '$src/lib/utils';
 	import { colors } from './colors';
 
 	let { goalColor = $bindable() }: { goalColor: string } = $props();
@@ -69,7 +69,7 @@
 <div
 	tabindex="0"
 	role="button"
-	style="background-color: {lighterHSLColor(goalColor)}"
+	style="background-color: {lightenHSL(goalColor, 0.2)}"
 	class="flex h-8 w-14 cursor-pointer items-center justify-center"
 	onclick={() => (opened = true)}
 	onkeydown={(event) => {

@@ -1,15 +1,11 @@
 import { Cron, scheduledJobs } from 'croner';
 import { sql } from 'kysely';
-import { DbInstance } from './db';
+import { getDb } from './db';
 import { ensureOutcomeForDate, linkIntentionToOutcome } from './queries';
 import { cronLogger } from '../utils/logger';
 import { localeCurrentDate, localePreviousDate } from '../utils';
 
 const jobName = 'outcomeCron';
-
-// DbInstance must not be constructed at module import: hooks.server.ts is imported
-// during `vite build`, where the database does not exist yet.
-const getDb = () => DbInstance.getInstance().db;
 
 // Run functions at the interval defined by a cron expression
 // This seperates the creation of the cron jobs into a module
