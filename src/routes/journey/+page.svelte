@@ -99,7 +99,7 @@
 
 {#if noGoals || noIntentions}
 	<div role="alert" class="alert alert-error border-error">
-		<CircleX class="h-6 w-6 shrink-0 stroke-current" />
+		<CircleX class="size-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>
 	</div>
 {:else}

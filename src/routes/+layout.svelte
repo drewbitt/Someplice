@@ -32,7 +32,7 @@
 
 <a
 	href="#main"
-	class="bg-base-100 sr-only z-[100] p-2 focus:not-sr-only focus:absolute focus:top-0 focus:left-0"
+	class="bg-base-100 sr-only z-100 p-2 focus:not-sr-only focus:absolute focus:top-0 focus:left-0"
 	>Skip to content</a
 >
 <div class="bg-base-100 min-h-dvh">
