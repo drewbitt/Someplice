@@ -313,7 +313,9 @@ export const intentions = t.router({
 					if (updateIds.length > 0) {
 						await trx
 							.updateTable('intentions')
-							.set({ orderNumber: sql`"orderNumber" + 100000` })
+							.set({
+								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
+							})
 							.where('id', 'in', updateIds)
 							.execute();
 					}

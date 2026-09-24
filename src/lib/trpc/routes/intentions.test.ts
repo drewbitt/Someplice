@@ -284,6 +284,20 @@ describe('intentions', () => {
 		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(1);
 	});
 
+	it('updateIntentions reorders when an unchanged row holds a large orderNumber', async () => {
+		// A row already in the old scratch range (orderNumber + 100000) must not block reorders
+		const largeOrder = { ...TEST_INTENTION, id: 2, orderNumber: 100001 };
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, largeOrder] });
+
+		await caller.intentions.updateIntentions({
+			intentions: [{ ...TEST_INTENTION, orderNumber: 2 }]
+		});
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result.find((i) => i.id === 1)?.orderNumber).toEqual(2);
+		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(100001);
+	});
+
 	it('updateIntentions is an upsert, not a duplicate insert', async () => {
 		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 		await caller.intentions.updateIntentions({

@@ -477,6 +477,37 @@ describe('goals', () => {
 		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id1]);
 	});
 
+	it('archive logs reorder entries for goals shifted into the gap', async () => {
+		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
+		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+		const added3 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 3' })) as GoalResult;
+		const id1 = Number(added1.id);
+		const id2 = Number(added2.id);
+		const id3 = Number(added3.id);
+
+		await caller.goals.archive(id1);
+
+		const goal2Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id2)
+			.execute();
+		const goal3Logs = await db
+			.selectFrom('goal_logs')
+			.selectAll()
+			.where('goalId', '=', id3)
+			.execute();
+		expect(goal2Logs.map((l) => `${l.type}:${l.orderNumber}`)).toEqual(['start:2', 'reorder:1']);
+		expect(goal3Logs.map((l) => `${l.type}:${l.orderNumber}`)).toEqual(['start:3', 'reorder:2']);
+
+		// A review after the archive sees the shifted positions, not the pre-archive ones
+		const goalsOnDate = (await caller.goals.listGoalsOnDate({
+			active: 1,
+			date: new Date()
+		})) as Goal[];
+		expect(goalsOnDate.map((g) => g.id)).toEqual([id2, id3]);
+	});
+
 	it('restore a non-existent goal', async () => {
 		const id = 99999; // Non-existing ID
 		let error;

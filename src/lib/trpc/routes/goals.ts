@@ -300,7 +300,9 @@ export const goals = t.router({
 					if (updates.length > 0) {
 						await trx
 							.updateTable('goals')
-							.set({ orderNumber: sql`"orderNumber" + 100000` })
+							.set({
+								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "goals") + 1)`
+							})
 							.where(
 								'id',
 								'in',
@@ -439,25 +441,27 @@ export const goals = t.router({
 					// get all active goals with orderNumber greater than the archived one
 					const goalsToUpdate = await trx
 						.selectFrom('goals')
-						.select(['id', 'orderNumber'])
+						.selectAll()
 						.where('orderNumber', '>', archivedGoalOrder)
 						.where('active', '=', 1)
 						.orderBy('orderNumber', 'asc')
 						.execute();
 
-					// decrement the orderNumber of each goal sequentially
-					const updatePromises = goalsToUpdate.map((goal) =>
-						trx
+					const endDate = localeCurrentDate().toISOString();
+
+					// close the gap and log each shift so historical queries see post-archive positions
+					for (const goal of goalsToUpdate) {
+						const newOrderNumber = goal.orderNumber - 1;
+						await trx
 							.updateTable('goals')
-							.set({ orderNumber: goal.orderNumber - 1 })
+							.set({ orderNumber: newOrderNumber })
 							.where('id', '=', goal.id)
-							.execute()
-					);
-					await Promise.all(updatePromises);
+							.execute();
+						await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, endDate);
+					}
 
 					// Update the goal_logs when a goal is archived
 					if (result) {
-						const endDate = localeCurrentDate().toISOString();
 						await trx
 							.insertInto('goal_logs')
 							.values({
@@ -548,7 +552,8 @@ async function insertReorderLog(
 	trx: Transaction<DB>,
 	goalId: number,
 	existing: { active: number; orderNumber: number },
-	newOrderNumber: number
+	newOrderNumber: number,
+	date = localeCurrentDate().toISOString()
 ) {
 	if (existing.active === 1 && existing.orderNumber !== newOrderNumber) {
 		await trx
@@ -556,7 +561,7 @@ async function insertReorderLog(
 			.values({
 				goalId,
 				type: 'reorder',
-				date: localeCurrentDate().toISOString(),
+				date,
 				orderNumber: newOrderNumber
 			})
 			.execute();

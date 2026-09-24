@@ -164,28 +164,26 @@
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
 
-		texts.forEach((text, index) => {
-			const newOrderNumber = maxOrderNumber + 1 + index;
-			const existingIntentionIndex = newIntentionsToInsert.findIndex(
-				(intention) => intention.goalId === goalId && intention.orderNumber === newOrderNumber
-			);
-
-			if (existingIntentionIndex !== -1) {
-				if (text) {
-					newIntentionsToInsert[existingIntentionIndex].text = text;
-				} else {
-					newIntentionsToInsert.splice(existingIntentionIndex, 1);
-				}
-			} else if (text) {
+		// Rebuild this goal's pending rows from its latest texts, then renumber
+		// across all pending rows — (DATE(date), orderNumber) must stay unique
+		// across goals, so numbering per goal would collide.
+		newIntentionsToInsert = newIntentionsToInsert.filter(
+			(intention) => intention.goalId !== goalId
+		);
+		for (const text of texts) {
+			if (text) {
 				newIntentionsToInsert.push({
 					goalId: goalId,
 					text: text,
 					date: intentionDate.toISOString(),
 					completed: 1,
 					subIntentionQualifier: null,
-					orderNumber: newOrderNumber
+					orderNumber: 0
 				});
 			}
+		}
+		newIntentionsToInsert.forEach((intention, index) => {
+			intention.orderNumber = maxOrderNumber + 1 + index;
 		});
 	}
 
