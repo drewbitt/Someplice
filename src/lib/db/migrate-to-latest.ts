@@ -30,7 +30,9 @@ export async function runMigrations(db: Kysely<DB>, migrationName?: string): Pro
 					.filter((file) => file.endsWith('.ts'))
 					.sort();
 				for (const file of files) {
-					migrations[`./migrations/${file}`] = await import(`./migrations/${file}`);
+					migrations[`./migrations/${file}`] = await import(
+						/* @vite-ignore */ `./migrations/${file}`
+					);
 				}
 			}
 

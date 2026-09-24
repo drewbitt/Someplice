@@ -44,7 +44,7 @@
 
 	$effect(() => {
 		if (intentions && goalOrderNumbers) {
-			intentions = intentions.filter((intention) => {
+			const known = intentions.filter((intention) => {
 				const orderNumber = goalOrderNumbers.get(intention.goalId);
 				return (
 					intention.goalId !== -1 &&
@@ -54,6 +54,11 @@
 					orderNumber !== -1
 				);
 			});
+			// only reassign when something was dropped; a fresh array every run would
+			// re-trigger this effect through the bound state
+			if (known.length !== intentions.length) {
+				intentions = known;
+			}
 		}
 	});
 
