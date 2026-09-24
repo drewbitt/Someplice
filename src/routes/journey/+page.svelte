@@ -118,7 +118,7 @@
 		</div>
 		{#if isLoadingMore}
 			<div class="mb-3 flex justify-center">
-				<span class="loading loading-bars loading-lg"></span>
+				<span class="loading loading-bars loading-lg motion-reduce:[animation-duration:2s]"></span>
 			</div>
 		{/if}
 		<div bind:this={invisibleFooter} class="pagination-trigger"></div>
