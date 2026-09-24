@@ -9,14 +9,23 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const outcomes = await trpcLoad(event, (t) =>
 		t.outcomes.list({ limit, order: 'desc', orderBy: 'date' })
 	);
-	const intentionsByDate = await getIntentionsByDate();
+	const { intentionsByDate, startDate, endDate } = await getIntentionsByDate();
+	const priorities = await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }));
+	const completedPriorities = await trpcLoad(event, (t) => t.priorities.listCompleted({ limit }));
 
 	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
 	// that date, not today's active set. Inactive goals that still have intentions
 	// that day (e.g. archived the same day) are merged in.
 	const goalsByDate = Object.fromEntries(
 		await Promise.all(
-			Object.keys(intentionsByDate).map(async (date) => {
+			[
+				...new Set([
+					...Object.keys(intentionsByDate),
+					...completedPriorities
+						.map((priority) => priority.completedAt?.slice(0, 10))
+						.filter((date): date is string => Boolean(date))
+				])
+			].map(async (date) => {
 				const [activeGoals, inactiveGoals] = await Promise.all([
 					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date: new Date(date) })),
 					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ active: 0, date: new Date(date) }))
@@ -26,7 +35,7 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 					goalsForJourneyDay(
 						activeGoals,
 						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-						intentionsByDate[date]
+						intentionsByDate[date] ?? []
 					)
 				];
 			})
@@ -42,7 +51,9 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			t.outcomes.verdictsByOutcomeIds({
 				outcomeIds: outcomes.map((outcome) => outcome.id).filter((id): id is number => id !== null)
 			})
-		)
+		),
+		priorities,
+		completedPriorities
 	};
 
 	async function getIntentionsByDate() {
@@ -62,11 +73,13 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			startDate = new Date();
 		}
 
-		return await trpcLoad(event, (t) =>
+		const intentionsByDate = await trpcLoad(event, (t) =>
 			t.intentions.listByDate({
 				startDate: startDate,
 				endDate: endDate
 			})
 		);
+
+		return { intentionsByDate, startDate, endDate };
 	}
 };

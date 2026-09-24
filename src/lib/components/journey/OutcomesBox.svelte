@@ -1,6 +1,14 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome, OutcomeVerdict, VerdictValue } from '$src/lib/trpc/types';
+	import type {
+		Goal,
+		Intention,
+		Outcome,
+		OutcomeVerdict,
+		Priority,
+		VerdictValue
+	} from '$src/lib/trpc/types';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
+	import PriorityModal from '../shared/PriorityModal.svelte';
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
@@ -11,16 +19,20 @@
 		goals,
 		intentions,
 		outcomes,
-		verdicts = []
+		verdicts = [],
+		priorities = []
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
+		priorities?: Priority[];
 	} = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
+	let showPriorityModal = $state(false);
+	let priorityModalGoal = $state<Goal | null>(null);
 
 	let date = $derived(intentions[intentions.length - 1].date);
 	let dateWithoutTime = $derived(date.split('T')[0]);
@@ -75,6 +87,13 @@
 			verdictEdits.set(goalId, { verdict, note });
 		}
 		showSaveButton = true;
+	};
+
+	const handleNewPriority = (detail: { goalId: number | null }) => {
+		const goal = goals.find((goal) => goal.id === detail.goalId);
+		if (!goal) return;
+		priorityModalGoal = goal;
+		showPriorityModal = true;
 	};
 
 	const handleSaveReview = async () => {
@@ -191,11 +210,13 @@
 				showTitle={false}
 				verdict={verdictForGoal(goal.id)}
 				verdictAsBar={!showSaveButton}
+				priority={priorities.find((priority) => priority.goalId === goal.id)}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
 				onCheckboxClicked={handleReviewGoalBoxChange}
 				onNotTodayToggled={handleNotTodayToggled}
 				onVerdictChanged={handleVerdictChanged}
+				onNewPriority={handleNewPriority}
 			/>
 		{/if}
 	{/each}
@@ -207,3 +228,11 @@
 		</div>
 	{/if}
 </div>
+
+{#if priorityModalGoal}
+	<PriorityModal
+		bind:showModal={showPriorityModal}
+		goal={priorityModalGoal}
+		onError={(message) => journeyPageErrorStore.setError(message)}
+	/>
+{/if}

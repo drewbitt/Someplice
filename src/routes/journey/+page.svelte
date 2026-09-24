@@ -14,7 +14,16 @@
 
 	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
 	let noGoals = $derived(data.goals.length === 0);
-	let dates = $derived(Object.keys(data.intentionsByDate));
+	let dates = $derived(
+		[
+			...new Set([
+				...Object.keys(data.intentionsByDate),
+				...data.completedPriorities
+					.map((priority) => priority.completedAt?.slice(0, 10))
+					.filter((date): date is string => Boolean(date))
+			])
+		].sort((a, b) => b.localeCompare(a))
+	);
 
 	let currentPage = $state(1);
 	let hasMore = $state(true);
@@ -69,10 +78,15 @@
 					new Date(uniqueDates[uniqueDates.length - 1]),
 					new Date(uniqueDates[0])
 				];
-				const newIntentionsByDate = await trpc().intentions.listByDate.query({
-					startDate,
-					endDate
-				});
+				const [newIntentionsByDate, newCompletedPriorities] = await Promise.all([
+					trpc().intentions.listByDate.query({
+						startDate,
+						endDate
+					}),
+					trpc().priorities.listCompleted.query({ startDate, endDate })
+				]);
+
+				data.completedPriorities = [...data.completedPriorities, ...newCompletedPriorities];
 
 				for (let date in newIntentionsByDate) {
 					data.intentionsByDate[date] = data.intentionsByDate[date]
@@ -128,9 +142,12 @@
 			{#each dates as date, i (date)}
 				<JourneyDayBox
 					goals={data.goalsByDate[date] ?? data.goals}
-					intentions={data.intentionsByDate[date]}
+					{date}
+					intentions={data.intentionsByDate[date] ?? []}
 					outcomes={data.outcomes}
 					verdicts={data.verdicts}
+					priorities={data.priorities}
+					completedPriorities={data.completedPriorities}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />

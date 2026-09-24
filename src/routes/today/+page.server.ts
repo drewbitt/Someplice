@@ -4,7 +4,7 @@ import type { PageServerLoad } from './$types';
 import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
-	const [goals, intentions, intentionsOnLatestDate] = await Promise.all([
+	const [goals, intentions, intentionsOnLatestDate, priorities] = await Promise.all([
 		trpcLoad(event, (t) => t.goals.list(1)),
 		trpcLoad(event, (t) =>
 			t.intentions.list({
@@ -12,7 +12,8 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 				endDate: localeCurrentDate()
 			})
 		),
-		trpcLoad(event, (t) => t.intentions.intentionsOnLatestDate())
+		trpcLoad(event, (t) => t.intentions.intentionsOnLatestDate()),
+		trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }))
 	]);
-	return { goals, intentions, intentionsOnLatestDate };
+	return { goals, intentions, intentionsOnLatestDate, priorities };
 };

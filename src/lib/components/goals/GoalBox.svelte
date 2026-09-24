@@ -6,15 +6,19 @@
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
+	import PriorityModal from '../shared/PriorityModal.svelte';
+	import type { Priority } from '$src/lib/trpc/types';
 	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
 		goal = $bindable(),
 		currentlyEditing,
+		priority,
 		isInactiveGoal = false
 	}: {
 		goal: PageServerData['goals'][0];
 		currentlyEditing: boolean;
+		priority?: Priority | null;
 		isInactiveGoal?: boolean;
 	} = $props();
 
@@ -24,6 +28,7 @@
 	let archiveConfirmed = $state(false);
 	let showRestorePrompt = $state(false);
 	let restoreConfirmed = $state(false);
+	let showPriorityModal = $state(false);
 	$effect(() => {
 		if (deletionConfirmed) {
 			deleteGoal();
@@ -95,6 +100,10 @@
 			}
 		}
 	};
+
+	const openPriorityModal = () => {
+		showPriorityModal = true;
+	};
 </script>
 
 <div role="listitem">
@@ -152,7 +161,24 @@
 			/>
 		</div>
 	</div>
-	{#if isInactiveGoal}
+	{#if !isInactiveGoal}
+		<button
+			class="mx-5 block w-[calc(100%-2.5rem)] truncate rounded-md px-3 py-1.5 text-left font-semibold hover:underline"
+			style="background-color: {goal.color}20; color: {goal.color}"
+			onclick={openPriorityModal}
+		>
+			Top Priority | {priority?.text ?? '+'}{#if priority?.checkInDate}
+				| by {priority.checkInDate}{/if}
+		</button>
+		{#if showPriorityModal}
+			<PriorityModal
+				bind:showModal={showPriorityModal}
+				{goal}
+				{priority}
+				onError={(message) => goalPageErrorStore.setError(message)}
+			/>
+		{/if}
+	{:else}
 		<GoalDateDisplay {goal} />
 	{/if}
 </div>
