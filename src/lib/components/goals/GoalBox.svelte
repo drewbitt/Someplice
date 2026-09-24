@@ -5,16 +5,20 @@
 	import GenericModal from '../shared/GenericModal.svelte';
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
+	import GoalPriority from './GoalPriority.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
+	import type { Priority } from '$src/lib/trpc/types';
 	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
 		goal = $bindable(),
 		currentlyEditing,
+		priority,
 		isInactiveGoal = false
 	}: {
 		goal: PageServerData['goals'][0];
 		currentlyEditing: boolean;
+		priority?: Priority | null;
 		isInactiveGoal?: boolean;
 	} = $props();
 
@@ -152,7 +156,9 @@
 			/>
 		</div>
 	</div>
-	{#if isInactiveGoal}
+	{#if !isInactiveGoal}
+		<GoalPriority {goal} {priority} />
+	{:else}
 		<GoalDateDisplay {goal} />
 	{/if}
 </div>

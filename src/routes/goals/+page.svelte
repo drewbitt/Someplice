@@ -171,7 +171,11 @@
 		onfinalize={handleDndFinalize}
 	>
 		{#each goals as goal, i (goal.id)}
-			<GoalBoxComponent bind:goal={goals[i]} currentlyEditing={editButtonActive} />
+			<GoalBoxComponent
+				bind:goal={goals[i]}
+				currentlyEditing={editButtonActive}
+				priority={data.priorities.find((p) => p.goalId === goal.id)}
+			/>
 		{/each}
 		<NewGoalBoxComponent bind:addedGoal />
 	</section>

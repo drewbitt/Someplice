@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, PriorityWithGoal } from '$src/lib/trpc/types';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
+	import PriorityModal from '../shared/PriorityModal.svelte';
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
@@ -8,11 +9,19 @@
 	let {
 		goals,
 		intentions,
-		outcomes
-	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+		outcomes,
+		priorities = []
+	}: {
+		goals: Goal[];
+		intentions: Intention[];
+		outcomes: Outcome[];
+		priorities?: PriorityWithGoal[];
+	} = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
+	let showPriorityModal = $state(false);
+	let priorityModalGoal = $state<Goal | null>(null);
 
 	let date = $derived(intentions[intentions.length - 1].date);
 	let dateWithoutTime = $derived(date.split('T')[0]);
@@ -35,6 +44,13 @@
 
 	const handleReviewGoalBoxChange = () => {
 		showSaveButton = true;
+	};
+
+	const handleNewPriority = (detail: { goalId: number | null }) => {
+		const goal = goals.find((goal) => goal.id === detail.goalId);
+		if (!goal) return;
+		priorityModalGoal = goal;
+		showPriorityModal = true;
 	};
 
 	const handleSaveReview = async () => {
@@ -114,9 +130,11 @@
 				{intentions}
 				{hasBeenSaved}
 				showTitle={false}
+				priority={priorities.find((priority) => priority.goalId === goal.id)}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
 				onCheckboxClicked={handleReviewGoalBoxChange}
+				onNewPriority={handleNewPriority}
 			/>
 		{/if}
 	{/each}
@@ -128,3 +146,11 @@
 		</div>
 	{/if}
 </div>
+
+{#if priorityModalGoal}
+	<PriorityModal
+		bind:showModal={showPriorityModal}
+		goal={priorityModalGoal}
+		onError={(message) => journeyPageErrorStore.setError(message)}
+	/>
+{/if}

@@ -65,10 +65,15 @@
 					new Date(uniqueDates[uniqueDates.length - 1]),
 					new Date(uniqueDates[0])
 				];
-				const newIntentionsByDate = await trpc().intentions.listByDate.query({
-					startDate,
-					endDate
-				});
+				const [newIntentionsByDate, newCompletedPriorities] = await Promise.all([
+					trpc().intentions.listByDate.query({
+						startDate,
+						endDate
+					}),
+					trpc().priorities.listCompleted.query({ startDate, endDate })
+				]);
+
+				data.completedPriorities = [...data.completedPriorities, ...newCompletedPriorities];
 
 				for (let date in newIntentionsByDate) {
 					data.intentionsByDate[date] = data.intentionsByDate[date]
@@ -126,6 +131,8 @@
 					goals={data.goalsByDate[date] ?? data.goals}
 					intentions={data.intentionsByDate[date]}
 					outcomes={data.outcomes}
+					priorities={data.priorities}
+					completedPriorities={data.completedPriorities}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />
