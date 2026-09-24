@@ -219,49 +219,6 @@ export const goals = t.router({
 				});
 		}),
 	/**
-	 * Update a goal in the database with a given `Goal` object by `id`.
-	 * @param input - `Goal` object to update.
-	 * @param input.id - ID of the goal to update.
-	 * @returns An `UpdateResult` object.
-	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
-	 */
-	edit: t.procedure
-		.use(logger)
-		// `active` is lifecycle-managed via archive/restore and is not editable here
-		.input(GoalSchema.omit({ active: true }))
-		.mutation(async ({ input }) => {
-			return await getDb()
-				.transaction()
-				.execute(async (trx) => {
-					const existing = await trx
-						.selectFrom('goals')
-						.select(['active', 'orderNumber'])
-						.where('id', '=', input.id)
-						.executeTakeFirstOrThrow();
-
-					const query = trx
-						.updateTable('goals')
-						.set({
-							orderNumber: input.orderNumber,
-							title: input.title,
-							description: input.description,
-							color: input.color
-						})
-						.where('id', '=', input.id);
-					const result = await query.executeTakeFirst();
-					// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
-					// Don't want to return the id of the updated row as we would lose UpdateResult like numUpdatedRows
-					// Manual throw
-					if (Number(result?.numUpdatedRows) === 0) {
-						throw new NoResultError(query.toOperationNode());
-					}
-
-					await insertReorderLog(trx, input.id as number, existing, input.orderNumber);
-
-					return result;
-				});
-		}),
-	/**
 	 * Update all goals in the database with an array of `Goal` objects.
 	 * @param input.goals - Array of `Goal` objects to update.
 	 * @returns An array of now current `Goal` objects.

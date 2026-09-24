@@ -4,7 +4,6 @@
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
-	import { appLogger } from '$src/lib/utils/logger';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 
@@ -103,7 +102,7 @@
 		return intentions;
 	};
 	const handleSaveReview = async () => {
-		let checkboxIntentions = Array.from(
+		const checkboxIntentions = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
 				'.goal-review-item-content input[type="checkbox"]'
 			)
@@ -116,36 +115,15 @@
 			reviewed: 1
 		};
 
-		let intentionUpdateSuccess = false;
-		let outcomeCreationSuccess = false;
+		let saved = false;
 
 		try {
-			if (newIntentionsToInsert.length > 0) {
-				let insertIds = await trpc().intentions.addMany.mutate(newIntentionsToInsert);
-
-				const validInsertIds = insertIds?.filter((id) => id !== null) || [];
-
-				if (validInsertIds.length !== newIntentionsToInsert.length) {
-					appLogger.error("Some of the new intentions' ids were null.");
-				}
-
-				checkboxIntentions = checkboxIntentions.concat(
-					validInsertIds.map((item) => ({
-						intentionId: item.id as number,
-						completed: 1
-					}))
-				);
-			}
-
-			await trpc().intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
-			intentionUpdateSuccess = true;
-
-			await trpc().outcomes.createOrUpdateOutcome.mutate({
+			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
-				intentionIds: checkboxIntentions.map((item) => item.intentionId)
+				newIntentions: newIntentionsToInsert,
+				completions: checkboxIntentions
 			});
-			outcomeCreationSuccess = true;
-
+			saved = true;
 			hasBeenSaved = true;
 			setHasOutstandingOutcome(false);
 			newIntentionsToInsert = [];
@@ -154,7 +132,7 @@
 				todayPageErrorStore.setError(error.message);
 			}
 		} finally {
-			if (intentionUpdateSuccess || outcomeCreationSuccess) {
+			if (saved) {
 				await invalidateAll();
 			}
 		}

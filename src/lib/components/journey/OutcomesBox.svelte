@@ -4,7 +4,6 @@
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
-	import { appLogger } from '$src/lib/utils/logger';
 
 	let {
 		goals,
@@ -39,7 +38,7 @@
 	};
 
 	const handleSaveReview = async () => {
-		let checkboxIntentions = Array.from(
+		const checkboxIntentions = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
 				`#journey-outcomes-box-${dateWithoutTime} .goal-review-item-content input[type="checkbox"]`
 			)
@@ -52,36 +51,15 @@
 			reviewed: 1
 		};
 
-		let intentionUpdateSuccess = false;
-		let outcomeCreationSuccess = false;
+		let saved = false;
 
 		try {
-			if (newIntentionsToInsert.length > 0) {
-				let insertIds = await trpc().intentions.addMany.mutate(newIntentionsToInsert);
-
-				const validInsertIds = insertIds?.filter((id) => id !== null) || [];
-
-				if (validInsertIds.length !== newIntentionsToInsert.length) {
-					appLogger.error("Some of the new intentions' ids were null.");
-				}
-
-				checkboxIntentions = checkboxIntentions.concat(
-					validInsertIds.map((item) => ({
-						intentionId: item.id as number,
-						completed: 1
-					}))
-				);
-			}
-
-			await trpc().intentions.updateIntentionCompletionStatus.mutate(checkboxIntentions);
-			intentionUpdateSuccess = true;
-
-			await trpc().outcomes.createOrUpdateOutcome.mutate({
+			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
-				intentionIds: checkboxIntentions.map((item) => item.intentionId)
+				newIntentions: newIntentionsToInsert,
+				completions: checkboxIntentions
 			});
-			outcomeCreationSuccess = true;
-
+			saved = true;
 			hasBeenSaved = true;
 			showSaveButton = false;
 			newIntentionsToInsert = [];
@@ -90,7 +68,7 @@
 				journeyPageErrorStore.setError(error.message);
 			}
 		} finally {
-			if (intentionUpdateSuccess || outcomeCreationSuccess) {
+			if (saved) {
 				await invalidateAll();
 			}
 		}
@@ -100,28 +78,26 @@
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
 
-		texts.forEach((text, index) => {
-			const newOrderNumber = maxOrderNumber + 1 + index;
-			const existingIntentionIndex = newIntentionsToInsert.findIndex(
-				(intention) => intention.goalId === goalId && intention.orderNumber === newOrderNumber
-			);
-
-			if (existingIntentionIndex !== -1) {
-				if (text) {
-					newIntentionsToInsert[existingIntentionIndex].text = text;
-				} else {
-					newIntentionsToInsert.splice(existingIntentionIndex, 1);
-				}
-			} else if (text) {
+		// Rebuild this goal's pending rows from its latest texts, then renumber
+		// across all pending rows — (DATE(date), orderNumber) must stay unique
+		// across goals, so numbering per goal would collide.
+		newIntentionsToInsert = newIntentionsToInsert.filter(
+			(intention) => intention.goalId !== goalId
+		);
+		for (const text of texts) {
+			if (text) {
 				newIntentionsToInsert.push({
 					goalId: goalId,
 					text: text,
 					date: date,
 					completed: 1,
 					subIntentionQualifier: null,
-					orderNumber: newOrderNumber
+					orderNumber: 0
 				});
 			}
+		}
+		newIntentionsToInsert.forEach((intention, index) => {
+			intention.orderNumber = maxOrderNumber + 1 + index;
 		});
 	}
 </script>

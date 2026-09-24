@@ -211,20 +211,6 @@ export const intentions = t.router({
 		}
 	}),
 	/**
-	 * Add new intentions.
-	 * This can be used instead of `updateIntentions`'s upsert if you only want to add new intentions.
-	 * @param input - An array of intentions to add, omitting the 'id' property.
-	 * @returns The ids of the created intentions.
-	 */
-	addMany: t.procedure
-		.use(logger)
-		.input(z.array(IntentionsSchema.omit({ id: true })))
-		.mutation(async ({ input }) => {
-			const result = await getDb().insertInto('intentions').values(input).returning('id').execute();
-
-			return result;
-		}),
-	/**
 	 * Edit single intention
 	 * @param {IntentionsSchema} input - The intention to edit
 	 * @returns {UpdateResult}
@@ -373,42 +359,6 @@ export const intentions = t.router({
 					await deleteOrphanedOutcomes(trx, outcomeIds);
 
 					return result;
-				});
-		}),
-	/**
-	 * Update the completion status of intentions based on their IDs.
-	 * @param input - An array of objects containing `intentionId` and `completed`.
-	 * @throws {NoResultError} If could not update the intention's completion status.
-	 */
-	updateIntentionCompletionStatus: t.procedure
-		.use(logger)
-		.input(
-			z.array(
-				z.object({
-					intentionId: z.number(),
-					completed: z.number()
-				})
-			)
-		)
-		.mutation(async ({ input }) => {
-			await getDb()
-				.transaction()
-				.execute(async (trx) => {
-					await Promise.all(
-						input.map(async (intentionUpdate) => {
-							const query = trx
-								.updateTable('intentions')
-								.set({ completed: intentionUpdate.completed })
-								.where('id', '=', intentionUpdate.intentionId);
-
-							const result = await query.executeTakeFirst();
-
-							// If no row is updated, throw an error
-							if (Number(result?.numUpdatedRows) === 0) {
-								throw new NoResultError(query.toOperationNode());
-							}
-						})
-					);
 				});
 		})
 });

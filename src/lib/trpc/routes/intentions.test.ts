@@ -1,7 +1,7 @@
 import { DbInstance } from '$src/lib/db/db';
 import { migrateToLatest } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
-import { NoResultError, type Kysely, type UpdateResult } from 'kysely';
+import { type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
 import { createCallerFactory, router } from '../router';
@@ -84,14 +84,6 @@ describe('intentions', () => {
 		// Compare the YYYY-MM-DD part of the date
 		const date = new Date(result[0].date).toISOString().split('T')[0];
 		expect(date).toEqual('2023-07-01');
-	});
-
-	it('addMany', async () => {
-		const added = (await caller.intentions.addMany([TEST_INTENTION])) as { id: number }[];
-		expect(added).toBeDefined();
-		expect(added).toHaveLength(1);
-		expect(added[0].id).toBeDefined();
-		expect(added[0].id).toBeGreaterThan(0);
 	});
 
 	it('latestIntentions', async () => {
@@ -230,43 +222,6 @@ describe('intentions', () => {
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
 	});
 
-	it('updateIntentionCompletionStatus', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
-
-		// Update the completion status of the test intention
-		const newCompletionStatus = 1; // Assuming 1 represents completed
-		await caller.intentions.updateIntentionCompletionStatus([
-			{
-				intentionId: TEST_INTENTION.id as number,
-				completed: newCompletionStatus
-			}
-		]);
-
-		// Verify that the intention's completion status has been updated
-		const result = (await caller.intentions.list(undefined)) as Intention[];
-		expect(result).toBeInstanceOf(Array);
-		expect(result).toHaveLength(1);
-		expect(result[0]).toEqual(
-			expect.objectContaining({ ...TEST_INTENTION, completed: newCompletionStatus })
-		);
-
-		// Try to update the completion status of a non-existent intention
-		let error;
-		try {
-			await caller.intentions.updateIntentionCompletionStatus([
-				{
-					intentionId: 9999, // Invalid id
-					completed: newCompletionStatus
-				}
-			]);
-		} catch (e) {
-			error = e;
-		}
-		if (error instanceof Error) {
-			expect(error.cause).toBeInstanceOf(NoResultError);
-		}
-	});
-
 	it('updateIntentions swaps orderNumbers without tripping the unique index', async () => {
 		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
 		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });
@@ -307,19 +262,6 @@ describe('intentions', () => {
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result).toHaveLength(1);
 		expect(result[0].text).toEqual('updated text');
-	});
-
-	it('addMany rejects duplicate orderNumbers on the same day', async () => {
-		await caller.intentions.addMany([TEST_INTENTION]);
-
-		let error;
-		try {
-			// same DATE(date) and orderNumber as TEST_INTENTION, different time/id
-			await caller.intentions.addMany([{ ...TEST_INTENTION, date: '2023-07-01T09:00:00.000Z' }]);
-		} catch (e) {
-			error = e;
-		}
-		expect(error).toBeDefined();
 	});
 
 	it('delete removes the intention, its outcome links, and an orphaned outcome', async () => {

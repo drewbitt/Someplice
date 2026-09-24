@@ -3,6 +3,7 @@ import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
+import { IntentionsSchema } from './intentions';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -69,28 +70,48 @@ export const outcomes = t.router({
 			return query.execute();
 		}),
 	/**
-	 * Create or update an outcome based on the provided data.
-	 * This method either creates a new outcome if it doesn't exist based on its date,
-	 * or updates the 'reviewed' status if the outcome already exists.
-	 * It also associates the provided intentions with the outcome.
-	 *
-	 * @param input.outcome - The `Outcome` object without the 'id'.
-	 * @param input.intentionIds - Array of intention IDs to associate with the outcome.
-	 * @returns An object containing the `outcomeId` of the created or updated outcome.
-	 * @throws {NoResultError} - If the outcome or its associations could not be created or updated.
+	 * Save a review atomically: insert new intentions, apply completion updates,
+	 * upsert the day's outcome, and link every intention to it — all in one
+	 * transaction so a failed save leaves nothing behind and can be retried.
+	 * @param input.outcome - `date` and `reviewed` for the outcome row.
+	 * @param input.newIntentions - New intentions to insert (without ids).
+	 * @param input.completions - `intentionId`/`completed` pairs for existing intentions.
+	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
-	createOrUpdateOutcome: t.procedure
+	saveReview: t.procedure
 		.use(logger)
 		.input(
 			z.object({
 				outcome: OutcomeSchema.omit({ id: true }),
-				intentionIds: z.array(z.number()) // Array of intention IDs
+				newIntentions: z.array(IntentionsSchema.omit({ id: true })),
+				completions: z.array(z.object({ intentionId: z.number(), completed: z.number() }))
 			})
 		)
 		.mutation(async ({ input }) => {
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
+					const intentionIds = input.completions.map((c) => c.intentionId);
+
+					if (input.newIntentions.length > 0) {
+						const inserted = await trx
+							.insertInto('intentions')
+							.values(input.newIntentions)
+							.returning('id')
+							.execute();
+						for (const row of inserted) {
+							intentionIds.push(row.id as number);
+						}
+					}
+
+					for (const { intentionId, completed } of input.completions) {
+						await trx
+							.updateTable('intentions')
+							.set({ completed })
+							.where('id', '=', intentionId)
+							.executeTakeFirstOrThrow();
+					}
+
 					// outcomes.date is UNIQUE: insert, or update `reviewed` on the existing row
 					const outcome = await trx
 						.insertInto('outcomes')
@@ -103,7 +124,7 @@ export const outcomes = t.router({
 						.returning('id')
 						.executeTakeFirstOrThrow();
 
-					for (const intentionId of input.intentionIds) {
+					for (const intentionId of intentionIds) {
 						await linkIntentionToOutcome(trx, outcome.id as number, intentionId);
 					}
 

@@ -164,43 +164,6 @@ describe('goals', () => {
 		expect(logEntries[0].type).toEqual('start');
 	});
 
-	it('edit', async () => {
-		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
-		const id = Number(added.id);
-
-		const goalToEdit = await db
-			.selectFrom('goals')
-			.selectAll()
-			.where('id', '=', id)
-			.executeTakeFirst();
-		const editedGoal = { ...goalToEdit, title: 'Modified Test Goal' };
-
-		const result = (await caller.goals.edit(editedGoal as Goal)) as UpdateResult;
-		expect(Number(result.numUpdatedRows)).toEqual(1);
-
-		const editedGoalFromDb = await db
-			.selectFrom('goals')
-			.select('title')
-			.where('id', '=', id)
-			.executeTakeFirst();
-		expect(editedGoalFromDb).toBeDefined();
-		if (editedGoalFromDb) {
-			expect(editedGoalFromDb.title).toEqual('Modified Test Goal');
-		}
-	});
-
-	it('edit a non-existent goal', async () => {
-		const id = 99999; // Non-existing ID
-		const orderNumber = 1;
-		let error;
-		try {
-			await caller.goals.edit({ ...TEST_GOAL, id, orderNumber });
-		} catch (e) {
-			error = e;
-		}
-		expect(error).toBeDefined();
-	});
-
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
@@ -364,27 +327,6 @@ describe('goals', () => {
 			error = e;
 		}
 		expect(error).toBeDefined();
-	});
-
-	it('edit cannot change the active flag', async () => {
-		const added = (await caller.goals.add(TEST_GOAL)) as GoalResult;
-		const id = Number(added.id);
-
-		const goalToEdit = await db
-			.selectFrom('goals')
-			.selectAll()
-			.where('id', '=', id)
-			.executeTakeFirst();
-
-		// `active` is stripped from the input even if the caller provides it
-		await caller.goals.edit({ ...goalToEdit, active: 0 } as Goal);
-
-		const row = await db
-			.selectFrom('goals')
-			.select('active')
-			.where('id', '=', id)
-			.executeTakeFirst();
-		expect(row?.active).toEqual(1);
 	});
 
 	it('updateGoals reordering writes reorder logs and does not trip the unique index', async () => {

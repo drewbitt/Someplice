@@ -48,30 +48,38 @@ describe('outcomes', () => {
 		expect(result).toEqual([]);
 	});
 
-	it('createOrUpdateOutcome inserts associations for a new outcome', async () => {
+	it('saveReview inserts new intentions, applies completions, and links everything', async () => {
 		const date = new Date().toISOString().split('T')[0];
-		const result = (await caller.outcomes.createOrUpdateOutcome({
+		const result = (await caller.outcomes.saveReview({
 			outcome: { reviewed: 1, date },
-			intentionIds: [1]
+			newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
+			completions: [{ intentionId: 1, completed: 1 }]
 		})) as { outcomeId: number };
+
+		const intentions = await db.selectFrom('intentions').selectAll().orderBy('id', 'asc').execute();
+		expect(intentions.length).toBe(2);
+		expect(intentions[0].completed).toBe(1);
+		expect(intentions[1].text).toBe('new outcome text');
 
 		const pairs = await db
 			.selectFrom('outcomes_intentions')
 			.selectAll()
 			.where('outcomeId', '=', result.outcomeId)
 			.execute();
-		expect(pairs.map((pair) => pair.intentionId)).toEqual([1]);
+		expect(pairs.map((pair) => pair.intentionId).sort()).toEqual([1, 2]);
 	});
 
-	it('createOrUpdateOutcome on an existing date updates reviewed without duplicating pairs', async () => {
+	it('saveReview on an existing date updates reviewed without duplicating pairs', async () => {
 		const date = new Date().toISOString().split('T')[0];
-		await caller.outcomes.createOrUpdateOutcome({
+		await caller.outcomes.saveReview({
 			outcome: { reviewed: 0, date },
-			intentionIds: [1]
+			newIntentions: [],
+			completions: [{ intentionId: 1, completed: 0 }]
 		});
-		const result = (await caller.outcomes.createOrUpdateOutcome({
+		const result = (await caller.outcomes.saveReview({
 			outcome: { reviewed: 1, date },
-			intentionIds: [1]
+			newIntentions: [],
+			completions: [{ intentionId: 1, completed: 1 }]
 		})) as { outcomeId: number };
 
 		const outcomes = (await caller.outcomes.list()) as Outcome[];
@@ -85,6 +93,36 @@ describe('outcomes', () => {
 			.where('outcomeId', '=', result.outcomeId)
 			.execute();
 		expect(pairs.length).toBe(1);
+	});
+
+	it('saveReview rolls back everything when a step fails, so a retry is clean', async () => {
+		const date = new Date().toISOString().split('T')[0];
+
+		let error;
+		try {
+			await caller.outcomes.saveReview({
+				outcome: { reviewed: 1, date },
+				newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
+				completions: [{ intentionId: 9999, completed: 1 }] // does not exist
+			});
+		} catch (e) {
+			error = e;
+		}
+		expect(error).toBeDefined();
+
+		// Nothing persisted — the new intention rolled back with the failed completion
+		const intentions = await db.selectFrom('intentions').selectAll().execute();
+		expect(intentions.length).toBe(1);
+		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(0);
+
+		// And a retry with a valid completion succeeds, including the new insert
+		await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
+			completions: [{ intentionId: 1, completed: 1 }]
+		});
+		expect(await db.selectFrom('intentions').selectAll().execute()).toHaveLength(2);
+		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);
 	});
 
 	it('list filters by date range', async () => {
