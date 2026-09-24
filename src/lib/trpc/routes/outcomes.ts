@@ -1,6 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
+import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -87,55 +88,26 @@ export const outcomes = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const result = await getDb()
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const existingOutcome = await trx
-						.selectFrom('outcomes')
-						.selectAll()
-						.where('date', '=', input.outcome.date)
-						.executeTakeFirst();
+					// outcomes.date is UNIQUE: insert, or update `reviewed` on the existing row
+					const outcome = await trx
+						.insertInto('outcomes')
+						.values(input.outcome)
+						.onConflict((oc) =>
+							oc.column('date').doUpdateSet((eb) => ({
+								reviewed: eb.ref('excluded.reviewed')
+							}))
+						)
+						.returning('id')
+						.executeTakeFirstOrThrow();
 
-					if (existingOutcome) {
-						const updatedOutcome = await trx
-							.updateTable('outcomes')
-							.set({ reviewed: input.outcome.reviewed })
-							.where('id', '=', existingOutcome.id)
-							.returning('id')
-							.executeTakeFirstOrThrow();
-
-						// Upsert associations for existing outcome
-						for (const intentionId of input.intentionIds) {
-							await trx
-								.insertInto('outcomes_intentions')
-								.values({ outcomeId: updatedOutcome.id as number, intentionId })
-								.onConflict((oc) => oc.doNothing())
-								.execute();
-						}
-
-						return { outcomeId: updatedOutcome.id };
-					} else {
-						const outcome = await trx
-							.insertInto('outcomes')
-							.values(input.outcome)
-							.returning('id')
-							.executeTakeFirstOrThrow();
-
-						if (!outcome.id) throw new Error('Outcome id is null');
-
-						// Directly insert associations for new outcome
-						for (const intentionId of input.intentionIds) {
-							await trx
-								.insertInto('outcomes_intentions')
-								.values({ outcomeId: outcome.id, intentionId: intentionId })
-								.returning(['outcomeId', 'intentionId'])
-								.executeTakeFirstOrThrow();
-						}
-
-						return { outcomeId: outcome.id };
+					for (const intentionId of input.intentionIds) {
+						await linkIntentionToOutcome(trx, outcome.id as number, intentionId);
 					}
-				});
 
-			return result;
+					return { outcomeId: outcome.id };
+				});
 		})
 });

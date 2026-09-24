@@ -4,6 +4,7 @@ import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
+import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -51,30 +52,24 @@ export const intentions = t.router({
 				.optional()
 		)
 		.query(async ({ input }) => {
-			let query = getDb().selectFrom('intentions').selectAll();
+			let query = getDb()
+				.selectFrom('intentions')
+				.selectAll()
+				.orderBy('orderNumber', input?.order ?? 'asc');
 
-			if (input) {
-				query = query.orderBy('orderNumber', input.order);
+			if (input?.startDate && input?.endDate) {
+				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(input.startDate, input.endDate);
 
-				if (input.startDate && input.endDate) {
-					const { startDate, endDate } = adjustToUTCStartAndEndOfDay(
-						input.startDate,
-						input.endDate
-					);
+				query = query
+					.where('date', '>=', startDate.toISOString())
+					.where('date', '<=', endDate.toISOString());
+			}
 
-					query = query
-						.where('date', '>=', startDate.toISOString())
-						.where('date', '<=', endDate.toISOString());
-				}
-
-				if (input.limit) {
-					query = query.limit(input.limit);
-				}
-				if (input.offset) {
-					query = query.offset(input.offset);
-				}
-			} else {
-				query = query.orderBy('orderNumber', 'asc');
+			if (input?.limit) {
+				query = query.limit(input.limit);
+			}
+			if (input?.offset) {
+				query = query.offset(input.offset);
 			}
 
 			return await query.execute();
@@ -373,18 +368,7 @@ export const intentions = t.router({
 
 					const result = await trx.deleteFrom('intentions').where('id', '=', input).execute();
 
-					// Drop outcome rows that are left with no intentions at all
-					for (const outcomeId of outcomeIds) {
-						const remaining = await trx
-							.selectFrom('outcomes_intentions')
-							.select(({ fn }) => [fn.countAll<number>().as('count')])
-							.where('outcomeId', '=', outcomeId)
-							.executeTakeFirst();
-
-						if (Number(remaining?.count ?? 0) === 0) {
-							await trx.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
-						}
-					}
+					await deleteOrphanedOutcomes(trx, outcomeIds);
 
 					return result;
 				});

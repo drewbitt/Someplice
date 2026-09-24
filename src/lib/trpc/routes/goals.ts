@@ -6,6 +6,7 @@ import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { DB } from '$src/lib/types/data';
 import type { Goal } from '../types';
+import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
@@ -176,16 +177,13 @@ export const goals = t.router({
 				.execute(async (trx) => {
 					// get orderNumber by getting the max orderNumber and adding 1
 					// Could make this a trigger in kysely with raw sql
-					const maxOrderNumber = await trx
-						.selectFrom('goals')
-						.select('orderNumber')
-						.orderBy('orderNumber', 'desc')
-						.executeTakeFirst()
-						.then((res) => res?.orderNumber)
-						// catch is not needed
-						.catch((err) => {
-							throw new Error(err);
-						});
+					const maxOrderNumber = (
+						await trx
+							.selectFrom('goals')
+							.select('orderNumber')
+							.orderBy('orderNumber', 'desc')
+							.executeTakeFirst()
+					)?.orderNumber;
 
 					if (maxOrderNumber && maxOrderNumber >= 9) {
 						throw new Error(`You have reached the maximum number of 9 goals. 
@@ -401,18 +399,7 @@ export const goals = t.router({
 
 					const result = await trx.deleteFrom('goals').where('id', '=', input).execute();
 
-					// Delete outcomes left with no associated intentions
-					for (const outcomeId of new Set(associatedOutcomeIds)) {
-						const intentionsCount = await trx
-							.selectFrom('outcomes_intentions')
-							.select(({ fn }) => [fn.countAll<number>().as('count')])
-							.where('outcomeId', '=', outcomeId)
-							.executeTakeFirstOrThrow();
-
-						if (Number(intentionsCount.count) === 0) {
-							await trx.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
-						}
-					}
+					await deleteOrphanedOutcomes(trx, associatedOutcomeIds);
 
 					return result;
 				});
@@ -421,7 +408,7 @@ export const goals = t.router({
 	 * Archive a goal by its `id`.
 	 * @param input - `id` of the goal to archive.
 	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
-	 * @throws {Error} If the goal's `orderNumber` is undefined.
+	 * @throws {Error} If the goal is already archived.
 	 * @returns An `UpdateResult` object.
 	 */
 	archive: t.procedure
