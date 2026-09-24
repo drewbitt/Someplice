@@ -5,7 +5,7 @@
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
 	import { appLogger } from '$src/lib/utils/logger';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
@@ -25,6 +25,15 @@
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
 	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
+
+	beforeNavigate((navigation) => {
+		if (!newIntentionsToInsert.length) return;
+		if (navigation.willUnload) {
+			navigation.cancel();
+		} else if (!confirm('Discard unsaved outcome text?')) {
+			navigation.cancel();
+		}
+	});
 
 	$effect(() => {
 		if (intentionsOnLatestDate[0]) {
@@ -139,6 +148,7 @@
 
 			hasBeenSaved = true;
 			setHasOutstandingOutcome(false);
+			newIntentionsToInsert = [];
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);

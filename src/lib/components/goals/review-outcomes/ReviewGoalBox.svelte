@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { evenEvenLighterHSLColor } from '$src/lib/utils';
-	import { beforeNavigate } from '$app/navigation';
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
 
@@ -28,15 +27,6 @@
 	$effect(() => {
 		if (hasBeenSaved) {
 			newOutcomeTexts = [];
-		}
-	});
-
-	beforeNavigate((navigation) => {
-		if (!newOutcomeTexts.some((text) => text.trim())) return;
-		if (navigation.willUnload) {
-			navigation.cancel();
-		} else if (!confirm('Discard unsaved outcome text?')) {
-			navigation.cancel();
 		}
 	});
 
