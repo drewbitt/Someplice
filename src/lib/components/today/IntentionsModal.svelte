@@ -80,9 +80,7 @@
 				</li>
 				<li>
 					<button
-						class="flex items-center gap-3"
-						class:focus:text-slate-200={darkMode}
-						class:focus:text-slate-900={!darkMode}
+						class="focus:text-base-content flex items-center gap-3"
 						style="grid-template-columns: 0.5rem auto;"
 						onclick={deleteIntention}
 					>
