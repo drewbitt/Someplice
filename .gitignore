@@ -9,7 +9,6 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.sqlite
-.dccache
-.trunk/test-results
+/.deno-deploy
 playwright-report
 test-results
