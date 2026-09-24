@@ -182,7 +182,7 @@
 
 {#if showPageLoadingSpinner}
 	<div class="flex justify-center">
-		<span class="loading loading-spinner loading-lg"></span>
+		<span class="loading loading-spinner loading-lg motion-reduce:[animation-duration:2s]"></span>
 	</div>
 {:else}
 	<div class="flex flex-col gap-4">

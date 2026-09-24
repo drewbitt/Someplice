@@ -202,7 +202,8 @@
 		</p>
 		{#if showPageLoadingSpinner}
 			<div class="flex justify-center">
-				<span class="loading loading-spinner loading-lg"></span>
+				<span class="loading loading-spinner loading-lg motion-reduce:[animation-duration:2s]"
+				></span>
 			</div>
 		{:else}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
