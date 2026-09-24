@@ -191,7 +191,7 @@
 			<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
 		{/if}
 		{#if noGoals}
-			<div role="alert" class="alert alert-error border-gray-400">
+			<div role="alert" class="alert alert-error border-error">
 				<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 				<span>You have no goals. Please add some goals first.</span>
 			</div>
@@ -209,7 +209,7 @@
 					<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
 				</div>
 				{#if showValidIntentionsNotification}
-					<div role="alert" class="alert alert-error border-gray-400">
+					<div role="alert" class="alert alert-error border-error">
 						<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 						<span
 							>Please check that your intentions are formatted correctly and have valid goal
@@ -237,7 +237,7 @@
 			{/if}
 		{:else}
 			{#if showValidIntentionsNotification}
-				<div role="alert" class="alert alert-error border-gray-400">
+				<div role="alert" class="alert alert-error border-error">
 					<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 					<span
 						>Please check that your intentions are formatted correctly and have valid goal numbers.</span

@@ -27,10 +27,10 @@
 	}
 </script>
 
-<div class="goal__editor text-gray-900 dark:text-gray-300">
+<div class="goal__editor text-base-content">
 	<pre class="goal__editor__pre" aria-hidden="true"></pre>
 	<textarea
-		class="goal__editor__textarea rounded-field border-base-content border caret-black transition duration-200 ease-in-out dark:caret-white"
+		class="goal__editor__textarea rounded-field border-base-content caret-base-content border transition duration-200 ease-in-out"
 		bind:this={input}
 		bind:value
 		tabindex="0"

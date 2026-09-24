@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
-	import theme from '$lib/stores/theme';
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 
@@ -16,15 +15,9 @@
 <div
 	role="listitem"
 	aria-label="Journey Day Box"
-	class="grid w-full flex-col gap-3 border border-gray-300 py-3 shadow-lg"
-	class:bg-gray-950={theme.current === 'dark'}
-	class:bg-white={theme.current !== 'dark'}
+	class="border-base-300 bg-base-100 grid w-full flex-col gap-3 border py-3 shadow-lg"
 >
-	<h2
-		class="ml-5 text-xl font-bold"
-		class:text-gray-400={theme.current === 'dark'}
-		class:text-gray-500={theme.current !== 'dark'}
-	>
+	<h2 class="text-base-content/60 ml-5 text-xl font-bold">
 		{(() => {
 			const dateObj = new Date(date);
 			const formatter = new Intl.DateTimeFormat('en-US', {

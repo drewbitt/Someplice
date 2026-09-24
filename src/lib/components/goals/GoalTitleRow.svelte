@@ -19,7 +19,7 @@
 		<div class="goal-box-title-editable w-1/2">
 			<input
 				bind:value={title}
-				class="input w-full max-w-lg bg-transparent px-0 text-3xl dark:text-white"
+				class="input text-base-content w-full max-w-lg bg-transparent px-0 text-3xl"
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
@@ -29,6 +29,6 @@
 	</div>
 {:else}
 	<div class="goal-box-title w-1/2">
-		<p class="text-3xl dark:text-white">{title}</p>
+		<p class="text-base-content text-3xl">{title}</p>
 	</div>
 {/if}

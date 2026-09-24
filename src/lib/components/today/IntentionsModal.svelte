@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import theme from '$lib/stores/theme';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import AppendModal from './AppendModal.svelte';
 
@@ -16,7 +15,6 @@
 	let showAppendModal = $state(false);
 
 	let modalTitle = $derived(goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text);
-	let darkMode = $derived(theme.current === 'dark');
 
 	$effect(() => {
 		if (dialog) {
@@ -50,9 +48,7 @@
 			<ul class="menu w-56 text-lg">
 				<li>
 					<button
-						class="flex items-center gap-3"
-						class:focus:text-slate-200={darkMode}
-						class:focus:text-slate-900={!darkMode}
+						class="focus:text-base-content flex items-center gap-3"
 						style="grid-template-columns: 0.5rem auto;"
 						onclick={() => {
 							showAppendModal = true;

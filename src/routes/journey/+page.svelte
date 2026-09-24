@@ -1,7 +1,6 @@
 <script lang="ts">
 	import JourneyDayBox from '$src/lib/components/journey/JourneyDayBox.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
-	import theme from '$lib/stores/theme';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
@@ -13,7 +12,6 @@
 
 	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
 	let noGoals = $derived(data.goals.length === 0);
-	let darkMode = $derived(theme.current === 'dark');
 	let dates = $derived(Object.keys(data.intentionsByDate));
 
 	let currentPage = $state(1);
@@ -100,12 +98,12 @@
 </div>
 
 {#if noGoals || noIntentions}
-	<div role="alert" class="alert alert-error border-gray-400">
+	<div role="alert" class="alert alert-error border-error">
 		<CircleX class="h-6 w-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>
 	</div>
 {:else}
-	<section class={darkMode ? 'bg-gray-900' : 'bg-gray-200'}>
+	<section class="bg-base-200">
 		<div class="mx-12 grid gap-4 py-6 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox

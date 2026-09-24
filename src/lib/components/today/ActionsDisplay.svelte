@@ -128,7 +128,7 @@
 				<h2 class="text-2xl font-bold text-gray-700 dark:text-purple-200">
 					{intentions.length} intentions for today,
 				</h2>
-				<h2 class="ml-5 text-2xl font-bold text-gray-500 dark:text-gray-400">
+				<h2 class="text-base-content/60 ml-5 text-2xl font-bold">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {
@@ -181,7 +181,7 @@
 						<button
 							aria-haspopup="dialog"
 							aria-label="Open intention menu"
-							class="cursor-pointer py-0.5 hover:bg-gray-400"
+							class="hover:bg-base-300 cursor-pointer py-0.5"
 							onclick={() => {
 								showIntentionModal = true;
 							}}

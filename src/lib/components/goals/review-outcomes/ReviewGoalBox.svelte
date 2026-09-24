@@ -79,7 +79,7 @@
 			style="border-color: {goal.color}"
 		>
 			{#if goal.description}
-				<p class="pl-5 font-mono text-lg tracking-wide text-gray-500 dark:text-gray-400">
+				<p class="text-base-content/60 pl-5 font-mono text-lg tracking-wide">
 					{goal.description}
 				</p>
 			{/if}
@@ -102,7 +102,7 @@
 					</div>
 				{/each}
 			{:else}
-				<p class="text-gray-500 dark:text-gray-400">No intentions for this goal occurred</p>
+				<p class="text-base-content/60">No intentions for this goal occurred</p>
 			{/if}
 			{#each newOutcomeTexts as text, index (index)}
 				<NewOutcomeTextBox
@@ -118,7 +118,7 @@
 				aria-label="Add another outcome not already listed"
 				onclick={handlePlusNewOutcome}
 			>
-				<Plus class="h-5 w-5 hover:bg-gray-500" />
+				<Plus class="hover:bg-base-300 h-5 w-5" />
 			</button>
 		</div>
 	</div>
