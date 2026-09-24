@@ -5,7 +5,7 @@ import { appLogger } from './lib/utils/logger';
 // Clear on application restart
 // Only clear in production as dev mode HMR will cause this to run on every file change
 if (import.meta.env.PROD) {
-	todaysIntentions.current = '';
+	todaysIntentions.current = null;
 }
 
 export const handleError: HandleClientError = async ({ error, event }) => {

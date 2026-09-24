@@ -24,7 +24,8 @@
 	let intentionsStringInitialized = $state(false);
 
 	onMount(() => {
-		if (todaysIntentions.current && todaysIntentions.current.trim() !== '') {
+		if (todaysIntentions.current !== null) {
+			// a draft exists — including an intentionally cleared one
 			intentionsString = todaysIntentions.current;
 		} else {
 			intentionsString = intentions
@@ -39,7 +40,7 @@
 	});
 
 	// Persist the draft to the store — including a cleared value, so wiping the
-	// editor does not resurrect old intentions on the next load.
+	// editor does not resurrect old intentions on the next remount.
 	$effect(() => {
 		if (intentionsStringInitialized) {
 			todaysIntentions.current = intentionsString;
