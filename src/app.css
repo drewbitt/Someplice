@@ -1,9 +1,16 @@
 @import 'tailwindcss';
+
 @plugin 'daisyui' {
 	themes:
 		light --default,
 		dark;
 	logs: false;
+	exclude:
+		skeleton, mask, status, radio, collapse, fieldset, diff, hover3d, textrotate, kbd, avatar,
+		rating, stat, dropdown, filter, megamenu, toggle, swap, link, hovergallery, select, mockup,
+		calendar, divider, steps, list, breadcrumbs, chat, radialprogress, aura, range, stack,
+		fileinput, carousel, fab, drawer, tab, navbar, countdown, textarea, card, label, progress, otp,
+		table, hero, validator, timeline, footer, dock, join, glass, typography;
 }
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
