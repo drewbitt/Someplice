@@ -82,3 +82,18 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 	}
 	return -1;
 };
+
+// A journey day needs active goals plus inactive goals that have intentions that
+// day (e.g. a goal archived the same day), otherwise they render as "-1)".
+export const goalsForJourneyDay = (
+	active: Goal[],
+	inactive: Goal[],
+	intentions: Intention[]
+): Goal[] => {
+	const referencedGoalIds = new Set(intentions.map((intention) => intention.goalId));
+	const activeIds = new Set(active.map((goal) => goal.id));
+	const extra = inactive.filter(
+		(goal) => goal.id !== null && referencedGoalIds.has(goal.id) && !activeIds.has(goal.id)
+	);
+	return [...active, ...extra].sort((a, b) => a.orderNumber - b.orderNumber);
+};
