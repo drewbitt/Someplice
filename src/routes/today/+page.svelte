@@ -198,11 +198,7 @@
 		{:else if hasOutstandingOutcome}
 			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
 		{:else if intentionsFromServer.length > 0}
-			<ActionsDisplay
-				bind:intentions={data.intentions}
-				{handleUpdateSingleIntention}
-				goals={data.goals}
-			/>
+			<ActionsDisplay bind:intentions {handleUpdateSingleIntention} goals={data.goals} />
 			{#if showAdditionalIntentionsTextArea}
 				<div class="flex items-center">
 					<button class="btn mr-2" onclick={handleHideAdditionalIntentionsTextArea}>Hide</button>

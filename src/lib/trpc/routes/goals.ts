@@ -8,8 +8,20 @@ import type { DB } from '$src/lib/types/data';
 import type { Goal } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
+import { TRPCError } from '@trpc/server';
 
 const getDb = () => DbInstance.getInstance().db;
+
+const MAX_GOALS = 9;
+
+async function activeGoalCount(trx: Transaction<DB>): Promise<number> {
+	const result = await trx
+		.selectFrom('goals')
+		.select((eb) => eb.fn.countAll().as('count'))
+		.where('active', '=', 1)
+		.executeTakeFirstOrThrow();
+	return Number(result.count);
+}
 
 export const GoalSchema = z.object({
 	id: z.number().nullable(),
@@ -175,23 +187,16 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					// get orderNumber by getting the max orderNumber and adding 1
-					// Could make this a trigger in kysely with raw sql
-					const maxOrderNumber = (
-						await trx
-							.selectFrom('goals')
-							.select('orderNumber')
-							.orderBy('orderNumber', 'desc')
-							.executeTakeFirst()
-					)?.orderNumber;
-
-					if (maxOrderNumber && maxOrderNumber >= 9) {
-						throw new Error(`You have reached the maximum number of 9 goals. 
-						Please delete or archive a goal to add a new one.`);
+					const count = await activeGoalCount(trx);
+					if (count >= MAX_GOALS) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message:
+								'You have reached the maximum number of 9 goals. Delete or archive a goal first.'
+						});
 					}
 
-					// If no goals, set orderNumber to 1
-					const orderNumber = maxOrderNumber ? maxOrderNumber + 1 : 1;
+					const orderNumber = count + 1;
 
 					const result = await trx
 						.insertInto('goals')
@@ -245,9 +250,12 @@ export const goals = t.router({
 					const inserts = input.goals.filter((goal) => goal.id === null);
 
 					// New goals are always active; reject payloads that would exceed the goal cap
-					if (existingGoals.filter((g) => g.active === 1).length + inserts.length > 9) {
-						throw new Error(`You have reached the maximum number of 9 goals. 
-						Please delete or archive a goal to add a new one.`);
+					if (existingGoals.filter((g) => g.active === 1).length + inserts.length > MAX_GOALS) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message:
+								'You have reached the maximum number of 9 goals. Delete or archive a goal first.'
+						});
 					}
 
 					// The partial unique index on goals.orderNumber can't be deferred, so a
@@ -338,10 +346,10 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					// Check if goal exists
-					await trx
+					// Check if goal exists and capture its position for gap compaction
+					const goalToDelete = await trx
 						.selectFrom('goals')
-						.select('id')
+						.select(['id', 'active', 'orderNumber'])
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
 
@@ -357,6 +365,29 @@ export const goals = t.router({
 					).map((row) => row.outcomeId);
 
 					const result = await trx.deleteFrom('goals').where('id', '=', input).execute();
+
+					// close the gap left by an active goal and log each shift, mirroring archive
+					if (goalToDelete.active === 1) {
+						const goalsToUpdate = await trx
+							.selectFrom('goals')
+							.selectAll()
+							.where('orderNumber', '>', goalToDelete.orderNumber)
+							.where('active', '=', 1)
+							.orderBy('orderNumber', 'asc')
+							.execute();
+
+						const now = localeCurrentDate().toISOString();
+
+						for (const goal of goalsToUpdate) {
+							const newOrderNumber = goal.orderNumber - 1;
+							await trx
+								.updateTable('goals')
+								.set({ orderNumber: newOrderNumber })
+								.where('id', '=', goal.id)
+								.execute();
+							await insertReorderLog(trx, goal.id as number, goal, newOrderNumber, now);
+						}
+					}
 
 					await deleteOrphanedOutcomes(trx, associatedOutcomeIds);
 
@@ -384,7 +415,10 @@ export const goals = t.router({
 						.where('id', '=', input)
 						.executeTakeFirstOrThrow();
 					if (archivedGoal.active === 0) {
-						throw new Error('ARCHIVE_GOAL_ERROR: goal is already archived');
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Goal is already archived.'
+						});
 					}
 					const archivedGoalOrder = archivedGoal.orderNumber;
 
@@ -448,13 +482,8 @@ export const goals = t.router({
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					// Retrieve the max order number and the goal to be restored in a single query
-					const [maxOrderResult, restoreGoal] = await Promise.all([
-						trx
-							.selectFrom('goals')
-							.select('orderNumber')
-							.orderBy('orderNumber', 'desc')
-							.executeTakeFirst(),
+					const [count, restoreGoal] = await Promise.all([
+						activeGoalCount(trx),
 						trx
 							.selectFrom('goals')
 							.select(['orderNumber', 'active'])
@@ -462,19 +491,23 @@ export const goals = t.router({
 							.executeTakeFirstOrThrow()
 					]);
 
-					const maxOrderNumber = maxOrderResult?.orderNumber;
-
-					// Can't restore if there are already 9 goals
-					if (maxOrderNumber && maxOrderNumber >= 9) {
-						throw new Error(`You have reached the maximum number of 9 goals. 
-						Please delete or archive a goal first to restore a goal.`);
+					// Can't restore if the active goal cap is reached
+					if (count >= MAX_GOALS) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message:
+								'You have reached the maximum number of 9 goals. Delete or archive a goal first.'
+						});
 					}
 
 					if (restoreGoal?.active === 1) {
-						throw new Error('RESTORE_GOAL_ERROR: Goal is already active');
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Goal is already active.'
+						});
 					}
 
-					const restoredOrderNumber = maxOrderNumber ? maxOrderNumber + 1 : 1;
+					const restoredOrderNumber = count + 1;
 
 					// Set the restored goal as active, with orderNumber as maxOrderNumber + 1
 					const result = await trx

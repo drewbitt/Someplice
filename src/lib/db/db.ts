@@ -44,8 +44,8 @@ export class DbInstance {
 		} else {
 			if (!fileDbInstance) {
 				const dbPath = dbFilePath();
-				if (!fs.existsSync(dbPath) && process.env.NODE_ENV !== 'migration') {
-					dbLogger.fatal(new Error('No db instance found, run migrations first'));
+				if (!fs.existsSync(dbPath)) {
+					dbLogger.info('No database file found; it will be created and migrated on startup');
 				}
 
 				this.ensureDBDirectoryExists();

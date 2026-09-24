@@ -240,7 +240,8 @@ describe('intentions', () => {
 	});
 
 	it('updateIntentions reorders when an unchanged row holds a large orderNumber', async () => {
-		// A row already in the old scratch range (orderNumber + 100000) must not block reorders
+		// A row already in the old scratch range (orderNumber + 100000) must not block
+		// reorders; as a leftover outside the payload it trails the input's orderNumbers
 		const largeOrder = { ...TEST_INTENTION, id: 2, orderNumber: 100001 };
 		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, largeOrder] });
 
@@ -250,7 +251,7 @@ describe('intentions', () => {
 
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result.find((i) => i.id === 1)?.orderNumber).toEqual(2);
-		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(100001);
+		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(3);
 	});
 
 	it('updateIntentions is an upsert, not a duplicate insert', async () => {
@@ -311,6 +312,34 @@ describe('intentions', () => {
 		const links = await db.selectFrom('outcomes_intentions').selectAll().execute();
 		expect(links).toHaveLength(1);
 		expect(links[0].intentionId).toEqual(intention2.id);
+	});
+
+	it('updateIntentions renumbers same-date rows outside the payload instead of colliding', async () => {
+		const intentions = [1, 2, 3].map((orderNumber) => ({
+			...TEST_INTENTION,
+			id: orderNumber,
+			orderNumber
+		}));
+		await caller.intentions.updateIntentions({ intentions });
+
+		// the client may send only the visible subset: reorder id3 to 1, id1 to 2
+		await caller.intentions.updateIntentions({
+			intentions: [
+				{ ...TEST_INTENTION, id: 3, orderNumber: 1 },
+				{ ...TEST_INTENTION, id: 1, orderNumber: 2 }
+			]
+		});
+
+		const rows = await db
+			.selectFrom('intentions')
+			.select(['id', 'orderNumber'])
+			.orderBy('orderNumber', 'asc')
+			.execute();
+		expect(rows).toEqual([
+			{ id: 3, orderNumber: 1 },
+			{ id: 1, orderNumber: 2 },
+			{ id: 2, orderNumber: 3 }
+		]);
 	});
 
 	it('delete a non-existent intention errors', async () => {

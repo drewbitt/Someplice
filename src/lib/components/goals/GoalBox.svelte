@@ -18,10 +18,6 @@
 		isInactiveGoal?: boolean;
 	} = $props();
 
-	let goalColor = $state(goal.color);
-	$effect(() => {
-		goal.color = goalColor;
-	});
 	let showDeletionPrompt = $state(false);
 	let deletionConfirmed = $state(false);
 	let showArchivePrompt = $state(false);
@@ -103,7 +99,7 @@
 
 <div role="listitem">
 	<div
-		style="background-color: {goalColor}"
+		style="background-color: {goal.color}"
 		class="mx-5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
 	>
 		<span class="text-base-content pl-2 font-mono text-7xl">
@@ -140,7 +136,12 @@
 			/>
 		{/if}
 		<div class="goal-box-details flex flex-col gap-1">
-			<GoalTitleRow bind:title={goal.title} {currentlyEditing} {isInactiveGoal} bind:goalColor />
+			<GoalTitleRow
+				bind:title={goal.title}
+				{currentlyEditing}
+				{isInactiveGoal}
+				bind:goalColor={goal.color}
+			/>
 			<GoalDescription
 				bind:description={goal.description}
 				{currentlyEditing}

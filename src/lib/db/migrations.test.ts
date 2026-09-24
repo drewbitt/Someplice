@@ -7,7 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import type { DB } from '../types/data';
 import { createNodeSqliteDialect } from './node-sqlite.ts';
 import { configureSqlite } from './db.ts';
-import { migrateToLatest } from './migrate-to-latest.ts';
+import { migrateToLatest, runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_create_tables.ts';
 import * as m003 from './migrations/003_goal_logs.ts';
 import * as m004 from './migrations/004_indexes.ts';
@@ -53,6 +53,21 @@ describe('migrations', () => {
 	it('creates all app tables and indexes on a fresh database', async () => {
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).length).toBeGreaterThan(0);
+	});
+
+	it('runMigrations is idempotent on a fresh in-memory database', async () => {
+		const memSqlite = new DatabaseSync(':memory:');
+		configureSqlite(memSqlite);
+		const memDb = new Kysely<DB>({ dialect: createNodeSqliteDialect(memSqlite) });
+		try {
+			await runMigrations(memDb);
+			expect((await listObjects(memDb, 'table')).sort()).toEqual(APP_TABLES);
+			// second call runs 0 migrations and does not throw
+			await runMigrations(memDb);
+			expect((await listObjects(memDb, 'table')).sort()).toEqual(APP_TABLES);
+		} finally {
+			await memDb.destroy();
+		}
 	});
 
 	it('migrateToLatest is idempotent', async () => {

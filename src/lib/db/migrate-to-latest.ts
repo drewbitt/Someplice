@@ -9,22 +9,31 @@ import { DbInstance } from './db.ts';
 
 const migrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
 
-export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
-	const isTest = process.env.NODE_ENV === 'test';
-	if (!isTest && process.env.NODE_ENV !== 'migration') {
-		process.env.NODE_ENV = 'migration';
-	}
-	db = db || DbInstance.getInstance().db;
+export async function runMigrations(db: Kysely<DB>, migrationName?: string): Promise<void> {
+	// Under Vite (dev server, built app) the migration modules must be discovered
+	// statically so they get bundled; import.meta.env exists only there. The CLI
+	// path runs under plain node and falls back to reading the directory.
+	const bundledMigrations = import.meta.env
+		? import.meta.glob<Migration>('./migrations/*.ts')
+		: null;
 
 	const FsMigrationProvider: MigrationProvider = {
 		async getMigrations() {
-			const files = fs
-				.readdirSync(migrationsDir)
-				.filter((file) => file.endsWith('.ts'))
-				.sort();
 			const migrations: Record<string, Migration> = {};
-			for (const file of files) {
-				migrations[`./migrations/${file}`] = await import(`./migrations/${file}`);
+			if (bundledMigrations) {
+				for (const key of Object.keys(bundledMigrations).sort()) {
+					migrations[key] = await bundledMigrations[key]();
+				}
+			} else {
+				const files = fs
+					.readdirSync(migrationsDir)
+					.filter((file) => file.endsWith('.ts'))
+					.sort();
+				for (const file of files) {
+					migrations[`./migrations/${file}`] = await import(
+						/* @vite-ignore */ `./migrations/${file}`
+					);
+				}
 			}
 
 			if (migrationName) {
@@ -64,9 +73,24 @@ export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
 	if (error) {
 		console.error('failed to migrate');
 		console.error(error);
+		throw error instanceof Error ? error : new Error(String(error));
+	}
+}
+
+export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
+	const isTest = process.env.NODE_ENV === 'test';
+	if (!isTest && process.env.NODE_ENV !== 'migration') {
+		process.env.NODE_ENV = 'migration';
+	}
+	db = db || DbInstance.getInstance().db;
+
+	try {
+		await runMigrations(db, migrationName);
+	} catch (error) {
 		if (!isTest) {
 			process.exit(1);
 		}
+		throw error;
 	}
 
 	if (!isTest) {

@@ -52,8 +52,12 @@
 
 		const targetDate = new Date(intentionDate);
 		const currentDate = localeCurrentDate();
-		const timeDiff = Math.abs(currentDate.getTime() - targetDate.getTime());
-		daysAgo = Math.ceil(timeDiff / (1000 * 3600 * 24));
+		// difference in calendar days (UTC), not elapsed 24h periods
+		daysAgo = Math.round(
+			(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()) -
+				Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate())) /
+				86400000
+		);
 
 		let cancelled = false;
 		showPageLoadingSpinner = true;
@@ -203,7 +207,9 @@
 			})}
 		</h1>
 		<p class="mb-5 text-center text-lg">
-			Reflect on what you did towards your goals {daysAgo} days ago:
+			Reflect on what you did towards your goals {daysAgo === 1
+				? 'yesterday'
+				: `${daysAgo} days ago`}:
 		</p>
 		{#if showPageLoadingSpinner}
 			<div class="flex justify-center">

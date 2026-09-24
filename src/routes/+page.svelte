@@ -2,6 +2,10 @@
 	let { title = 'Someplice', subtitle = 'Achieve your goals with daily intentions' } = $props();
 </script>
 
+<svelte:head>
+	<title>Someplice</title>
+</svelte:head>
+
 <div class="flex justify-center">
 	<div class="max-w-2xl">
 		<header class="mb-8">

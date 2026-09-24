@@ -5,6 +5,7 @@ import {
 	evenLighterHSLColor,
 	goalColorForIntention,
 	goalOrderNumberForId,
+	goalsForJourneyDay,
 	lighterHSLColor,
 	localeCurrentDate,
 	localePreviousDate
@@ -65,5 +66,15 @@ describe('utils', () => {
 		const goals = [goal({ id: 2, orderNumber: 7 })];
 		expect(goalOrderNumberForId(2, goals)).toBe(7);
 		expect(goalOrderNumberForId(99, goals)).toBe(-1);
+	});
+
+	it('goalsForJourneyDay merges in inactive goals that have intentions that day', () => {
+		const active = [goal({ id: 1, orderNumber: 1 })];
+		const inactive = [
+			goal({ id: 2, orderNumber: 2, active: 0 }),
+			goal({ id: 3, orderNumber: 3, active: 0 })
+		];
+		const intentions = [{ goalId: 2 } as Intention];
+		expect(goalsForJourneyDay(active, inactive, intentions).map((g) => g.id)).toEqual([1, 2]);
 	});
 });
