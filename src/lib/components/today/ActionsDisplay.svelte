@@ -112,7 +112,7 @@
 	) => {
 		if (event.key === ' ') {
 			event.preventDefault();
-			const checkbox = event.currentTarget.querySelector(
+			const checkbox = event.currentTarget.parentElement?.querySelector(
 				'input[type="checkbox"]'
 			) as HTMLInputElement;
 			// click() toggles and fires 'change' so updateIntention persists
@@ -124,11 +124,11 @@
 <div class="rounded-box bg-base-100 shadow-sm">
 	<div class="flex flex-col gap-1.5">
 		{#if intentions.length > 0}
-			<span class="mb-5 flex pl-12">
+			<div class="mb-5 flex flex-wrap gap-x-5 pl-12">
 				<h2 class="text-2xl font-bold text-gray-700 tabular-nums dark:text-purple-200">
 					{intentions.length} intentions for today,
 				</h2>
-				<h2 class="text-base-content/60 ml-5 text-2xl font-bold tabular-nums">
+				<h2 class="text-base-content/60 text-2xl font-bold tabular-nums">
 					{(() => {
 						const dateObj = localeCurrentDate();
 						const formatter = new Intl.DateTimeFormat('en-US', {
@@ -140,7 +140,7 @@
 						return formatter.format(dateObj);
 					})()}
 				</h2>
-			</span>
+			</div>
 		{/if}
 		<section
 			role="list"
@@ -150,7 +150,6 @@
 			onfinalize={handleDndFinalize}
 		>
 			{#each intentions as intention, index (intention)}
-				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<span
 					role="listitem"
 					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
@@ -162,16 +161,14 @@
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					onfocus={() => {
+					onfocusin={() => {
 						showMousoverMenu = true;
 						showMousoverIndex = intention.id;
 					}}
-					onblur={() => {
+					onfocusout={(event) => {
+						if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
 						showMousoverMenu = false;
 						showMousoverIndex = null;
-					}}
-					onkeydown={(event) => {
-						handleButtonPressIntention(event);
 					}}
 				>
 					{#if showMousoverMenu && showMousoverIndex === intention.id}
@@ -184,11 +181,6 @@
 							class="hover:bg-base-300 cursor-pointer py-0.5"
 							onclick={() => {
 								showIntentionModal = true;
-							}}
-							onkeydown={(event) => {
-								if (event.key === 'Enter') {
-									showIntentionModal = true;
-								}
 							}}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
@@ -206,7 +198,7 @@
 								></svg
 							>
 						</button>
-						<Menu class="w-5" color="grey" />
+						<Menu class="w-5" color="grey" aria-hidden="true" />
 					{:else}
 						<div class="w-9"></div>
 					{/if}
@@ -231,13 +223,16 @@
 							showIntentionModal = true;
 						}}
 						onkeydown={(e) => {
+							handleButtonPressIntention(e);
 							if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
 								e.preventDefault();
 								showIntentionModal = true;
 							}
 						}}
-						class="ml-2 font-bold {index === firstIncompleteIntentionIndex ? 'text-xl' : 'text-lg'}"
-						style="color: {intention.completed
+						class="goal-text ml-2 font-bold {index === firstIncompleteIntentionIndex
+							? 'text-xl'
+							: 'text-lg'}"
+						style="--goal-color: {intention.completed
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
 						>{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ?? ''}) {intention.text}</span

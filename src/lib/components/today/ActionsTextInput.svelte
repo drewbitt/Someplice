@@ -118,7 +118,7 @@
 				// Check goal for color
 				const goal = goals.find((goal: Goal) => goal.orderNumber === number);
 				if (goal) {
-					return `<span class="goal__editor__span" style="color: ${goal.color}">${line}</span>`;
+					return `<span class="goal__editor__span goal-text" style="--goal-color: ${goal.color}">${line}</span>`;
 				}
 				// If no goal matches, add a dashed underline
 				return `<span class="border-b-2 border-dashed border-blue-600">${line}</span>`;

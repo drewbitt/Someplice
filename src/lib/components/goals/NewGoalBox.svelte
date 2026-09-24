@@ -32,10 +32,7 @@
 	};
 </script>
 
-<div
-	class="mx-5 my-2.5 grid leading-none"
-	style="gap: 1rem; grid-template-columns: minmax(0, 3rem) 4fr; grid-auto-rows: 6rem;"
->
+<div class="mx-5 my-2.5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none">
 	<span class="font-mono text-7xl">#</span>
 	<div>
 		<button id="new-goal-button" onclick={addGoal}>

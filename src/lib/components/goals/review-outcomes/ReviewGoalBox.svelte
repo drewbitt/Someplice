@@ -66,8 +66,8 @@
 						{goal.orderNumber}
 					</span>
 					<span
-						style="background-color: {goal.color}; font-size: 1.1rem;"
-						class="px-1.5 leading-6 font-semibold tracking-wider text-white"
+						style="background-color: {goal.color}"
+						class="px-1.5 text-[1.1rem] leading-6 font-semibold tracking-wider text-white"
 					>
 						{goal.title}
 					</span>
@@ -91,13 +91,13 @@
 							id="intention-{intention.id}"
 							value={intention.id}
 							checked={Boolean(intention.completed)}
-							class="checkbox-md mr-2 flex-shrink-0"
+							class="checkbox-md mr-2 shrink-0"
 							onclick={() => handleCheckboxClick(intention.id)}
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="text-lg leading-6 font-semibold"
-							style="color: {goal.color}">{intention.text}</label
+							class="goal-text text-lg leading-6 font-semibold"
+							style="--goal-color: {goal.color}">{intention.text}</label
 						>
 					</div>
 				{/each}
@@ -113,12 +113,12 @@
 				/>
 			{/each}
 			<button
-				class="tooltip tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
+				class="md:tooltip md:tooltip-right flex justify-self-start pe-1 pb-1 transition-colors duration-300"
 				data-tip="Add another outcome not already listed"
 				aria-label="Add another outcome not already listed"
 				onclick={handlePlusNewOutcome}
 			>
-				<Plus class="hover:bg-base-300 h-5 w-5" />
+				<Plus class="hover:bg-base-300 size-5" />
 			</button>
 		</div>
 	</div>

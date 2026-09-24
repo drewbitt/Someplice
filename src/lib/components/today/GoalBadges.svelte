@@ -4,11 +4,11 @@
 	let { goals }: { goals: PageServerData['goals'] } = $props();
 </script>
 
-<div class="flex items-center gap-2">
+<div class="flex flex-wrap items-center gap-2">
 	{#each goals as goal (goal.id)}
 		<span
-			class="badge border-base-300 border px-4"
-			style="background-color: {goal.color}; color: white"
+			class="badge border-base-300 border px-4 text-white"
+			style="background-color: {goal.color}"
 		>
 			<span class="pr-1 font-mono text-xl">
 				{goal.orderNumber}

@@ -20,7 +20,7 @@
 </script>
 
 <div class="flex">
-	<span style="color: {goal.color}" class="me-1 text-xl leading-8">
+	<span style="--goal-color: {goal.color}" class="goal-text me-1 text-xl leading-8">
 		{goal.orderNumber})
 	</span>
 	<input
