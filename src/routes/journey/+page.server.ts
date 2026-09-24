@@ -5,9 +5,23 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
+	const intentionsByDate = await getIntentionsByDate();
+
+	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
+	// that date, not today's active set.
+	const goalsByDate = Object.fromEntries(
+		await Promise.all(
+			Object.keys(intentionsByDate).map(async (date) => [
+				date,
+				await trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date: new Date(date) }))
+			])
+		)
+	);
+
 	return {
 		goals: await trpcLoad(event, (t) => t.goals.list(1)),
-		intentionsByDate: await getIntentionsByDate(),
+		intentionsByDate,
+		goalsByDate,
 		outcomes: await trpcLoad(event, (t) =>
 			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
 		)

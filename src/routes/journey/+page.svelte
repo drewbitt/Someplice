@@ -74,6 +74,14 @@
 						: newIntentionsByDate[date];
 				}
 
+				await Promise.all(
+					Object.keys(newIntentionsByDate).map(async (date) => {
+						data.goalsByDate[date] = await trpc().goals.listGoalsOnDate.query({
+							date: new Date(date)
+						});
+					})
+				);
+
 				currentPage += 1;
 			} else {
 				hasMore = false;
@@ -107,7 +115,7 @@
 		<div class="mx-12 grid gap-4 py-6 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox
-					goals={data.goals}
+					goals={data.goalsByDate[date] ?? data.goals}
 					intentions={data.intentionsByDate[date]}
 					outcomes={data.outcomes}
 				/>
