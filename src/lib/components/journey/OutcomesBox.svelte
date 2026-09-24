@@ -69,7 +69,9 @@
 		note: string | null;
 	}) => {
 		const { goalId, verdict, note } = detail;
-		if (verdict === null && !note) {
+		// An empty emit clears a pending edit, but when a stored verdict exists it
+		// must be recorded as an explicit deletion instead of reverting to stored.
+		if (verdict === null && !note && !storedVerdictMap.has(goalId)) {
 			verdictEdits.delete(goalId);
 		} else {
 			verdictEdits.set(goalId, { verdict, note });
