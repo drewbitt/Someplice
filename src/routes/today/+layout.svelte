@@ -8,7 +8,11 @@
 {#if todayPageErrorStore.current}
 	<div class="toast toast-center">
 		<div class="alert alert-error flex gap-2">
-			<button class="btn btn-circle btn-sm" onclick={() => todayPageErrorStore.setError(null)}>
+			<button
+				class="btn btn-circle btn-sm"
+				aria-label="Dismiss notification"
+				onclick={() => todayPageErrorStore.setError(null)}
+			>
 				<X />
 			</button>
 			<p>{todayPageErrorStore.current}</p>

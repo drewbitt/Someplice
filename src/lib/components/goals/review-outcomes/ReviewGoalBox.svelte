@@ -79,7 +79,9 @@
 			style="border-color: {goal.color}"
 		>
 			{#if goal.description}
-				<p class="pl-5 font-mono text-lg tracking-wide text-gray-500">{goal.description}</p>
+				<p class="pl-5 font-mono text-lg tracking-wide text-gray-500 dark:text-gray-400">
+					{goal.description}
+				</p>
 			{/if}
 			{#if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
 				{#each intentions.filter((intention) => intention.goalId === goal.id) as intention (intention.id)}
@@ -100,7 +102,7 @@
 					</div>
 				{/each}
 			{:else}
-				<p class="text-gray-500">No intentions for this goal occurred</p>
+				<p class="text-gray-500 dark:text-gray-400">No intentions for this goal occurred</p>
 			{/if}
 			{#each newOutcomeTexts as text, index (index)}
 				<NewOutcomeTextBox

@@ -32,7 +32,6 @@
 	<textarea
 		class="goal__editor__textarea rounded-btn border-base-content border caret-black transition duration-200 ease-in-out dark:caret-white"
 		bind:this={input}
-		contenteditable="true"
 		bind:value
 		tabindex="0"
 		oninput={handleInput}></textarea>
