@@ -1,15 +1,24 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, VerdictValue } from '$src/lib/trpc/types';
+	import type { OutcomeVerdicts } from '$src/lib/types/data';
+	import type { Selectable } from 'kysely';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
 		goals,
 		intentions,
-		outcomes
-	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+		outcomes,
+		verdicts = []
+	}: {
+		goals: Goal[];
+		intentions: Intention[];
+		outcomes: Outcome[];
+		verdicts?: Selectable<OutcomeVerdicts>[];
+	} = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
@@ -24,8 +33,25 @@
 
 	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
 
+	let storedVerdictMap = $derived(
+		new Map(
+			verdicts
+				.filter((verdict) => verdict.outcomeId === outcomeForDate?.id)
+				.map((verdict) => [
+					verdict.goalId,
+					{ verdict: verdict.verdict as VerdictValue, note: verdict.note }
+				])
+		)
+	);
+	let verdictEdits = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
+
+	const verdictForGoal = (goalId: number | null) => {
+		if (goalId === null) return null;
+		return verdictEdits.get(goalId) ?? storedVerdictMap.get(goalId) ?? null;
+	};
+
 	beforeNavigate((navigation) => {
-		if (!newIntentionsToInsert.length) return;
+		if (!newIntentionsToInsert.length && verdictEdits.size === 0) return;
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -34,6 +60,20 @@
 	});
 
 	const handleReviewGoalBoxChange = () => {
+		showSaveButton = true;
+	};
+
+	const handleVerdictChanged = (detail: {
+		goalId: number;
+		verdict: VerdictValue | null;
+		note: string | null;
+	}) => {
+		const { goalId, verdict, note } = detail;
+		if (verdict === null && !note) {
+			verdictEdits.delete(goalId);
+		} else {
+			verdictEdits.set(goalId, { verdict, note });
+		}
 		showSaveButton = true;
 	};
 
@@ -57,12 +97,20 @@
 			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
 				newIntentions: newIntentionsToInsert,
-				completions: checkboxIntentions
+				completions: checkboxIntentions,
+				// edits override stored rows; entries with no verdict selected are dropped
+				verdicts: [...new Map([...storedVerdictMap, ...verdictEdits]).entries()].flatMap(
+					([goalId, verdict]) =>
+						verdict.verdict === null
+							? []
+							: [{ goalId, verdict: verdict.verdict, note: verdict.note }]
+				)
 			});
 			saved = true;
 			hasBeenSaved = true;
 			showSaveButton = false;
 			newIntentionsToInsert = [];
+			verdictEdits.clear();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
@@ -114,9 +162,12 @@
 				{intentions}
 				{hasBeenSaved}
 				showTitle={false}
+				verdict={verdictForGoal(goal.id)}
+				verdictAsBar={true}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
 				onCheckboxClicked={handleReviewGoalBoxChange}
+				onVerdictChanged={handleVerdictChanged}
 			/>
 		{/if}
 	{/each}

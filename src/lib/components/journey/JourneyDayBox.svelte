@@ -1,13 +1,21 @@
 <script lang="ts">
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { OutcomeVerdicts } from '$src/lib/types/data';
+	import type { Selectable } from 'kysely';
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 
 	let {
 		goals,
 		intentions,
-		outcomes
-	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+		outcomes,
+		verdicts = []
+	}: {
+		goals: Goal[];
+		intentions: Intention[];
+		outcomes: Outcome[];
+		verdicts?: Selectable<OutcomeVerdicts>[];
+	} = $props();
 
 	let date = $derived(intentions[intentions.length - 1]?.date);
 </script>
@@ -32,6 +40,6 @@
 	</h2>
 	<div class="grid md:grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
-		<OutcomesBox {goals} {intentions} {outcomes} />
+		<OutcomesBox {goals} {intentions} {outcomes} {verdicts} />
 	</div>
 </div>

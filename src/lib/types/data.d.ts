@@ -48,10 +48,19 @@ export interface OutcomesIntentions {
 	outcomeId: number;
 }
 
+export interface OutcomeVerdicts {
+	goalId: number;
+	id: Generated<number | null>;
+	note: string | null;
+	outcomeId: number;
+	verdict: string;
+}
+
 export interface DB {
 	goal_logs: GoalLogs;
 	goals: Goals;
 	intentions: Intentions;
+	outcome_verdicts: OutcomeVerdicts;
 	outcomes: Outcomes;
 	outcomes_intentions: OutcomesIntentions;
 }

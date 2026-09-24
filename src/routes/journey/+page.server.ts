@@ -5,11 +5,18 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
+	const outcomes = await trpcLoad(event, (t) =>
+		t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
+	);
+
 	return {
 		goals: await trpcLoad(event, (t) => t.goals.list(1)),
 		intentionsByDate: await getIntentionsByDate(),
-		outcomes: await trpcLoad(event, (t) =>
-			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
+		outcomes,
+		verdicts: await trpcLoad(event, (t) =>
+			t.outcomes.verdictsByOutcomeIds({
+				outcomeIds: outcomes.map((o) => o.id).filter((id): id is number => id !== null)
+			})
 		)
 	};
 

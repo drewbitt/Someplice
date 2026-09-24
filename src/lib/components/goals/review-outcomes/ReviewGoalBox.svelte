@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Goal, Intention } from '$src/lib/trpc/types';
+	import type { Goal, Intention, VerdictValue } from '$src/lib/trpc/types';
 	import { evenEvenLighterHSLColor } from '$src/lib/utils';
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
@@ -9,17 +9,28 @@
 		intentions,
 		showTitle,
 		hasBeenSaved,
+		verdict = null,
+		verdictAsBar = false,
 		onUpdateNewOutcomeTexts,
 		onPlusNewOutcomeButtonPressed,
-		onCheckboxClicked
+		onCheckboxClicked,
+		onVerdictChanged
 	}: {
 		goal: Goal;
 		intentions: Intention[];
 		showTitle: boolean;
 		hasBeenSaved: boolean;
+		verdict?: { verdict: VerdictValue | null; note: string | null } | null;
+		// journey renders the stored verdict as a colored "N ⬅ <note>" bar
+		verdictAsBar?: boolean;
 		onUpdateNewOutcomeTexts?: (detail: { goalId: number | null; texts: string[] }) => void;
 		onPlusNewOutcomeButtonPressed?: (detail: { goalId: number | null }) => void;
 		onCheckboxClicked?: (detail: { intentionId: number | null }) => void;
+		onVerdictChanged?: (detail: {
+			goalId: number;
+			verdict: VerdictValue | null;
+			note: string | null;
+		}) => void;
 	} = $props();
 
 	let newOutcomeTexts = $state<string[]>([]);
@@ -47,6 +58,20 @@
 		newOutcomeTexts[detail.index] = detail.value;
 		newOutcomeTexts = newOutcomeTexts.slice(); // create a new reference to trigger reactivity
 		onUpdateNewOutcomeTexts?.({ goalId: goal.id, texts: newOutcomeTexts });
+	}
+
+	function emitVerdict(next: VerdictValue | null, note: string | null) {
+		if (goal.id === null) return;
+		onVerdictChanged?.({ goalId: goal.id, verdict: next, note });
+	}
+
+	function handleVerdictButton(next: VerdictValue) {
+		// clicking the selected verdict again clears it
+		emitVerdict(verdict?.verdict === next ? null : next, verdict?.note ?? null);
+	}
+
+	function handleVerdictNoteInput(event: Event) {
+		emitVerdict(verdict?.verdict ?? null, (event.currentTarget as HTMLInputElement).value);
 	}
 </script>
 
@@ -83,7 +108,9 @@
 					{goal.description}
 				</p>
 			{/if}
-			{#if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
+			{#if verdict?.verdict === 'day_off'}
+				<p class="text-base-content/60 italic">day off</p>
+			{:else if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
 				{#each intentions.filter((intention) => intention.goalId === goal.id) as intention (intention.id)}
 					<div class="flex">
 						<input
@@ -102,7 +129,7 @@
 					</div>
 				{/each}
 			{:else}
-				<p class="text-base-content/60">No intentions for this goal occurred</p>
+				<p class="text-base-content/60 italic">NOTHING</p>
 			{/if}
 			{#each newOutcomeTexts as text, index (index)}
 				<NewOutcomeTextBox
@@ -120,6 +147,49 @@
 			>
 				<Plus class="hover:bg-base-300 size-5" />
 			</button>
+			<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+				{#if verdictAsBar && verdict?.verdict}
+					<span
+						style="background-color: {lighterGoalColor(goal.color)}; color: {goal.color}"
+						class="px-1.5 font-mono text-lg leading-none font-bold"
+					>
+						{goal.orderNumber} ⬅ {verdict.verdict === 'day_off' ? 'day off' : verdict.note}
+					</span>
+				{:else}
+					<span class="text-base-content/80 text-sm">Is this enough?</span>
+				{/if}
+				<button
+					type="button"
+					class="btn btn-xs"
+					class:btn-active={verdict?.verdict === 'enough'}
+					onclick={() => handleVerdictButton('enough')}
+				>
+					yes
+				</button>
+				<button
+					type="button"
+					class="btn btn-xs"
+					class:btn-active={verdict?.verdict === 'not_enough'}
+					onclick={() => handleVerdictButton('not_enough')}
+				>
+					no
+				</button>
+				<button
+					type="button"
+					class="btn btn-xs"
+					class:btn-active={verdict?.verdict === 'day_off'}
+					onclick={() => handleVerdictButton('day_off')}
+				>
+					day off
+				</button>
+				<input
+					type="text"
+					class="input input-xs input-bordered min-w-32 flex-1"
+					placeholder="say more…"
+					value={verdict?.note ?? ''}
+					oninput={handleVerdictNoteInput}
+				/>
+			</div>
 		</div>
 	</div>
 </div>
