@@ -25,7 +25,7 @@
 		"@trpc/client": "^11.19.0",
 		"@trpc/server": "^11.19.0",
 		"croner": "^10.0.1",
-		"devalue": "^5.9.4",
+		"devalue": "^6.0.2",
 		"kysely": "^0.29.6",
 		"kysely-generic-sqlite": "^2.0.1",
 		"runed": "0.37.1",
