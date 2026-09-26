@@ -17,7 +17,7 @@ const TEST_GOAL = {
 const TEST_INTENTION = {
 	goalId: 1,
 	orderNumber: 1,
-	completed: 0,
+	status: 'pending' as const,
 	text: 'Test intention',
 	subIntentionQualifier: null,
 	date: new Date().toISOString()
@@ -48,17 +48,17 @@ describe('outcomes', () => {
 		expect(result).toEqual([]);
 	});
 
-	it('saveReview inserts new intentions, applies completions, and links everything', async () => {
+	it('saveReview inserts new intentions, applies statuses, and links everything', async () => {
 		const date = new Date().toISOString().split('T')[0];
 		const result = (await caller.outcomes.saveReview({
 			outcome: { reviewed: 1, date },
 			newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
-			completions: [{ intentionId: 1, completed: 1 }]
+			statuses: [{ intentionId: 1, status: 'done' }]
 		})) as { outcomeId: number };
 
 		const intentions = await db.selectFrom('intentions').selectAll().orderBy('id', 'asc').execute();
 		expect(intentions.length).toBe(2);
-		expect(intentions[0].completed).toBe(1);
+		expect(intentions[0].status).toBe('done');
 		expect(intentions[1].text).toBe('new outcome text');
 
 		const pairs = await db
@@ -74,12 +74,12 @@ describe('outcomes', () => {
 		await caller.outcomes.saveReview({
 			outcome: { reviewed: 0, date },
 			newIntentions: [],
-			completions: [{ intentionId: 1, completed: 0 }]
+			statuses: [{ intentionId: 1, status: 'pending' }]
 		});
 		const result = (await caller.outcomes.saveReview({
 			outcome: { reviewed: 1, date },
 			newIntentions: [],
-			completions: [{ intentionId: 1, completed: 1 }]
+			statuses: [{ intentionId: 1, status: 'done' }]
 		})) as { outcomeId: number };
 
 		const outcomes = (await caller.outcomes.list()) as Outcome[];
@@ -103,23 +103,23 @@ describe('outcomes', () => {
 			await caller.outcomes.saveReview({
 				outcome: { reviewed: 1, date },
 				newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
-				completions: [{ intentionId: 9999, completed: 1 }] // does not exist
+				statuses: [{ intentionId: 9999, status: 'done' }] // does not exist
 			});
 		} catch (e) {
 			error = e;
 		}
 		expect(error).toBeDefined();
 
-		// Nothing persisted — the new intention rolled back with the failed completion
+		// Nothing persisted — the new intention rolled back with the failed status update
 		const intentions = await db.selectFrom('intentions').selectAll().execute();
 		expect(intentions.length).toBe(1);
 		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(0);
 
-		// And a retry with a valid completion succeeds, including the new insert
+		// And a retry with a valid status succeeds, including the new insert
 		await caller.outcomes.saveReview({
 			outcome: { reviewed: 1, date },
 			newIntentions: [{ ...TEST_INTENTION, orderNumber: 2, text: 'new outcome text' }],
-			completions: [{ intentionId: 1, completed: 1 }]
+			statuses: [{ intentionId: 1, status: 'done' }]
 		});
 		expect(await db.selectFrom('intentions').selectAll().execute()).toHaveLength(2);
 		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);

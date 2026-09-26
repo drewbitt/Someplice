@@ -1,7 +1,9 @@
 <script lang="ts">
-	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { evenEvenLighterHSLColor } from '$src/lib/utils';
+	import type { Goal } from '$src/lib/trpc/types';
+	import { evenEvenLighterHSLColor, type IntentionRow } from '$src/lib/utils';
+	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
+	import Undo2 from 'virtual:icons/lucide/undo-2';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
 
 	let {
@@ -11,15 +13,17 @@
 		hasBeenSaved,
 		onUpdateNewOutcomeTexts,
 		onPlusNewOutcomeButtonPressed,
-		onCheckboxClicked
+		onCheckboxClicked,
+		onNotTodayToggled
 	}: {
 		goal: Goal;
-		intentions: Intention[];
+		intentions: IntentionRow[];
 		showTitle: boolean;
 		hasBeenSaved: boolean;
 		onUpdateNewOutcomeTexts?: (detail: { goalId: number | null; texts: string[] }) => void;
 		onPlusNewOutcomeButtonPressed?: (detail: { goalId: number | null }) => void;
 		onCheckboxClicked?: (detail: { intentionId: number | null }) => void;
+		onNotTodayToggled?: (detail: { intention: IntentionRow }) => void;
 	} = $props();
 
 	let newOutcomeTexts = $state<string[]>([]);
@@ -85,20 +89,41 @@
 			{/if}
 			{#if intentions.filter((intention) => intention.goalId === goal.id).length > 0}
 				{#each intentions.filter((intention) => intention.goalId === goal.id) as intention (intention.id)}
-					<div class="flex">
+					<div class="flex items-center">
 						<input
 							type="checkbox"
 							id="intention-{intention.id}"
 							value={intention.id}
-							checked={Boolean(intention.completed)}
+							checked={intention.status === 'done'}
 							class="checkbox-md mr-2 shrink-0"
 							onclick={() => handleCheckboxClick(intention.id)}
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="goal-text text-lg leading-6 font-semibold"
-							style="--goal-color: {goal.color}">{intention.text}</label
+							class="goal-text text-lg leading-6 font-semibold {intention.status === 'not_today'
+								? 'italic opacity-60'
+								: ''}"
+							style="--goal-color: {goal.color}"
+							>{#if intention.status === 'not_today'}-{goal.orderNumber}{intention.subIntentionQualifier ??
+									''})
+							{/if}{intention.text}</label
 						>
+						{#if onNotTodayToggled}
+							<button
+								class="md:tooltip md:tooltip-right ml-1 flex opacity-40 transition-opacity hover:opacity-100"
+								data-tip={intention.status === 'not_today' ? 'Mark pending' : 'Not today'}
+								aria-label={intention.status === 'not_today'
+									? `Mark ${intention.text} as pending`
+									: `Mark ${intention.text} as not today`}
+								onclick={() => onNotTodayToggled({ intention })}
+							>
+								{#if intention.status === 'not_today'}
+									<Undo2 class="hover:bg-base-300 size-4" />
+								{:else}
+									<CalendarX class="hover:bg-base-300 size-4" />
+								{/if}
+							</button>
+						{/if}
 					</div>
 				{/each}
 			{:else}

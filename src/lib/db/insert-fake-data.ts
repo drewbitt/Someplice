@@ -96,7 +96,7 @@ async function insertFakeData() {
 	// Generate fake intentions
 	const intentions = Array.from({ length: 50 }, (_, i) => ({
 		orderNumber: i + 1,
-		completed: randNumber({ min: 0, max: 1 }),
+		status: randNumber({ min: 0, max: 1 }) === 1 ? 'done' : 'pending',
 		text: randTextRange({ min: 10, max: 80 }),
 		subIntentionQualifier: generateSubIntentionQualifier(),
 		date: customDateMath(i),

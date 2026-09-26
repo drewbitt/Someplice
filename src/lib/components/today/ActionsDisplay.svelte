@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
+	import { notDones } from '$src/lib/stores/notDones.svelte';
+	import {
+		computeMissCount,
+		goalColorForIntention,
+		lighterHSLColor,
+		localeCurrentDate
+	} from '$src/lib/utils';
 	import type { UpdateResult } from 'kysely';
+	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
@@ -63,9 +70,29 @@
 		}
 	});
 
+	onMount(() => {
+		if (!notDones.loaded) {
+			notDones.refresh().catch(() => {
+				// Non-fatal: the panel and paren inflation just stay empty.
+			});
+		}
+	});
+
 	let firstIncompleteIntentionIndex = $derived(
-		intentions.findIndex((intention) => intention.completed === 0)
+		intentions.findIndex((intention) => intention.status === 'pending')
 	);
+
+	// Propagated items inflate their close parens per prior miss (6))) = 2 skips);
+	// not-today items are marked with a leading dash instead.
+	const intentionCode = (intention: Intention) => {
+		const goalOrder = goalOrderNumbers.get(intention.goalId);
+		const qualifier = intention.subIntentionQualifier ?? '';
+		if (intention.status === 'not_today') {
+			return `-${goalOrder}${qualifier})`;
+		}
+		const misses = computeMissCount(notDones.recentIntentions, intention.goalId, intention.text);
+		return `${goalOrder}${qualifier}${')'.repeat(1 + misses)}`;
+	};
 
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
@@ -75,7 +102,7 @@
 				return intention.id === parseInt(intentionId);
 			});
 			if (intention) {
-				intention = { ...intention, completed: target.checked ? 1 : 0 };
+				intention = { ...intention, status: target.checked ? 'done' : 'pending' };
 				const updatedIntention = await handleUpdateSingleIntention(intention);
 				if (
 					updatedIntention?.numUpdatedRows !== undefined &&
@@ -83,7 +110,7 @@
 				) {
 					intentions = intentions.map((intention) => {
 						if (intention.id === parseInt(intentionId)) {
-							intention.completed = target.checked ? 1 : 0;
+							intention.status = target.checked ? 'done' : 'pending';
 						}
 						return intention;
 					});
@@ -160,10 +187,10 @@
 			{#each intentions as intention, index (intention.id)}
 				<span
 					role="listitem"
-					aria-label="{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ??
-						''}) {intention.text}"
+					aria-label="{intentionCode(intention)} {intention.text}"
 					class={'flex items-center pl-3' +
-						(intention.completed ? ' line-through' : '') +
+						(intention.status === 'done' ? ' line-through' : '') +
+						(intention.status === 'not_today' ? ' opacity-60' : '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
 					onmouseover={() => {
 						showMousoverMenu = true;
@@ -218,7 +245,7 @@
 						class={index === firstIncompleteIntentionIndex
 							? 'checkbox-md ml-0.5'
 							: 'checkbox-sm ml-0.5'}
-						checked={Boolean(intention.completed)}
+						checked={intention.status === 'done'}
 						onchange={updateIntention}
 					/>
 					<span
@@ -239,11 +266,11 @@
 						}}
 						class="goal-text ml-2 font-bold {index === firstIncompleteIntentionIndex
 							? 'text-xl'
-							: 'text-lg'}"
-						style="--goal-color: {intention.completed
+							: 'text-lg'} {intention.status === 'not_today' ? 'italic' : ''}"
+						style="--goal-color: {intention.status === 'done'
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
-						>{goalOrderNumbers.get(intention.goalId)}{intention.subIntentionQualifier ?? ''}) {intention.text}</span
+						>{intentionCode(intention)} {intention.text}</span
 					>
 				</span>
 			{/each}

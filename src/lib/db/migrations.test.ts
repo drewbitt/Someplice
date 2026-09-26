@@ -11,6 +11,7 @@ import { migrateToLatest, runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_create_tables.ts';
 import * as m003 from './migrations/003_goal_logs.ts';
 import * as m004 from './migrations/004_indexes.ts';
+import * as m006 from './migrations/006_intention_status.ts';
 
 const APP_TABLES = ['goal_logs', 'goals', 'intentions', 'outcomes', 'outcomes_intentions'].sort();
 
@@ -67,7 +68,41 @@ describe('migrations', () => {
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 	});
 
+	it('intention status backfills from completed on upgrade and downgrade', async () => {
+		// oldest schema: intentions has completed (0/1), no status
+		await m006.down(migrationDb);
+
+		await db
+			.insertInto('goals')
+			.values({
+				active: 1,
+				title: 'g',
+				description: null,
+				color: 'hsl(0, 0%, 50%)',
+				orderNumber: 1
+			})
+			.execute();
+
+		// pre-migration rows — the `completed` column predates the typed schema
+		await sql`
+			insert into intentions (goalId, orderNumber, completed, text, subIntentionQualifier, date)
+			values (1, 1, 1, 'done item', null, '2023-07-01T00:01:00.000Z'),
+			       (1, 2, 0, 'pending item', null, '2023-07-01T00:02:00.000Z')
+		`.execute(db);
+
+		await m006.up(migrationDb);
+
+		const rows = await db
+			.selectFrom('intentions')
+			.select(['status', 'orderNumber'])
+			.orderBy('orderNumber')
+			.execute();
+		expect(rows.map((r) => r.status)).toEqual(['done', 'pending']);
+	});
+
 	it('every migration with a down() rolls back cleanly', async () => {
+		await m006.down(migrationDb);
+
 		await m004.down(migrationDb);
 		expect(await listObjects(db, 'index')).toEqual([]);
 
@@ -84,6 +119,7 @@ describe('migrations', () => {
 		await m001.up(migrationDb);
 		await m003.up(migrationDb);
 		await m004.up(migrationDb);
+		await m006.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).length).toBeGreaterThan(0);
 	});

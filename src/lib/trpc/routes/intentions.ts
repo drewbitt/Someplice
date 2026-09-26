@@ -3,9 +3,8 @@ import { t } from '$lib/trpc/t';
 import { DbInstance } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import type { Intention } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
-import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
+import { adjustToUTCStartAndEndOfDay, type IntentionRow } from '$src/lib/utils';
 
 const getDb = () => DbInstance.getInstance().db;
 
@@ -13,7 +12,7 @@ export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
 	orderNumber: z.number(),
-	completed: z.number(),
+	status: z.enum(['pending', 'done', 'not_today']),
 	text: z.string(),
 	subIntentionQualifier: z.string().nullable(),
 	date: z.string()
@@ -72,7 +71,8 @@ export const intentions = t.router({
 				query = query.offset(input.offset);
 			}
 
-			return await query.execute();
+			// The CHECK constraint on `status` guarantees the narrow IntentionRow status.
+			return (await query.execute()) as IntentionRow[];
 		}),
 
 	/**
@@ -112,11 +112,11 @@ export const intentions = t.router({
 				query = query.offset(input.offset);
 			}
 
-			const intentions = await query.execute();
+			const intentions = (await query.execute()) as IntentionRow[];
 
 			// Group intentions by date
 			const intentionsByDate = intentions.reduce(
-				(acc: Record<string, Intention[]>, intention: Intention) => {
+				(acc: Record<string, IntentionRow[]>, intention: IntentionRow) => {
 					// Set key to date in format YYYY-MM-DD
 					const date = intention.date.slice(0, 10);
 					if (!acc[date]) {
@@ -205,9 +205,9 @@ export const intentions = t.router({
 				.orderBy('orderNumber', 'asc')
 				.execute();
 
-			return result;
+			return result as IntentionRow[];
 		} else {
-			return [] as Intention[];
+			return [] as IntentionRow[];
 		}
 	}),
 	/**
@@ -226,7 +226,7 @@ export const intentions = t.router({
 				.set({
 					goalId: input.goalId,
 					orderNumber: input.orderNumber,
-					completed: input.completed,
+					status: input.status,
 					text: input.text,
 					subIntentionQualifier: input.subIntentionQualifier
 				})
@@ -334,7 +334,7 @@ export const intentions = t.router({
 							oc.column('id').doUpdateSet((eb) => ({
 								goalId: eb.ref('excluded.goalId'),
 								orderNumber: eb.ref('excluded.orderNumber'),
-								completed: eb.ref('excluded.completed'),
+								status: eb.ref('excluded.status'),
 								text: eb.ref('excluded.text'),
 								subIntentionQualifier: eb.ref('excluded.subIntentionQualifier'),
 								date: eb.ref('excluded.date')
