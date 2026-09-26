@@ -14,6 +14,12 @@ export const OutcomeSchema = z.object({
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
 });
 
+export const VerdictSchema = z.object({
+	goalId: z.number(),
+	verdict: z.enum(['enough', 'not_enough', 'day_off']),
+	note: z.string().nullable().optional()
+});
+
 export const outcomes = t.router({
 	/**
 	 * List all outcomes.
@@ -70,12 +76,33 @@ export const outcomes = t.router({
 			return query.execute();
 		}),
 	/**
+	 * List per-goal verdicts for the given outcomes (used by the journey page,
+	 * where each day-card knows its outcomeId).
+	 * @param input.outcomeIds - Outcome ids to fetch verdicts for.
+	 * @returns The matching `outcome_verdicts` rows.
+	 */
+	verdictsByOutcomeIds: t.procedure
+		.use(logger)
+		.input(z.object({ outcomeIds: z.array(z.number()) }))
+		.query(({ input }) => {
+			if (input.outcomeIds.length === 0) {
+				return [];
+			}
+			return getDb()
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', 'in', input.outcomeIds)
+				.execute();
+		}),
+	/**
 	 * Save a review atomically: insert new intentions, apply completion updates,
-	 * upsert the day's outcome, and link every intention to it — all in one
-	 * transaction so a failed save leaves nothing behind and can be retried.
+	 * upsert the day's outcome, link every intention to it, and rewrite the
+	 * day's per-goal verdicts — all in one transaction so a failed save leaves
+	 * nothing behind and can be retried.
 	 * @param input.outcome - `date` and `reviewed` for the outcome row.
 	 * @param input.newIntentions - New intentions to insert (without ids).
 	 * @param input.completions - `intentionId`/`completed` pairs for existing intentions.
+	 * @param input.verdicts - Per-goal verdicts; replaces the outcome's prior set.
 	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
 	saveReview: t.procedure
@@ -84,7 +111,8 @@ export const outcomes = t.router({
 			z.object({
 				outcome: OutcomeSchema.omit({ id: true }),
 				newIntentions: z.array(IntentionsSchema.omit({ id: true })),
-				completions: z.array(z.object({ intentionId: z.number(), completed: z.number() }))
+				completions: z.array(z.object({ intentionId: z.number(), completed: z.number() })),
+				verdicts: z.array(VerdictSchema).optional().default([])
 			})
 		)
 		.mutation(async ({ input }) => {
@@ -126,6 +154,25 @@ export const outcomes = t.router({
 
 					for (const intentionId of intentionIds) {
 						await linkIntentionToOutcome(trx, outcome.id as number, intentionId);
+					}
+
+					// Rewrite the day's verdicts so re-saves stay idempotent
+					await trx
+						.deleteFrom('outcome_verdicts')
+						.where('outcomeId', '=', outcome.id as number)
+						.execute();
+					if (input.verdicts.length > 0) {
+						await trx
+							.insertInto('outcome_verdicts')
+							.values(
+								input.verdicts.map((verdict) => ({
+									outcomeId: outcome.id as number,
+									goalId: verdict.goalId,
+									verdict: verdict.verdict,
+									note: verdict.note ?? null
+								}))
+							)
+							.execute();
 					}
 
 					return { outcomeId: outcome.id };
