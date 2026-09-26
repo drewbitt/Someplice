@@ -7,7 +7,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 
-	const intentionsByDate = await getIntentionsByDate();
+	const { intentionsByDate, startDate, endDate } = await getIntentionsByDate();
 
 	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
 	// that date, not today's active set. Inactive goals that still have intentions
@@ -37,6 +37,10 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		goalsByDate,
 		outcomes: await trpcLoad(event, (t) =>
 			t.outcomes.list({ limit: limit, order: 'desc', orderBy: 'date' })
+		),
+		priorities: await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true })),
+		completedPriorities: await trpcLoad(event, (t) =>
+			t.priorities.listCompleted({ startDate, endDate })
 		)
 	};
 
@@ -57,11 +61,13 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			startDate = new Date();
 		}
 
-		return await trpcLoad(event, (t) =>
+		const intentionsByDate = await trpcLoad(event, (t) =>
 			t.intentions.listByDate({
 				startDate: startDate,
 				endDate: endDate
 			})
 		);
+
+		return { intentionsByDate, startDate, endDate };
 	}
 };

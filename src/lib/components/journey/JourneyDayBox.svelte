@@ -1,15 +1,28 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, PriorityWithGoal } from '$src/lib/trpc/types';
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 
 	let {
 		goals,
 		intentions,
-		outcomes
-	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
+		outcomes,
+		priorities = [],
+		completedPriorities = []
+	}: {
+		goals: Goal[];
+		intentions: Intention[];
+		outcomes: Outcome[];
+		priorities?: PriorityWithGoal[];
+		completedPriorities?: PriorityWithGoal[];
+	} = $props();
 
 	let date = $derived(intentions[intentions.length - 1]?.date);
+	let milestones = $derived(
+		completedPriorities.filter(
+			(priority) => priority.completedAt && priority.completedAt.slice(0, 10) === date?.slice(0, 10)
+		)
+	);
 </script>
 
 <div
@@ -30,8 +43,13 @@
 			return formatter.format(dateObj).replace(/\//g, '-');
 		})()}
 	</h2>
+	{#each milestones as milestone (milestone.id)}
+		<p class="ml-5 font-semibold" style="color: {milestone.goalColor}">
+			★ {milestone.goalOrderNumber} completed top priority: {milestone.text}
+		</p>
+	{/each}
 	<div class="grid md:grid-cols-2">
 		<IntentionsListBox {goals} {intentions} />
-		<OutcomesBox {goals} {intentions} {outcomes} />
+		<OutcomesBox {goals} {intentions} {outcomes} {priorities} />
 	</div>
 </div>

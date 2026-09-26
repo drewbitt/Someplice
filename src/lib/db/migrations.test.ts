@@ -11,8 +11,16 @@ import { migrateToLatest, runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_create_tables.ts';
 import * as m003 from './migrations/003_goal_logs.ts';
 import * as m004 from './migrations/004_indexes.ts';
+import * as m007 from './migrations/007_priorities.ts';
 
-const APP_TABLES = ['goal_logs', 'goals', 'intentions', 'outcomes', 'outcomes_intentions'].sort();
+const APP_TABLES = [
+	'goal_logs',
+	'goals',
+	'intentions',
+	'outcomes',
+	'outcomes_intentions',
+	'priorities'
+].sort();
 
 const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
 	(
@@ -68,6 +76,9 @@ describe('migrations', () => {
 	});
 
 	it('every migration with a down() rolls back cleanly', async () => {
+		await m007.down(migrationDb);
+		expect(await listObjects(db, 'table')).not.toContain('priorities');
+
 		await m004.down(migrationDb);
 		expect(await listObjects(db, 'index')).toEqual([]);
 
@@ -84,6 +95,7 @@ describe('migrations', () => {
 		await m001.up(migrationDb);
 		await m003.up(migrationDb);
 		await m004.up(migrationDb);
+		await m007.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).length).toBeGreaterThan(0);
 	});

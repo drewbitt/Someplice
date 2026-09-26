@@ -3,6 +3,7 @@
 	import ActionsTextInput from '$lib/components/today/ActionsTextInput.svelte';
 	import ActionsDisplay from '$src/lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
+	import PriorityCards from '$src/lib/components/today/PriorityCards.svelte';
 	import Review from '$src/lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '$src/lib/trpc/client';
 	import { dayOfWeekFromDate } from '$src/lib/utils';
@@ -187,6 +188,9 @@
 {:else}
 	<div class="flex flex-col gap-4">
 		<GoalBadges goals={data.goals} />
+		{#if !noGoals && !hasOutstandingOutcome}
+			<PriorityCards goals={data.goals} priorities={data.priorities} />
+		{/if}
 		{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
 			<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
 		{/if}

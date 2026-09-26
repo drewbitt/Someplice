@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, PriorityWithGoal } from '$src/lib/trpc/types';
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
+	import PriorityModal from '../../shared/PriorityModal.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
@@ -21,9 +22,13 @@
 	let daysAgo = $state(0);
 	let goalsOnDate = $state<Goal[]>([]);
 	let intentionsOnDate = $state<Intention[]>([]);
+	let prioritiesOnDate = $state<PriorityWithGoal[]>([]);
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
 	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
+
+	let showPriorityModal = $state(false);
+	let priorityModalGoal = $state<Goal | null>(null);
 
 	beforeNavigate((navigation) => {
 		if (!newIntentionsToInsert.length) return;
@@ -62,13 +67,15 @@
 
 		(async () => {
 			try {
-				const [goalsResult, intentionsResult] = await Promise.all([
+				const [goalsResult, intentionsResult, prioritiesResult] = await Promise.all([
 					listGoalsOnDate(targetDate),
-					listIntentionsOnDate(targetDate)
+					listIntentionsOnDate(targetDate),
+					trpc().priorities.list.query({ activeOnly: true })
 				]);
 				if (cancelled) return;
 				goalsOnDate = goalsResult;
 				intentionsOnDate = intentionsResult;
+				prioritiesOnDate = prioritiesResult;
 			} catch (error) {
 				if (cancelled) return;
 				if (error instanceof Error) {
@@ -142,6 +149,13 @@
 		}
 	};
 
+	function handleNewPriority(detail: { goalId: number | null }) {
+		const goal = goalsOnDate.find((goal) => goal.id === detail.goalId);
+		if (!goal) return;
+		priorityModalGoal = goal;
+		showPriorityModal = true;
+	}
+
 	function handleNewOutcomeTextChanged(detail: { goalId: number | null; texts: string[] }) {
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
@@ -205,7 +219,9 @@
 						{hasBeenSaved}
 						showTitle={true}
 						intentions={intentionsOnDate}
+						priority={prioritiesOnDate.find((priority) => priority.goalId === goal.id)}
 						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
+						onNewPriority={handleNewPriority}
 					/>
 				{/each}
 			</div>
@@ -217,3 +233,11 @@
 		</div>
 	</div>
 </div>
+
+{#if priorityModalGoal}
+	<PriorityModal
+		bind:showModal={showPriorityModal}
+		goal={priorityModalGoal}
+		onError={(message) => todayPageErrorStore.setError(message)}
+	/>
+{/if}
