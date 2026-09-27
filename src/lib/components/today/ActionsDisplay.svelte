@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import { goalColorForIntention, lighterHSLColor, localeCurrentDate } from '$src/lib/utils';
+	import { goalColorForIntention, lightenHSL, localeCurrentDate } from '$src/lib/utils';
 	import type { UpdateResult } from 'kysely';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
@@ -96,7 +96,7 @@
 		if (goalColor === 'black') {
 			return 'grey';
 		}
-		return lighterHSLColor(goalColor);
+		return lightenHSL(goalColor, 0.2);
 	};
 
 	const handleDndConsider = (event: CustomEvent<DndEvent<Intention>>) => {

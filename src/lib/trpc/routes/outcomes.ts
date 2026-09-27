@@ -1,11 +1,9 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { DbInstance } from '$src/lib/db/db';
+import { getDb } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
 import { IntentionsSchema } from './intentions';
-
-const getDb = () => DbInstance.getInstance().db;
 
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),

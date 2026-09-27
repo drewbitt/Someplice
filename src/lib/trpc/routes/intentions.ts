@@ -1,13 +1,11 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { DbInstance } from '$src/lib/db/db';
+import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Intention } from '../types';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
-
-const getDb = () => DbInstance.getInstance().db;
 
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
@@ -218,14 +216,20 @@ export const intentions = t.router({
 	 */
 	edit: t.procedure
 		.use(logger)
-		.input(IntentionsSchema)
+		.input(
+			// Only the fields edit is allowed to change; orderNumber is owned by
+			// updateIntentions so reordering via edit can't trip the unique index.
+			IntentionsSchema.pick({
+				id: true,
+				completed: true,
+				text: true,
+				subIntentionQualifier: true
+			}).extend({ id: z.number() })
+		)
 		.mutation(async ({ input }) => {
-			if (!input.id) throw new Error('No id provided');
 			const query = getDb()
 				.updateTable('intentions')
 				.set({
-					goalId: input.goalId,
-					orderNumber: input.orderNumber,
 					completed: input.completed,
 					text: input.text,
 					subIntentionQualifier: input.subIntentionQualifier

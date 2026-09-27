@@ -1,9 +1,7 @@
 import { logger } from '$lib/trpc/middleware/logger';
 import { t } from '$lib/trpc/t';
-import { DbInstance } from '$src/lib/db/db';
+import { getDb } from '$src/lib/db/db';
 import { z } from 'zod';
-
-const getDb = () => DbInstance.getInstance().db;
 
 export const GoalLogSchema = z.object({
 	id: z.number().nullable(),

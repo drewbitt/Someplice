@@ -2,108 +2,56 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Kysely } from 'kysely';
-import { Migrator, type Migration, type MigrationProvider } from 'kysely/migration';
+import { FileMigrationProvider, Migrator, type Migration } from 'kysely/migration';
 import type { DB } from '../types/data';
 import { dbLogger } from '../utils/logger.ts';
-import { DbInstance } from './db.ts';
+import { getDb } from './db.ts';
 
-const migrationsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
-
-export async function runMigrations(db: Kysely<DB>, migrationName?: string): Promise<void> {
-	// Under Vite (dev server, built app) the migration modules must be discovered
-	// statically so they get bundled; import.meta.env exists only there. The CLI
-	// path runs under plain node and falls back to reading the directory.
-	const bundledMigrations = import.meta.env
-		? import.meta.glob<Migration>('./migrations/*.ts')
-		: null;
-
-	const FsMigrationProvider: MigrationProvider = {
-		async getMigrations() {
-			const migrations: Record<string, Migration> = {};
-			if (bundledMigrations) {
-				for (const key of Object.keys(bundledMigrations).sort()) {
-					migrations[key] = await bundledMigrations[key]();
-				}
-			} else {
-				const files = fs
-					.readdirSync(migrationsDir)
-					.filter((file) => file.endsWith('.ts'))
-					.sort();
-				for (const file of files) {
-					migrations[`./migrations/${file}`] = await import(
-						/* @vite-ignore */ `./migrations/${file}`
-					);
-				}
-			}
-
-			if (migrationName) {
-				for (const key in migrations) {
-					if (key.includes(migrationName)) {
-						return { [key]: migrations[key] };
-					}
-				}
-
-				throw new Error(`Migration ${migrationName} not found`);
-			}
-
-			return migrations;
+// Under Vite the migration modules must be discovered statically so they get
+// bundled; import.meta.env exists only there. The CLI path runs under plain
+// node and falls back to reading the directory. Basename keys keep the
+// migration name ('001_schema') identical across both providers.
+const provider = import.meta.env
+	? {
+			getMigrations: async () =>
+				Object.fromEntries(
+					Object.entries(import.meta.glob<Migration>('./migrations/*.ts', { eager: true })).map(
+						([key, migration]) => [path.basename(key, '.ts'), migration]
+					)
+				)
 		}
-	};
+	: new FileMigrationProvider({
+			fs: fs.promises,
+			path,
+			migrationFolder: fileURLToPath(new URL('./migrations', import.meta.url))
+		});
 
-	const migrator = new Migrator({
-		db,
-		provider: FsMigrationProvider
-	});
-
-	const { error, results } = await migrator.migrateToLatest();
+export async function runMigrations(db: Kysely<DB>): Promise<void> {
+	const { error, results } = await new Migrator({ db, provider }).migrateToLatest();
 
 	results?.forEach((it) => {
 		if (it.status === 'Success') {
 			dbLogger.debug(`migration "${it.migrationName}" was executed successfully`);
 		} else if (it.status === 'Error') {
-			console.error(`failed to execute migration "${it.migrationName}"`);
+			dbLogger.error(`failed to execute migration "${it.migrationName}"`);
 		}
 	});
-	if (!results || results.length === 0) {
-		dbLogger.info('No new migrations to run.');
-	} else {
-		dbLogger.info(`Ran ${results.length} migrations`);
-	}
+	dbLogger.info(
+		results && results.length > 0 ? `Ran ${results.length} migrations` : 'No new migrations to run.'
+	);
 
 	if (error) {
-		console.error('failed to migrate');
-		console.error(error);
 		throw error instanceof Error ? error : new Error(String(error));
 	}
 }
 
-export async function migrateToLatest(db?: Kysely<DB>, migrationName?: string) {
-	const isTest = process.env.NODE_ENV === 'test';
-	if (!isTest && process.env.NODE_ENV !== 'migration') {
-		process.env.NODE_ENV = 'migration';
-	}
-	db = db || DbInstance.getInstance().db;
-
-	try {
-		await runMigrations(db, migrationName);
-	} catch (error) {
-		if (!isTest) {
-			process.exit(1);
-		}
-		throw error;
-	}
-
-	if (!isTest) {
-		await db.destroy();
-	}
-}
-
 // Run as a CLI only when invoked directly (e.g. `node ./src/lib/db/migrate-to-latest.ts`).
-// Imports by tests / app code must not trigger a module-level migration, which was destroying
-// the DbInstance singleton's driver before tests could run their beforeEach setup.
 const isMainModule =
 	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
-	const migrationName = process.argv[2] === '--migration' ? process.argv[3] : undefined;
-	migrateToLatest(undefined, migrationName);
+	runMigrations(getDb())
+		.then(() => getDb().destroy())
+		.catch(() => {
+			process.exitCode = 1;
+		});
 }

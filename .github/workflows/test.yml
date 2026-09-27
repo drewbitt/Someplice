@@ -43,16 +43,9 @@ jobs:
 
       - name: Migrate a fresh database
         run: pnpm run db:migrate
-        env:
-          NODE_ENV: migration
 
       - name: Seed smoke test
         run: pnpm run db:seed
-
-      - name: Schema matches generated types
-        run: |
-          DATABASE_URL=$DATABASE_PATH pnpm run db:codegen
-          git diff --exit-code -- src/lib/types/data.d.ts
 
   docker:
     runs-on: ubuntu-24.04

@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
 	adjustToUTCStartAndEndOfDay,
 	dayOfWeekFromDate,
-	evenLighterHSLColor,
 	goalColorForIntention,
 	goalOrderNumberForId,
 	goalsForJourneyDay,
-	lighterHSLColor,
+	lightenHSL,
 	localeCurrentDate,
 	localePreviousDate
 } from './index.ts';
@@ -52,8 +51,8 @@ describe('utils', () => {
 
 	it('HSL lightening increases lightness monotonically', () => {
 		const color = 'hsl(200 50% 40%)';
-		expect(lighterHSLColor(color)).toBe('hsl(200,50%,52%)');
-		expect(evenLighterHSLColor(color)).toBe('hsl(200,50%,64%)');
+		expect(lightenHSL(color, 0.2)).toBe('hsl(200,50%,52%)');
+		expect(lightenHSL(color, 0.4)).toBe('hsl(200,50%,64%)');
 	});
 
 	it('goalColorForIntention falls back to black', () => {

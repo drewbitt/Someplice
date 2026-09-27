@@ -4,7 +4,7 @@ import { router } from '$lib/trpc/router';
 import type { Handle } from '@sveltejs/kit';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import { checkMissingOutcomes, createCronJobs } from './lib/db/cron';
-import { DbInstance } from './lib/db/db';
+import { getDb } from './lib/db/db';
 import { runMigrations } from './lib/db/migrate-to-latest';
 import { trpcLogger } from './lib/utils/logger';
 
@@ -15,16 +15,13 @@ const trpcEndpoint = '/api/trpc';
 // The promise is memoized so concurrent first requests share a single initialization.
 let initPromise: Promise<void> | null = null;
 function ensureInitialized(): Promise<void> {
+	if (building) {
+		return Promise.resolve();
+	}
 	if (!initPromise) {
 		initPromise = (async () => {
-			if (building) {
-				return;
-			}
 			// Run pending migrations first so the rest of startup sees a current schema.
-			// checkMissingOutcomes uses the presence of the cron job (created by
-			// createCronJobs) as an indicator of whether it should run, so it MUST
-			// always run before createCronJobs.
-			await runMigrations(DbInstance.getInstance().db);
+			await runMigrations(getDb());
 			await checkMissingOutcomes();
 			createCronJobs();
 		})().catch((error) => {
@@ -36,7 +33,7 @@ function ensureInitialized(): Promise<void> {
 	return initPromise;
 }
 
-export const trpcHandle: Handle = async ({ event, resolve }) => {
+export const handle: Handle = async ({ event, resolve }) => {
 	await ensureInitialized();
 
 	if (event.url.pathname.startsWith(trpcEndpoint)) {
@@ -60,5 +57,3 @@ export const trpcHandle: Handle = async ({ event, resolve }) => {
 
 	return resolve(event);
 };
-
-export const handle = trpcHandle;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { evenEvenLighterHSLColor } from '$src/lib/utils';
+	import { lightenHSL } from '$src/lib/utils';
 	import Plus from 'virtual:icons/lucide/plus';
 	import NewOutcomeTextBox from './NewOutcomeTextBox.svelte';
 
@@ -31,7 +31,7 @@
 	});
 
 	const lighterGoalColor = (color: string) => {
-		return evenEvenLighterHSLColor(color);
+		return lightenHSL(color, 0.65);
 	};
 
 	function handlePlusNewOutcome() {
