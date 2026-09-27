@@ -5,7 +5,7 @@ pre-commit:
       run: pnpm exec prettier --cache --ignore-path ./config/.prettierignore --write "{staged_files}" && git add "{staged_files}"
     test:
       glob: '*.{ts,svelte}'
-      run: npx vitest --run --silent
+      run: pnpm exec vitest --run --silent
 
 commit-msg:
   commands:

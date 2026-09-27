@@ -59,13 +59,13 @@
 
 ## Getting Started
 
-There are three ways to install Someplice: with pnpm, nix, or Docker. Choose the method that best suits your needs.
+There are two ways to install Someplice: with pnpm or Docker. Choose the method that best suits your needs.
 
 ### Installation
 
 #### Option 1: pnpm
 
-Requires Node.js >= 24 (for `node:sqlite`).
+Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24 for `node:sqlite`) if needed.
 
 1. Clone the repository
 2. Install dependencies
@@ -83,14 +83,7 @@ pnpm install
 pnpm run dev
 ```
 
-#### Option 2: Devbox/nix
-
-1. Ensure you have [devbox](https://www.jetpack.io/devbox/docs/installing_devbox/) installed.
-2. Clone the repository
-3. Run `devbox install` followed by `devbox shell` in the root of the repository. This will open a shell with all the dependencies installed (node and pnpm)
-4. Follow pnpm instructions above to install dependencies, run migrations, and start the application
-
-#### Option 3: Docker
+#### Option 2: Docker
 
 The Docker public image build is WIP. For now, you can build the image locally:
 
@@ -119,6 +112,8 @@ pnpm check        # svelte-check type checking
 pnpm lint         # prettier + eslint
 pnpm test:unit    # vitest unit tests
 pnpm test:e2e     # playwright e2e tests (requires the dev server)
+pnpm run db:reset # recreate ./data/db.sqlite, migrate, and regenerate types
+pnpm run db:seed  # insert fake data into the database
 ```
 
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. It reads the same `DATABASE_PATH` as the app (copy `.env.example` to `.env` to set it):

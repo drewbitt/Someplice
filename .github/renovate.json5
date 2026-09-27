@@ -19,12 +19,6 @@
 		{
 			matchUpdateTypes: ['major'],
 			dependencyDashboardApproval: true
-		},
-		{
-			matchManagers: ['nodenv'],
-			extractVersion: '^(?<version>v\\d+)',
-			rangeStrategy: 'pin',
-			dependencyDashboardApproval: true
 		}
 	]
 }

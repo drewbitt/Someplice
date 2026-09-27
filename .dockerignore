@@ -12,5 +12,4 @@ test-results
 playwright-report
 Dockerfile
 .dockerignore
-devbox.json
-devbox.lock
+.deno-deploy
