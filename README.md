@@ -75,7 +75,7 @@ cd Someplice
 pnpm install
 ```
 
-3. Database migrations run automatically on startup. `pnpm run db:migrate` is only needed for `pnpm run db:codegen` and CI.
+3. Database migrations run automatically on startup. `pnpm run db:migrate` is only needed for CI/scripts.
 
 4. Start the application
 
@@ -112,14 +112,10 @@ pnpm check        # svelte-check type checking
 pnpm lint         # prettier + eslint
 pnpm test:unit    # vitest unit tests
 pnpm test:e2e     # playwright e2e tests (requires the dev server)
-pnpm run db:reset # recreate ./data/db.sqlite, migrate, and regenerate types
+pnpm run db:reset # recreate ./data/db.sqlite and migrate it
 pnpm run db:seed  # insert fake data into the database
 ```
 
-When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. It reads the same `DATABASE_PATH` as the app (copy `.env.example` to `.env` to set it):
-
-```bash
-DATABASE_PATH=./data/db.sqlite
-```
+When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. `pnpm run db:codegen` regenerates `src/lib/types/data.d.ts` from the migrations (no database file needed); a unit test fails if it is stale.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>

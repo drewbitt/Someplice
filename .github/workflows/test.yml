@@ -47,11 +47,6 @@ jobs:
       - name: Seed smoke test
         run: pnpm run db:seed
 
-      - name: Schema matches generated types
-        run: |
-          pnpm run db:codegen
-          git diff --exit-code -- src/lib/types/data.d.ts
-
   docker:
     runs-on: ubuntu-24.04
 
