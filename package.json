@@ -14,7 +14,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --cache --ignore-path ./config/.prettierignore --check . && eslint -c ./config/eslint.config.js .",
 		"format": "prettier --cache --ignore-path ./config/.prettierignore --write .",
-		"db:codegen": "kysely-codegen --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
+		"db:codegen": "kysely-codegen --dialect sqlite --url 'env(DATABASE_PATH)' --out-file ./src/lib/types/data.d.ts && prettier --cache --ignore-path ./config/.prettierignore --write ./src/lib/types/data.d.ts",
 		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts"
 	},
 	"dependencies": {
@@ -42,6 +42,7 @@
 		"@types/node": "^24.13.6",
 		"@typescript/native": "npm:typescript@^7.0.2",
 		"@vite-pwa/sveltekit": "^1.1.0",
+		"better-sqlite3": "^13.0.3",
 		"cross-env": "^10.1.0",
 		"daisyui": "^5.7.42",
 		"eslint": "^10.11.0",

@@ -84,7 +84,7 @@ jobs:
 
       - name: Schema matches generated types
         run: |
-          DATABASE_URL=$DATABASE_PATH pnpm run db:codegen
+          pnpm run db:codegen
           git diff --exit-code -- src/lib/types/data.d.ts
 
   docker:

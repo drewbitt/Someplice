@@ -121,11 +121,10 @@ pnpm test:unit    # vitest unit tests
 pnpm test:e2e     # playwright e2e tests (requires the dev server)
 ```
 
-When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. To set up, copy `.env.example` to `.env` — `DATABASE_PATH` points the app at the database file and `DATABASE_URL` points kysely-codegen at it:
+When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. Run `pnpm run db:codegen` to generate the types. It reads the same `DATABASE_PATH` as the app (copy `.env.example` to `.env` to set it):
 
 ```bash
 DATABASE_PATH=./data/db.sqlite
-DATABASE_URL=./data/db.sqlite
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
