@@ -42,7 +42,8 @@ export async function generateDbTypes(verify: boolean): Promise<void> {
 const isMainModule =
 	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
-	generateDbTypes(process.argv.includes('--verify')).catch(() => {
+	generateDbTypes(process.argv.includes('--verify')).catch((error: unknown) => {
+		console.error(error instanceof Error ? error.message : error);
 		process.exitCode = 1;
 	});
 }
