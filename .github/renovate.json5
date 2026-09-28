@@ -4,11 +4,21 @@
 	rangeStrategy: 'bump',
 	// Bad or yanked releases self-filter before they can be proposed.
 	minimumReleaseAge: '7 days',
+	timezone: 'America/New_York',
+	schedule: ['on Monday'],
+	// pnpm autoDedupe keeps the lockfile deduplicated on every update;
+	// no standalone lock-file maintenance PRs.
+	lockFileMaintenance: { enabled: false },
 	packageRules: [
+		{
+			// Keep SemVer ranges in package.json — undoes :pinDevDependencies
+			// from config:best-practices for manifest entries only.
+			matchDepTypes: ['devDependencies', 'dev-dependencies', 'dev'],
+			rangeStrategy: 'bump'
+		},
 		{
 			matchUpdateTypes: ['patch', 'pin', 'digest'],
 			automerge: true,
-			timezone: 'America/New_York',
 			schedule: ['after 5:00pm on Monday']
 		},
 		{

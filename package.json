@@ -18,7 +18,7 @@
 		"db:migrate": "node ./src/lib/db/migrate-to-latest.ts",
 		"db:reset": "rm -f ./data/db.sqlite && pnpm run db:migrate",
 		"db:seed": "node ./src/lib/db/insert-fake-data.ts",
-		"prepare": "lefthook install"
+		"prepare": "[ ! -d .git ] || lefthook install"
 	},
 	"dependencies": {
 		"@trpc/client": "^11.19.0",
