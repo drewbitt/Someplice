@@ -5,20 +5,23 @@ import { SvelteDate } from 'svelte/reactivity';
 
 /**
  * Intentions from the most recent days before today, shared by the NotDones
- * propagator panel and the today list's paren inflation. Loaded once on
- * demand; `refresh` re-queries after mutations (dismiss, review marks).
+ * propagator panel and the today list's paren inflation.
  */
 class NotDonesStore {
 	recentIntentions = $state<Intention[]>([]);
-	loaded = $state(false);
+	private inflight: Promise<void> | null = null;
 
-	async refresh(days = 3) {
-		const endDate = localePreviousDate();
-		const startDate = new SvelteDate(endDate);
-		startDate.setDate(startDate.getDate() - (days - 1));
+	refresh(days = 3) {
+		this.inflight ??= (async () => {
+			const endDate = localePreviousDate();
+			const startDate = new SvelteDate(endDate);
+			startDate.setDate(startDate.getDate() - (days - 1));
 
-		this.recentIntentions = await trpc().intentions.list.query({ startDate, endDate });
-		this.loaded = true;
+			this.recentIntentions = await trpc().intentions.list.query({ startDate, endDate });
+		})().finally(() => {
+			this.inflight = null;
+		});
+		return this.inflight;
 	}
 
 	markStatuses(ids: (number | null)[], status: IntentionStatus) {

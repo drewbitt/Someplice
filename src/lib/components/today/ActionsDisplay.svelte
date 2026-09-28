@@ -67,11 +67,9 @@
 	});
 
 	onMount(() => {
-		if (!notDones.loaded) {
-			notDones.refresh().catch(() => {
-				// Non-fatal: the panel and paren inflation just stay empty.
-			});
-		}
+		notDones.refresh().catch(() => {
+			// Non-fatal: the panel and paren inflation just stay empty.
+		});
 	});
 
 	let firstIncompleteIntentionIndex = $derived(
