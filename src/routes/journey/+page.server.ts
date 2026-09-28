@@ -9,7 +9,7 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const outcomes = await trpcLoad(event, (t) =>
 		t.outcomes.list({ limit, order: 'desc', orderBy: 'date' })
 	);
-	const { intentionsByDate, startDate, endDate } = await getIntentionsByDate();
+	const { intentionsByDate } = await getIntentionsByDate();
 	const priorities = await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }));
 	const completedPriorities = await trpcLoad(event, (t) => t.priorities.listCompleted({ limit }));
 

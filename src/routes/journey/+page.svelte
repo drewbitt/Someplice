@@ -12,7 +12,6 @@
 
 	let { data }: { data: PageServerData } = $props();
 
-	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
 	let noGoals = $derived(data.goals.length === 0);
 	let dates = $derived(
 		[
@@ -24,6 +23,7 @@
 			])
 		].sort((a, b) => b.localeCompare(a))
 	);
+	let noJourneyDays = $derived(dates.length === 0);
 
 	let currentPage = $state(1);
 	let hasMore = $state(true);
@@ -131,7 +131,7 @@
 	</div>
 </div>
 
-{#if noGoals || noIntentions}
+{#if noGoals || noJourneyDays}
 	<div role="alert" class="alert alert-error border-error">
 		<CircleX class="size-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>

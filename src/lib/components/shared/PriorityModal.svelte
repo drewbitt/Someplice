@@ -30,9 +30,13 @@
 				checkInDate = priority?.checkInDate ?? '';
 				description = priority?.description ?? '';
 				reflection = '';
-				dialog.showModal();
+				if (!dialog.open) {
+					dialog.showModal();
+				}
 			} else {
-				dialog.close();
+				if (dialog.open) {
+					dialog.close();
+				}
 			}
 		}
 	});
