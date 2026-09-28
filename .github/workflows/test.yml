@@ -10,7 +10,7 @@ on:
 
 jobs:
   test-workflow:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
@@ -31,7 +31,7 @@ jobs:
         run: pnpm test:unit --run
 
   db:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       DATABASE_PATH: /tmp/ci-test.sqlite
 
@@ -48,7 +48,7 @@ jobs:
         run: pnpm run db:seed
 
   docker:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
@@ -73,7 +73,7 @@ jobs:
           docker logs --tail 30 app
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
