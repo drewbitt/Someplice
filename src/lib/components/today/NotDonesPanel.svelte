@@ -24,11 +24,9 @@
 	let strategy = $state('');
 
 	onMount(() => {
-		if (!notDones.loaded) {
-			notDones.refresh().catch((error) => {
-				if (error instanceof Error) todayPageErrorStore.setError(error.message);
-			});
-		}
+		notDones.refresh().catch((error) => {
+			if (error instanceof Error) todayPageErrorStore.setError(error.message);
+		});
 	});
 
 	let groups = $derived.by(() => {
@@ -57,15 +55,12 @@
 
 	const markGroupNotToday = async (group: NotDoneGroup) => {
 		try {
-			const intentions = group.occurrences.map((intention) => ({
-				...intention,
-				status: 'not_today' as const
-			}));
-			await trpc().intentions.updateIntentions.mutate({ intentions });
-			notDones.markStatuses(
-				group.occurrences.map((i) => i.id),
-				'not_today'
-			);
+			const ids = group.occurrences
+				.map((intention) => intention.id)
+				.filter((id): id is number => id !== null);
+			if (!ids.length) return;
+			await trpc().intentions.setStatus.mutate({ ids, status: 'not_today' });
+			notDones.markStatuses(ids, 'not_today');
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);

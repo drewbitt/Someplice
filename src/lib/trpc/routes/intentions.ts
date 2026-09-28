@@ -244,6 +244,22 @@ export const intentions = t.router({
 			}
 			return result;
 		}),
+	/** Set the status of multiple intentions without changing their ordering. */
+	setStatus: t.procedure
+		.use(logger)
+		.input(
+			z.object({
+				ids: z.array(z.number()).min(1),
+				status: z.enum(INTENTION_STATUSES)
+			})
+		)
+		.mutation(async ({ input }) =>
+			getDb()
+				.updateTable('intentions')
+				.set({ status: input.status })
+				.where('id', 'in', input.ids)
+				.executeTakeFirst()
+		),
 	/**
 	 * Append text to an intention's text.
 	 * @param input - The input object.
