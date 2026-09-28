@@ -4,8 +4,10 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import Trash2 from 'virtual:icons/lucide/trash-2';
+	import Undo2 from 'virtual:icons/lucide/undo-2';
 	import AppendModal from './AppendModal.svelte';
 
 	let {
@@ -58,6 +60,26 @@
 			}
 		}
 	};
+
+	const toggleNotToday = async () => {
+		if (intention.id === null) return;
+		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
+		try {
+			await trpc().intentions.edit.mutate({
+				id: intention.id,
+				status,
+				text: intention.text,
+				subIntentionQualifier: intention.subIntentionQualifier
+			});
+			opened = false;
+			dialog?.close();
+			await invalidateAll();
+		} catch (error) {
+			if (error instanceof Error) {
+				todayPageErrorStore.setError(error.message);
+			}
+		}
+	};
 </script>
 
 <dialog bind:this={dialog} class="modal" onclose={closeIntentionsModal}>
@@ -75,6 +97,17 @@
 					>
 						<TextCursorInput class="size-6" />
 						<span>Append Text</span>
+					</button>
+				</li>
+				<li>
+					<button class="focus:text-base-content flex items-center gap-3" onclick={toggleNotToday}>
+						{#if intention.status === 'not_today'}
+							<Undo2 class="size-6" />
+							<span>Mark pending</span>
+						{:else}
+							<CalendarX class="size-6" />
+							<span>Not today</span>
+						{/if}
 					</button>
 				</li>
 				<li>

@@ -10,7 +10,7 @@ const TEST_INTENTION: Intention = {
 	id: 1,
 	goalId: 1,
 	orderNumber: 1,
-	completed: 0,
+	status: 'pending',
 	text: 'test',
 	subIntentionQualifier: null,
 	date: '2023-07-01T00:01:00.000Z'
@@ -166,6 +166,27 @@ describe('intentions', () => {
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(2);
 		expect(result.find((i) => i.id === 2)?.text).toEqual('edited');
+	});
+
+	it('setStatus changes only the requested intentions', async () => {
+		const intentions = [1, 2, 3].map((orderNumber) => ({
+			...TEST_INTENTION,
+			id: orderNumber,
+			orderNumber
+		}));
+		await caller.intentions.updateIntentions({ intentions });
+
+		await caller.intentions.setStatus({ ids: [2], status: 'not_today' });
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result).toHaveLength(3);
+		expect(result).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: 1, orderNumber: 1, status: 'pending' }),
+				expect.objectContaining({ id: 2, orderNumber: 2, status: 'not_today' }),
+				expect.objectContaining({ id: 3, orderNumber: 3, status: 'pending' })
+			])
+		);
 	});
 
 	it('edit with invalid id', async () => {

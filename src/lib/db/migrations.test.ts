@@ -9,6 +9,7 @@ import { createNodeSqliteDialect } from './node-sqlite.ts';
 import { configureSqlite } from './db.ts';
 import { runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_schema.ts';
+import * as m002 from './migrations/002_intention_status.ts';
 
 const APP_TABLES = ['goal_logs', 'goals', 'intentions', 'outcomes', 'outcomes_intentions'].sort();
 const APP_INDEXES = [
@@ -68,13 +69,54 @@ describe('migrations', () => {
 		}
 	});
 
-	it('down leaves no app tables', async () => {
+	it('intention status backfills from completed on upgrade and downgrade', async () => {
+		// oldest schema: intentions has completed (0/1), no status
+		await m002.down(migrationDb);
+
+		await db
+			.insertInto('goals')
+			.values({
+				active: 1,
+				title: 'g',
+				description: null,
+				color: 'hsl(0, 0%, 50%)',
+				orderNumber: 1
+			})
+			.execute();
+
+		// pre-migration rows — the `completed` column predates the typed schema
+		await sql`
+			insert into intentions (goalId, orderNumber, completed, text, subIntentionQualifier, date)
+			values (1, 1, 1, 'done item', null, '2023-07-01T00:01:00.000Z'),
+			       (1, 2, 0, 'pending item', null, '2023-07-01T00:02:00.000Z')
+		`.execute(db);
+
+		await m002.up(migrationDb);
+
+		const rows = await db
+			.selectFrom('intentions')
+			.select(['status', 'orderNumber'])
+			.orderBy('orderNumber')
+			.execute();
+		expect(rows.map((r) => r.status)).toEqual(['done', 'pending']);
+
+		await m002.down(migrationDb);
+		const downgradedRows = await sql<{ completed: number }>`
+			select completed from intentions order by orderNumber
+		`.execute(db);
+		expect(downgradedRows.rows.map((r) => r.completed)).toEqual([1, 0]);
+		await m002.up(migrationDb);
+	});
+
+	it('every migration with a down() rolls back cleanly', async () => {
+		await m002.down(migrationDb);
 		await m001.down(migrationDb);
 		expect(await listObjects(db, 'table')).toEqual([]);
 		expect(await listObjects(db, 'index')).toEqual([]);
 
 		// re-apply to prove the pair is symmetric
 		await m001.up(migrationDb);
+		await m002.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});

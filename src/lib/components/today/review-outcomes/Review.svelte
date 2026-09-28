@@ -4,14 +4,17 @@
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
+	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 
 	let {
 		intentionsOnLatestDate,
 		setHasOutstandingOutcome
-	}: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } =
-		$props();
+	}: {
+		intentionsOnLatestDate: Intention[];
+		setHasOutstandingOutcome: (value: boolean) => void;
+	} = $props();
 
 	let intentionDate = $derived(
 		intentionsOnLatestDate[0] ? new Date(intentionsOnLatestDate[0].date) : new Date()
@@ -106,12 +109,14 @@
 		return intentions;
 	};
 	const handleSaveReview = async () => {
-		const checkboxIntentions = Array.from(
+		const statuses = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
 				'.goal-review-item-content input[type="checkbox"]'
 			)
 		).map((checkbox) => {
-			return { intentionId: Number(checkbox.value), completed: Number(checkbox.checked) };
+			const intentionId = Number(checkbox.value);
+			const intention = intentionsOnDate.find((intention) => intention.id === intentionId);
+			return { intentionId, status: statusFromReviewCheckbox(intention, checkbox.checked) };
 		});
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
@@ -125,7 +130,7 @@
 			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
 				newIntentions: newIntentionsToInsert,
-				completions: checkboxIntentions
+				statuses
 			});
 			saved = true;
 			hasBeenSaved = true;
@@ -158,7 +163,7 @@
 					goalId: goalId,
 					text: text,
 					date: intentionDate.toISOString(),
-					completed: 1,
+					status: 'done',
 					subIntentionQualifier: null,
 					orderNumber: 0
 				});
@@ -168,6 +173,25 @@
 			intention.orderNumber = maxOrderNumber + 1 + index;
 		});
 	}
+
+	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
+		const { intention } = detail;
+		if (intention.id === null) return;
+		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
+		try {
+			await trpc().intentions.edit.mutate({
+				id: intention.id,
+				status,
+				text: intention.text,
+				subIntentionQualifier: intention.subIntentionQualifier
+			});
+			intention.status = status;
+		} catch (error) {
+			if (error instanceof Error) {
+				todayPageErrorStore.setError(error.message);
+			}
+		}
+	};
 
 	let darkMode = $derived(theme.current === 'dark');
 </script>
@@ -206,6 +230,7 @@
 						showTitle={true}
 						intentions={intentionsOnDate}
 						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
+						onNotTodayToggled={handleNotTodayToggled}
 					/>
 				{/each}
 			</div>

@@ -17,9 +17,14 @@
 			<div class="flex">
 				<span
 					style="--goal-color: {goalColorForIntention(intention, goals)}"
-					class="goal-text me-1 text-lg"
+					class="goal-text me-1 text-lg {intention.status === 'not_today'
+						? 'italic opacity-60'
+						: ''}"
 				>
-					{goalOrderNumberForId(intention.goalId, goals)}{intention.subIntentionQualifier ?? ''}) {intention.text}
+					{intention.status === 'not_today' ? '-' : ''}{goalOrderNumberForId(
+						intention.goalId,
+						goals
+					)}{intention.subIntentionQualifier ?? ''}) {intention.text}
 				</span>
 			</div>
 		{/each}

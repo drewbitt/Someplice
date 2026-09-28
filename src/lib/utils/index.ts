@@ -48,7 +48,7 @@ export const lightenHSL = (color: string, amount: number): string => {
 	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 };
 
-export const goalColorForIntention = (intention: Intention, goals: Goal[]) => {
+export const goalColorForIntention = (intention: Pick<Intention, 'goalId'>, goals: Goal[]) => {
 	const goal = goals.find((goal) => goal.id === intention.goalId);
 	if (goal) {
 		return goal.color;

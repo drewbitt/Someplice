@@ -19,8 +19,6 @@ const goal = (over: Partial<Goal>): Goal =>
 		color: 'red',
 		orderNumber: 1,
 		active: 1,
-		completed: 0,
-		startDate: new Date(),
 		...over
 	}) as Goal;
 
