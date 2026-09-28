@@ -216,6 +216,33 @@ describe('outcomes', () => {
 		expect(intention.status).toBe('not_today');
 	});
 
+	it('keeps an outcome and verdict when its last intention is deleted', async () => {
+		await db
+			.insertInto('goals')
+			.values({ ...TEST_GOAL, orderNumber: 2, title: 'Archived goal' })
+			.execute();
+		const date = new Date().toISOString().split('T')[0];
+		const result = (await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [{ intentionId: 1, status: 'done' }],
+			verdicts: [{ goalId: 2, verdict: 'day_off', note: null }]
+		})) as { outcomeId: number };
+
+		await caller.intentions.delete(1);
+
+		expect(
+			await db.selectFrom('outcomes').selectAll().where('id', '=', result.outcomeId).execute()
+		).toHaveLength(1);
+		expect(
+			await db
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', '=', result.outcomeId)
+				.execute()
+		).toMatchObject([{ goalId: 2, verdict: 'day_off' }]);
+	});
+
 	it('verdictsByOutcomeIds returns verdicts only for the requested outcomes', async () => {
 		await db.insertInto('outcomes').values({ reviewed: 1, date: '2026-01-01' }).execute();
 		await db.insertInto('outcomes').values({ reviewed: 1, date: '2026-01-02' }).execute();

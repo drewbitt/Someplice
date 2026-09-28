@@ -74,4 +74,11 @@ describe('utils', () => {
 		const intentions = [{ goalId: 2 } as Intention];
 		expect(goalsForJourneyDay(active, inactive, intentions).map((g) => g.id)).toEqual([1, 2]);
 	});
+
+	it('goalsForJourneyDay merges inactive goals referenced by extra goal ids', () => {
+		const active = [goal({ id: 1, orderNumber: 1 })];
+		const inactive = [goal({ id: 2, orderNumber: 2, active: 0 })];
+
+		expect(goalsForJourneyDay(active, inactive, [], [2]).map((g) => g.id)).toEqual([1, 2]);
+	});
 });
