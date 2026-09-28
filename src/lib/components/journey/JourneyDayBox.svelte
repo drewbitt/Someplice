@@ -55,8 +55,10 @@
 			★ {milestone.goal.orderNumber} completed top priority: {milestone.priority.text}
 		</p>
 	{/each}
-	<div class="grid md:grid-cols-2">
-		<IntentionsListBox {goals} {intentions} />
-		<OutcomesBox {goals} {intentions} {outcomes} {verdicts} {priorities} />
-	</div>
+	{#if intentions.length}
+		<div class="grid md:grid-cols-2">
+			<IntentionsListBox {goals} {intentions} />
+			<OutcomesBox {goals} {intentions} {outcomes} {verdicts} {priorities} />
+		</div>
+	{/if}
 </div>

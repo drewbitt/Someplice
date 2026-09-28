@@ -86,7 +86,11 @@
 					trpc().priorities.listCompleted.query({ startDate, endDate })
 				]);
 
-				data.completedPriorities = [...data.completedPriorities, ...newCompletedPriorities];
+				const known = new Set(data.completedPriorities.map((priority) => priority.id));
+				data.completedPriorities = [
+					...data.completedPriorities,
+					...newCompletedPriorities.filter((priority) => !known.has(priority.id))
+				];
 
 				for (let date in newIntentionsByDate) {
 					data.intentionsByDate[date] = data.intentionsByDate[date]
@@ -94,8 +98,16 @@
 						: newIntentionsByDate[date];
 				}
 
+				const dates = [
+					...new Set([
+						...Object.keys(newIntentionsByDate),
+						...newCompletedPriorities
+							.map((priority) => priority.completedAt?.slice(0, 10))
+							.filter((date): date is string => Boolean(date))
+					])
+				];
 				await Promise.all(
-					Object.keys(newIntentionsByDate).map(async (date) => {
+					dates.map(async (date) => {
 						const [activeGoals, inactiveGoals] = await Promise.all([
 							trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
 							trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
@@ -103,7 +115,10 @@
 						data.goalsByDate[date] = goalsForJourneyDay(
 							activeGoals,
 							inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-							newIntentionsByDate[date]
+							newIntentionsByDate[date] ?? [],
+							newCompletedPriorities
+								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+								.map((priority) => priority.goalId)
 						);
 					})
 				);

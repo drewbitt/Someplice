@@ -9,9 +9,12 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const outcomes = await trpcLoad(event, (t) =>
 		t.outcomes.list({ limit, order: 'desc', orderBy: 'date' })
 	);
-	const { intentionsByDate } = await getIntentionsByDate();
+	const { intentionsByDate, startDate, endDate: intentionsEndDate } = await getIntentionsByDate();
+	const endDate = new Date(Math.max(intentionsEndDate.getTime(), Date.now()));
 	const priorities = await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }));
-	const completedPriorities = await trpcLoad(event, (t) => t.priorities.listCompleted({ limit }));
+	const completedPriorities = await trpcLoad(event, (t) =>
+		t.priorities.listCompleted({ startDate, endDate })
+	);
 
 	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
 	// that date, not today's active set. Inactive goals that still have intentions
@@ -35,7 +38,10 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 					goalsForJourneyDay(
 						activeGoals,
 						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-						intentionsByDate[date] ?? []
+						intentionsByDate[date] ?? [],
+						completedPriorities
+							.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+							.map((priority) => priority.goalId)
 					)
 				];
 			})
