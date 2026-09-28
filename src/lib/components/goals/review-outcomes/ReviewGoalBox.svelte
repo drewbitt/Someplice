@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention, VerdictValue } from '$src/lib/trpc/types';
-	import { evenEvenLighterHSLColor, lightenHSL } from '$src/lib/utils';
+	import { lightenHSL } from '$src/lib/utils';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
 	import Undo2 from 'virtual:icons/lucide/undo-2';
@@ -44,7 +44,7 @@
 		}
 	});
 
-	const lighterGoalColor = (color: string) => evenEvenLighterHSLColor(color);
+	const lighterGoalColor = (color: string) => lightenHSL(color, 0.65);
 
 	function handlePlusNewOutcome() {
 		newOutcomeTexts = [...newOutcomeTexts, ''];

@@ -32,10 +32,13 @@
 
 	let outcomeReviewed = $derived(outcomeForDate?.reviewed === 1);
 	let storedVerdictMap = $derived(
-		new Map(
+		new Map<number, { verdict: VerdictValue; note: string | null }>(
 			verdicts
 				.filter((verdict) => verdict.outcomeId === outcomeForDate?.id)
-				.map((verdict) => [verdict.goalId, { verdict: verdict.verdict, note: verdict.note }])
+				.map((verdict) => [
+					verdict.goalId,
+					{ verdict: verdict.verdict, note: verdict.note ?? null }
+				])
 		)
 	);
 	let verdictEdits = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
@@ -93,15 +96,22 @@
 		let saved = false;
 
 		try {
+			const verdictsToSave = new SvelteMap<
+				number,
+				{ verdict: VerdictValue | null; note: string | null }
+			>();
+			for (const [goalId, verdict] of storedVerdictMap) {
+				verdictsToSave.set(goalId, verdict);
+			}
+			for (const [goalId, verdict] of verdictEdits) {
+				verdictsToSave.set(goalId, verdict);
+			}
 			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
 				newIntentions: newIntentionsToInsert,
 				statuses,
-				verdicts: [...new Map([...storedVerdictMap, ...verdictEdits]).entries()].flatMap(
-					([goalId, verdict]) =>
-						verdict.verdict === null
-							? []
-							: [{ goalId, verdict: verdict.verdict, note: verdict.note }]
+				verdicts: [...verdictsToSave.entries()].flatMap(([goalId, verdict]) =>
+					verdict.verdict === null ? [] : [{ goalId, verdict: verdict.verdict, note: verdict.note }]
 				)
 			});
 			saved = true;
