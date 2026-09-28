@@ -8,6 +8,7 @@
 	import type { Goal } from '$src/lib/trpc/types';
 	import { goalsForJourneyDay } from '$src/lib/utils';
 	import { onMount } from 'svelte';
+	import { SvelteDate } from 'svelte/reactivity';
 	import { browser } from '$app/environment';
 
 	let { data }: { data: PageServerData } = $props();
@@ -26,6 +27,10 @@
 	let noJourneyDays = $derived(dates.length === 0);
 
 	let currentPage = $state(1);
+	let oldestLoadedDate = $state<string>();
+	$effect(() => {
+		oldestLoadedDate ??= data.oldestLoadedDate;
+	});
 	let hasMore = $state(true);
 	let isLoadingMore = $state(false);
 	let invisibleFooter = $state<HTMLDivElement>();
@@ -83,12 +88,17 @@
 					new Date(uniqueDates[uniqueDates.length - 1]),
 					new Date(uniqueDates[0])
 				];
+				const completedPrioritiesEndDate = new SvelteDate(`${oldestLoadedDate}T00:00:00.000Z`);
+				completedPrioritiesEndDate.setUTCDate(completedPrioritiesEndDate.getUTCDate() - 1);
 				const [newIntentionsByDate, newCompletedPriorities] = await Promise.all([
 					trpc().intentions.listByDate.query({
 						startDate,
 						endDate
 					}),
-					trpc().priorities.listCompleted.query({ startDate, endDate })
+					trpc().priorities.listCompleted.query({
+						startDate,
+						endDate: completedPrioritiesEndDate
+					})
 				]);
 
 				const known = new Set(data.completedPriorities.map((priority) => priority.id));
@@ -134,6 +144,7 @@
 				);
 
 				currentPage += 1;
+				oldestLoadedDate = uniqueDates[uniqueDates.length - 1];
 			} else {
 				hasMore = false;
 			}

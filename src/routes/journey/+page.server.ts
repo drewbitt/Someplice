@@ -70,7 +70,8 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		outcomes,
 		verdicts,
 		priorities,
-		completedPriorities
+		completedPriorities,
+		oldestLoadedDate: startDate.toISOString().slice(0, 10)
 	};
 
 	async function getIntentionsByDate() {
