@@ -56,6 +56,17 @@ export interface OutcomeVerdicts {
 	verdict: 'enough' | 'not_enough' | 'day_off';
 }
 
+export interface Priorities {
+	checkInDate: string | null;
+	completedAt: string | null;
+	createdAt: string;
+	description: string | null;
+	goalId: number;
+	id: Generated<number | null>;
+	reflection: string | null;
+	text: string;
+}
+
 export interface DB {
 	goal_logs: GoalLogs;
 	goals: Goals;
@@ -63,4 +74,5 @@ export interface DB {
 	outcome_verdicts: OutcomeVerdicts;
 	outcomes: Outcomes;
 	outcomes_intentions: OutcomesIntentions;
+	priorities: Priorities;
 }

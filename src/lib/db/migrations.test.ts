@@ -11,6 +11,7 @@ import { runMigrations } from './migrate-to-latest.ts';
 import * as m001 from './migrations/001_schema.ts';
 import * as m002 from './migrations/002_intention_status.ts';
 import * as m003 from './migrations/003_outcome_verdicts.ts';
+import * as m004 from './migrations/004_priorities.ts';
 
 const APP_TABLES = [
 	'goal_logs',
@@ -18,7 +19,8 @@ const APP_TABLES = [
 	'intentions',
 	'outcome_verdicts',
 	'outcomes',
-	'outcomes_intentions'
+	'outcomes_intentions',
+	'priorities'
 ].sort();
 const APP_INDEXES = [
 	'idx_goal_logs_goalId_date',
@@ -27,7 +29,8 @@ const APP_INDEXES = [
 	'idx_outcomes_intentions_intentionId',
 	'uq_goals_active_orderNumber',
 	'uq_intentions_date_orderNumber',
-	'uq_outcome_verdicts_outcomeId_goalId'
+	'uq_outcome_verdicts_outcomeId_goalId',
+	'uq_priorities_active_goalId'
 ].sort();
 
 const listObjects = async (db: Kysely<DB>, type: 'table' | 'index') =>
@@ -114,6 +117,7 @@ describe('migrations', () => {
 	});
 
 	it('every migration with a down() rolls back cleanly', async () => {
+		await m004.down(migrationDb);
 		await m003.down(migrationDb);
 		await m002.down(migrationDb);
 		await m001.down(migrationDb);
@@ -123,6 +127,7 @@ describe('migrations', () => {
 		await m001.up(migrationDb);
 		await m002.up(migrationDb);
 		await m003.up(migrationDb);
+		await m004.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});

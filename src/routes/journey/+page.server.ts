@@ -9,7 +9,12 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const outcomes = await trpcLoad(event, (t) =>
 		t.outcomes.list({ limit, order: 'desc', orderBy: 'date' })
 	);
-	const intentionsByDate = await getIntentionsByDate();
+	const { intentionsByDate, startDate, endDate: intentionsEndDate } = await getIntentionsByDate();
+	const endDate = new Date(Math.max(intentionsEndDate.getTime(), Date.now()));
+	const priorities = await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }));
+	const completedPriorities = await trpcLoad(event, (t) =>
+		t.priorities.listCompleted({ startDate, endDate })
+	);
 	const verdicts = await trpcLoad(event, (t) =>
 		t.outcomes.verdictsByOutcomeIds({
 			outcomeIds: outcomes.map((outcome) => outcome.id).filter((id): id is number => id !== null)
@@ -26,7 +31,14 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	// that day (e.g. archived the same day) are merged in.
 	const goalsByDate = Object.fromEntries(
 		await Promise.all(
-			Object.keys(intentionsByDate).map(async (date) => {
+			[
+				...new Set([
+					...Object.keys(intentionsByDate),
+					...completedPriorities
+						.map((priority) => priority.completedAt?.slice(0, 10))
+						.filter((date): date is string => Boolean(date))
+				])
+			].map(async (date) => {
 				const [activeGoals, inactiveGoals] = await Promise.all([
 					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date: new Date(date) })),
 					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ active: 0, date: new Date(date) }))
@@ -36,10 +48,15 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 					goalsForJourneyDay(
 						activeGoals,
 						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-						intentionsByDate[date],
-						verdicts
-							.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-							.map((verdict) => verdict.goalId)
+						intentionsByDate[date] ?? [],
+						[
+							...verdicts
+								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+								.map((verdict) => verdict.goalId),
+							...completedPriorities
+								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+								.map((priority) => priority.goalId)
+						]
 					)
 				];
 			})
@@ -51,7 +68,10 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		intentionsByDate,
 		goalsByDate,
 		outcomes,
-		verdicts
+		verdicts,
+		priorities,
+		completedPriorities,
+		oldestLoadedDate: startDate.toISOString().slice(0, 10)
 	};
 
 	async function getIntentionsByDate() {
@@ -71,11 +91,13 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			startDate = new Date();
 		}
 
-		return await trpcLoad(event, (t) =>
+		const intentionsByDate = await trpcLoad(event, (t) =>
 			t.intentions.listByDate({
 				startDate: startDate,
 				endDate: endDate
 			})
 		);
+
+		return { intentionsByDate, startDate, endDate };
 	}
 };

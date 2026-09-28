@@ -8,15 +8,29 @@
 	import type { Goal } from '$src/lib/trpc/types';
 	import { goalsForJourneyDay } from '$src/lib/utils';
 	import { onMount } from 'svelte';
+	import { SvelteDate } from 'svelte/reactivity';
 	import { browser } from '$app/environment';
 
 	let { data }: { data: PageServerData } = $props();
 
-	let noIntentions = $derived(Object.keys(data.intentionsByDate).length === 0);
 	let noGoals = $derived(data.goals.length === 0);
-	let dates = $derived(Object.keys(data.intentionsByDate));
+	let dates = $derived(
+		[
+			...new Set([
+				...Object.keys(data.intentionsByDate),
+				...data.completedPriorities
+					.map((priority) => priority.completedAt?.slice(0, 10))
+					.filter((date): date is string => Boolean(date))
+			])
+		].sort((a, b) => b.localeCompare(a))
+	);
+	let noJourneyDays = $derived(dates.length === 0);
 
 	let currentPage = $state(1);
+	let oldestLoadedDate = $state<string>();
+	$effect(() => {
+		oldestLoadedDate ??= data.oldestLoadedDate;
+	});
 	let hasMore = $state(true);
 	let isLoadingMore = $state(false);
 	let invisibleFooter = $state<HTMLDivElement>();
@@ -74,10 +88,24 @@
 					new Date(uniqueDates[uniqueDates.length - 1]),
 					new Date(uniqueDates[0])
 				];
-				const newIntentionsByDate = await trpc().intentions.listByDate.query({
-					startDate,
-					endDate
-				});
+				const completedPrioritiesEndDate = new SvelteDate(`${oldestLoadedDate}T00:00:00.000Z`);
+				completedPrioritiesEndDate.setUTCDate(completedPrioritiesEndDate.getUTCDate() - 1);
+				const [newIntentionsByDate, newCompletedPriorities] = await Promise.all([
+					trpc().intentions.listByDate.query({
+						startDate,
+						endDate
+					}),
+					trpc().priorities.listCompleted.query({
+						startDate,
+						endDate: completedPrioritiesEndDate
+					})
+				]);
+
+				const known = new Set(data.completedPriorities.map((priority) => priority.id));
+				data.completedPriorities = [
+					...data.completedPriorities,
+					...newCompletedPriorities.filter((priority) => !known.has(priority.id))
+				];
 
 				for (let date in newIntentionsByDate) {
 					data.intentionsByDate[date] = data.intentionsByDate[date]
@@ -85,8 +113,16 @@
 						: newIntentionsByDate[date];
 				}
 
+				const dates = [
+					...new Set([
+						...Object.keys(newIntentionsByDate),
+						...newCompletedPriorities
+							.map((priority) => priority.completedAt?.slice(0, 10))
+							.filter((date): date is string => Boolean(date))
+					])
+				];
 				await Promise.all(
-					Object.keys(newIntentionsByDate).map(async (date) => {
+					dates.map(async (date) => {
 						const [activeGoals, inactiveGoals] = await Promise.all([
 							trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
 							trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
@@ -94,15 +130,21 @@
 						data.goalsByDate[date] = goalsForJourneyDay(
 							activeGoals,
 							inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-							newIntentionsByDate[date],
-							data.verdicts
-								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-								.map((verdict) => verdict.goalId)
+							newIntentionsByDate[date] ?? [],
+							[
+								...data.verdicts
+									.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+									.map((verdict) => verdict.goalId),
+								...newCompletedPriorities
+									.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+									.map((priority) => priority.goalId)
+							]
 						);
 					})
 				);
 
 				currentPage += 1;
+				oldestLoadedDate = uniqueDates[uniqueDates.length - 1];
 			} else {
 				hasMore = false;
 			}
@@ -125,7 +167,7 @@
 	</div>
 </div>
 
-{#if noGoals || noIntentions}
+{#if noGoals || noJourneyDays}
 	<div role="alert" class="alert alert-error border-error">
 		<CircleX class="size-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>
@@ -136,9 +178,12 @@
 			{#each dates as date, i (date)}
 				<JourneyDayBox
 					goals={data.goalsByDate[date] ?? data.goals}
-					intentions={data.intentionsByDate[date]}
+					{date}
+					intentions={data.intentionsByDate[date] ?? []}
 					outcomes={data.outcomes}
 					verdicts={data.verdicts}
+					priorities={data.priorities}
+					completedPriorities={data.completedPriorities}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />

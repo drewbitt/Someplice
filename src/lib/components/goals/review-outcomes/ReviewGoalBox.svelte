@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Goal, Intention, VerdictValue } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Priority, VerdictValue } from '$src/lib/trpc/types';
 	import { lightenHSL } from '$src/lib/utils';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
@@ -13,11 +13,13 @@
 		hasBeenSaved,
 		verdict = null,
 		verdictAsBar = false,
+		priority,
 		onUpdateNewOutcomeTexts,
 		onPlusNewOutcomeButtonPressed,
 		onCheckboxClicked,
 		onNotTodayToggled,
-		onVerdictChanged
+		onVerdictChanged,
+		onNewPriority
 	}: {
 		goal: Goal;
 		intentions: Intention[];
@@ -25,6 +27,7 @@
 		hasBeenSaved: boolean;
 		verdict?: { verdict: VerdictValue | null; note: string | null } | null;
 		verdictAsBar?: boolean;
+		priority?: Priority | null;
 		onUpdateNewOutcomeTexts?: (detail: { goalId: number | null; texts: string[] }) => void;
 		onPlusNewOutcomeButtonPressed?: (detail: { goalId: number | null }) => void;
 		onCheckboxClicked?: (detail: { intentionId: number | null }) => void;
@@ -34,6 +37,7 @@
 			verdict: VerdictValue | null;
 			note: string | null;
 		}) => void;
+		onNewPriority?: (detail: { goalId: number | null }) => void;
 	} = $props();
 
 	let newOutcomeTexts = $state<string[]>([]);
@@ -121,6 +125,17 @@
 			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
 			style="border-color: {goal.color}"
 		>
+			<div class="flex justify-end font-semibold" style="color: {goal.color}">
+				{#if priority}
+					<span>
+						{goal.orderNumber} : {priority.text}{#if priority.checkInDate}&nbsp;by {priority.checkInDate}{/if}
+					</span>
+				{:else}
+					<button class="hover:underline" onclick={() => onNewPriority?.({ goalId: goal.id })}>
+						{goal.orderNumber} : + new top priority
+					</button>
+				{/if}
+			</div>
 			{#if goal.description}
 				<p class="text-base-content/60 pl-5 font-mono text-lg tracking-wide">
 					{goal.description}

@@ -1,21 +1,35 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome, OutcomeVerdict } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '$src/lib/trpc/types';
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 
 	let {
 		goals,
+		date: dateProp,
 		intentions,
 		outcomes,
-		verdicts = []
+		verdicts = [],
+		priorities = [],
+		completedPriorities = []
 	}: {
 		goals: Goal[];
+		date?: string;
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
+		priorities?: Priority[];
+		completedPriorities?: Priority[];
 	} = $props();
 
-	let date = $derived(intentions[intentions.length - 1]?.date);
+	let date = $derived(dateProp ?? intentions[intentions.length - 1]?.date);
+	let milestones = $derived(
+		completedPriorities.flatMap((priority) => {
+			const goal = goals.find((goal) => goal.id === priority.goalId);
+			return priority.completedAt?.slice(0, 10) === date?.slice(0, 10) && goal
+				? [{ priority, goal }]
+				: [];
+		})
+	);
 </script>
 
 <div
@@ -36,8 +50,15 @@
 			return formatter.format(dateObj).replace(/\//g, '-');
 		})()}
 	</h2>
-	<div class="grid md:grid-cols-2">
-		<IntentionsListBox {goals} {intentions} />
-		<OutcomesBox {goals} {intentions} {outcomes} {verdicts} />
-	</div>
+	{#each milestones as milestone (milestone.priority.id)}
+		<p class="ml-5 font-semibold" style="color: {milestone.goal.color}">
+			★ {milestone.goal.orderNumber} completed top priority: {milestone.priority.text}
+		</p>
+	{/each}
+	{#if intentions.length}
+		<div class="grid md:grid-cols-2">
+			<IntentionsListBox {goals} {intentions} />
+			<OutcomesBox {goals} {intentions} {outcomes} {verdicts} {priorities} />
+		</div>
+	{/if}
 </div>
