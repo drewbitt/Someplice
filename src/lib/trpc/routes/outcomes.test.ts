@@ -123,6 +123,148 @@ describe('outcomes', () => {
 		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);
 	});
 
+	it('saveReview persists verdicts and rewrites them idempotently on re-save', async () => {
+		const date = new Date().toISOString().split('T')[0];
+		const first = (await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [{ intentionId: 1, status: 'done' }],
+			verdicts: [{ goalId: 1, verdict: 'enough', note: 'read a bunch' }]
+		})) as { outcomeId: number };
+
+		let rows = await db.selectFrom('outcome_verdicts').selectAll().execute();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({
+			outcomeId: first.outcomeId,
+			goalId: 1,
+			verdict: 'enough',
+			note: 'read a bunch'
+		});
+
+		// re-saving the same day replaces the verdict set rather than duplicating it
+		const second = (await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [],
+			verdicts: [{ goalId: 1, verdict: 'day_off', note: null }]
+		})) as { outcomeId: number };
+		expect(second.outcomeId).toBe(first.outcomeId);
+
+		rows = await db.selectFrom('outcome_verdicts').selectAll().execute();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({
+			outcomeId: first.outcomeId,
+			goalId: 1,
+			verdict: 'day_off',
+			note: null
+		});
+	});
+
+	it('saveReview without verdicts clears the outcome’s prior verdicts', async () => {
+		const date = new Date().toISOString().split('T')[0];
+		await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [],
+			verdicts: [{ goalId: 1, verdict: 'enough', note: null }]
+		});
+		await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: []
+		});
+		expect(await db.selectFrom('outcome_verdicts').selectAll().execute()).toHaveLength(0);
+	});
+
+	it('saveReview persists a verdict for a goal with no intentions', async () => {
+		await db
+			.insertInto('goals')
+			.values({ ...TEST_GOAL, orderNumber: 2, title: 'Empty goal' })
+			.execute();
+		const date = new Date().toISOString().split('T')[0];
+
+		const result = (await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [{ intentionId: 1, status: 'done' }],
+			verdicts: [{ goalId: 2, verdict: 'day_off', note: null }]
+		})) as { outcomeId: number };
+
+		await expect(
+			db
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', '=', result.outcomeId)
+				.execute()
+		).resolves.toMatchObject([{ goalId: 2, verdict: 'day_off' }]);
+	});
+
+	it('saveReview preserves not_today when an existing intention is unchecked', async () => {
+		const date = new Date().toISOString().split('T')[0];
+		await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [{ intentionId: 1, status: 'not_today' }],
+			verdicts: []
+		});
+
+		const intention = await db
+			.selectFrom('intentions')
+			.select('status')
+			.where('id', '=', 1)
+			.executeTakeFirstOrThrow();
+		expect(intention.status).toBe('not_today');
+	});
+
+	it('keeps an outcome and verdict when its last intention is deleted', async () => {
+		await db
+			.insertInto('goals')
+			.values({ ...TEST_GOAL, orderNumber: 2, title: 'Archived goal' })
+			.execute();
+		const date = new Date().toISOString().split('T')[0];
+		const result = (await caller.outcomes.saveReview({
+			outcome: { reviewed: 1, date },
+			newIntentions: [],
+			statuses: [{ intentionId: 1, status: 'done' }],
+			verdicts: [{ goalId: 2, verdict: 'day_off', note: null }]
+		})) as { outcomeId: number };
+
+		await caller.intentions.delete(1);
+
+		expect(
+			await db.selectFrom('outcomes').selectAll().where('id', '=', result.outcomeId).execute()
+		).toHaveLength(1);
+		expect(
+			await db
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', '=', result.outcomeId)
+				.execute()
+		).toMatchObject([{ goalId: 2, verdict: 'day_off' }]);
+	});
+
+	it('verdictsByOutcomeIds returns verdicts only for the requested outcomes', async () => {
+		await db.insertInto('outcomes').values({ reviewed: 1, date: '2026-01-01' }).execute();
+		await db.insertInto('outcomes').values({ reviewed: 1, date: '2026-01-02' }).execute();
+		await db
+			.insertInto('outcome_verdicts')
+			.values([
+				{ outcomeId: 1, goalId: 1, verdict: 'enough', note: 'a' },
+				{ outcomeId: 2, goalId: 1, verdict: 'not_enough', note: null }
+			])
+			.execute();
+
+		const result = (await caller.outcomes.verdictsByOutcomeIds({ outcomeIds: [2] })) as {
+			outcomeId: number;
+			verdict: string;
+			note: string | null;
+		}[];
+		expect(result).toHaveLength(1);
+		expect(result[0]).toMatchObject({ outcomeId: 2, verdict: 'not_enough', note: null });
+
+		expect(await caller.outcomes.verdictsByOutcomeIds({ outcomeIds: [] })).toEqual([]);
+	});
+
 	it('list filters by date range', async () => {
 		await db.insertInto('outcomes').values({ reviewed: 0, date: '2026-01-01' }).execute();
 		await db.insertInto('outcomes').values({ reviewed: 0, date: '2026-02-01' }).execute();

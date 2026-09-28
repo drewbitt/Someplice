@@ -45,7 +45,7 @@ export const linkIntentionToOutcome = async (
 };
 
 /**
- * Delete any of the given outcomes that no longer have intentions linked.
+ * Delete any of the given outcomes that no longer have intentions or verdicts linked.
  */
 export const deleteOrphanedOutcomes = async (
 	db: Kysely<DB>,
@@ -57,7 +57,12 @@ export const deleteOrphanedOutcomes = async (
 			.select(({ fn }) => [fn.countAll<number>().as('count')])
 			.where('outcomeId', '=', outcomeId)
 			.executeTakeFirstOrThrow();
-		if (Number(remaining.count) === 0) {
+		const verdicts = await db
+			.selectFrom('outcome_verdicts')
+			.select(({ fn }) => [fn.countAll<number>().as('count')])
+			.where('outcomeId', '=', outcomeId)
+			.executeTakeFirstOrThrow();
+		if (Number(remaining.count) === 0 && Number(verdicts.count) === 0) {
 			await db.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
 		}
 	}

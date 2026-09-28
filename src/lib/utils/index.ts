@@ -69,9 +69,13 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 export const goalsForJourneyDay = (
 	active: Goal[],
 	inactive: Goal[],
-	intentions: Intention[]
+	intentions: Intention[],
+	extraGoalIds: Iterable<number> = []
 ): Goal[] => {
 	const referencedGoalIds = new Set(intentions.map((intention) => intention.goalId));
+	for (const goalId of extraGoalIds) {
+		referencedGoalIds.add(goalId);
+	}
 	const activeIds = new Set(active.map((goal) => goal.id));
 	const extra = inactive.filter(
 		(goal) => goal.id !== null && referencedGoalIds.has(goal.id) && !activeIds.has(goal.id)

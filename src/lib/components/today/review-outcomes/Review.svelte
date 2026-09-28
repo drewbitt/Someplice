@@ -1,35 +1,34 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, VerdictValue } from '$src/lib/trpc/types';
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import { localeCurrentDate } from '$src/lib/utils';
 	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
 		intentionsOnLatestDate,
 		setHasOutstandingOutcome
-	}: {
-		intentionsOnLatestDate: Intention[];
-		setHasOutstandingOutcome: (value: boolean) => void;
-	} = $props();
+	}: { intentionsOnLatestDate: Intention[]; setHasOutstandingOutcome: (value: boolean) => void } =
+		$props();
 
 	let intentionDate = $derived(
 		intentionsOnLatestDate[0] ? new Date(intentionsOnLatestDate[0].date) : new Date()
 	);
 	let showPageLoadingSpinner = $state(true);
-
 	let daysAgo = $state(0);
 	let goalsOnDate = $state<Goal[]>([]);
 	let intentionsOnDate = $state<Intention[]>([]);
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
 	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
+	let verdicts = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
 
 	beforeNavigate((navigation) => {
-		if (!newIntentionsToInsert.length) return;
+		if (!newIntentionsToInsert.length && verdicts.size === 0) return;
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -108,6 +107,7 @@
 		});
 		return intentions;
 	};
+
 	const handleSaveReview = async () => {
 		const statuses = Array.from(
 			document.querySelectorAll<HTMLInputElement>(
@@ -130,12 +130,16 @@
 			await trpc().outcomes.saveReview.mutate({
 				outcome: outcomeToInsert,
 				newIntentions: newIntentionsToInsert,
-				statuses
+				statuses,
+				verdicts: [...verdicts.entries()].flatMap(([goalId, verdict]) =>
+					verdict.verdict === null ? [] : [{ goalId, verdict: verdict.verdict, note: verdict.note }]
+				)
 			});
 			saved = true;
 			hasBeenSaved = true;
 			setHasOutstandingOutcome(false);
 			newIntentionsToInsert = [];
+			verdicts.clear();
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
@@ -172,6 +176,19 @@
 		newIntentionsToInsert.forEach((intention, index) => {
 			intention.orderNumber = maxOrderNumber + 1 + index;
 		});
+	}
+
+	function handleVerdictChanged(detail: {
+		goalId: number;
+		verdict: VerdictValue | null;
+		note: string | null;
+	}) {
+		const { goalId, verdict, note } = detail;
+		if (verdict === null && !note) {
+			verdicts.delete(goalId);
+			return;
+		}
+		verdicts.set(goalId, { verdict, note });
 	}
 
 	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
@@ -229,7 +246,9 @@
 						{hasBeenSaved}
 						showTitle={true}
 						intentions={intentionsOnDate}
+						verdict={verdicts.get(goal.id ?? -1) ?? null}
 						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
+						onVerdictChanged={handleVerdictChanged}
 						onNotTodayToggled={handleNotTodayToggled}
 					/>
 				{/each}

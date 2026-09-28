@@ -54,6 +54,15 @@
 
 		if (newOutcomes.length) {
 			data.outcomes = [...data.outcomes, ...newOutcomes];
+			const newVerdicts = await trpc().outcomes.verdictsByOutcomeIds.query({
+				outcomeIds: newOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
+			});
+			data.verdicts = [...data.verdicts, ...newVerdicts];
+			const outcomeDateById = new Map(
+				data.outcomes
+					.filter((outcome): outcome is typeof outcome & { id: number } => outcome.id !== null)
+					.map((outcome) => [outcome.id, outcome.date])
+			);
 			const uniqueDatesResult = await trpc().intentions.listUniqueDates.query({
 				limit,
 				offset
@@ -85,7 +94,10 @@
 						data.goalsByDate[date] = goalsForJourneyDay(
 							activeGoals,
 							inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-							newIntentionsByDate[date]
+							newIntentionsByDate[date],
+							data.verdicts
+								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+								.map((verdict) => verdict.goalId)
 						);
 					})
 				);
@@ -126,6 +138,7 @@
 					goals={data.goalsByDate[date] ?? data.goals}
 					intentions={data.intentionsByDate[date]}
 					outcomes={data.outcomes}
+					verdicts={data.verdicts}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />

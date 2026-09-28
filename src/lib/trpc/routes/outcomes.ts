@@ -3,13 +3,20 @@ import { t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
-import { INTENTION_STATUSES, IntentionsSchema } from './intentions';
+import { INTENTION_STATUSES, VERDICTS } from '../enums';
+import { IntentionsSchema } from './intentions';
 
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),
 	reviewed: z.number(),
 	// date is ISOString without the time
 	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+});
+
+export const VerdictSchema = z.object({
+	goalId: z.number(),
+	verdict: z.enum(VERDICTS),
+	note: z.string().nullable().optional()
 });
 
 export const outcomes = t.router({
@@ -68,12 +75,30 @@ export const outcomes = t.router({
 			return query.execute();
 		}),
 	/**
-	 * Save a review atomically: insert new intentions, apply completion updates,
+	 * List per-goal verdicts for the given outcomes (used by the journey page,
+	 * where each day-card knows its outcomeId).
+	 */
+	verdictsByOutcomeIds: t.procedure
+		.use(logger)
+		.input(z.object({ outcomeIds: z.array(z.number()) }))
+		.query(({ input }) => {
+			if (input.outcomeIds.length === 0) {
+				return [];
+			}
+			return getDb()
+				.selectFrom('outcome_verdicts')
+				.selectAll()
+				.where('outcomeId', 'in', input.outcomeIds)
+				.execute();
+		}),
+	/**
+	 * Save a review atomically: insert new intentions, apply status updates,
 	 * upsert the day's outcome, and link every intention to it — all in one
 	 * transaction so a failed save leaves nothing behind and can be retried.
 	 * @param input.outcome - `date` and `reviewed` for the outcome row.
 	 * @param input.newIntentions - New intentions to insert (without ids).
 	 * @param input.statuses - `intentionId`/`status` pairs for existing intentions.
+	 * @param input.verdicts - Per-goal verdicts for the outcome.
 	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
 	saveReview: t.procedure
@@ -87,14 +112,15 @@ export const outcomes = t.router({
 						intentionId: z.number(),
 						status: z.enum(INTENTION_STATUSES)
 					})
-				)
+				),
+				verdicts: z.array(VerdictSchema).default([])
 			})
 		)
 		.mutation(async ({ input }) => {
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const intentionIds = input.statuses.map((c) => c.intentionId);
+					const intentionIds = input.statuses.map((status) => status.intentionId);
 
 					if (input.newIntentions.length > 0) {
 						const inserted = await trx
@@ -129,6 +155,24 @@ export const outcomes = t.router({
 
 					for (const intentionId of intentionIds) {
 						await linkIntentionToOutcome(trx, outcome.id as number, intentionId);
+					}
+
+					await trx
+						.deleteFrom('outcome_verdicts')
+						.where('outcomeId', '=', outcome.id as number)
+						.execute();
+					if (input.verdicts.length > 0) {
+						await trx
+							.insertInto('outcome_verdicts')
+							.values(
+								input.verdicts.map((verdict) => ({
+									outcomeId: outcome.id as number,
+									goalId: verdict.goalId,
+									verdict: verdict.verdict,
+									note: verdict.note ?? null
+								}))
+							)
+							.execute();
 					}
 
 					return { outcomeId: outcome.id };
