@@ -44,7 +44,9 @@
 		}
 	});
 
-	const lighterGoalColor = (color: string) => lightenHSL(color, 0.65);
+	const lighterGoalColor = (color: string) => {
+		return lightenHSL(color, 0.65);
+	};
 
 	function handlePlusNewOutcome() {
 		newOutcomeTexts = [...newOutcomeTexts, ''];
@@ -57,7 +59,7 @@
 
 	function handleNewOutcomeTextChanged(detail: { value: string; index: number }) {
 		newOutcomeTexts[detail.index] = detail.value;
-		newOutcomeTexts = newOutcomeTexts.slice();
+		newOutcomeTexts = newOutcomeTexts.slice(); // create a new reference to trigger reactivity
 		onUpdateNewOutcomeTexts?.({ goalId: goal.id, texts: newOutcomeTexts });
 	}
 
@@ -138,23 +140,27 @@
 						/>
 						<label
 							for="intention-{intention.id}"
-							class="goal-text text-lg leading-6 font-semibold"
-							style="--goal-color: {goal.color}">{intention.text}</label
+							class="goal-text text-lg leading-6 font-semibold {intention.status === 'not_today'
+								? 'italic opacity-60'
+								: ''}"
+							style="--goal-color: {goal.color}"
+							>{#if intention.status === 'not_today'}-{goal.orderNumber}{intention.subIntentionQualifier ??
+									''})
+							{/if}{intention.text}</label
 						>
 						{#if onNotTodayToggled}
 							<button
-								type="button"
-								class="btn btn-ghost btn-xs ml-1"
+								class="md:tooltip md:tooltip-right ml-1 flex opacity-40 transition-opacity hover:opacity-100"
+								data-tip={intention.status === 'not_today' ? 'Mark pending' : 'Not today'}
 								aria-label={intention.status === 'not_today'
-									? 'Restore intention'
-									: 'Mark not today'}
-								title={intention.status === 'not_today' ? 'Restore intention' : 'Mark not today'}
-								onclick={() => onNotTodayToggled?.({ intention })}
+									? `Mark ${intention.text} as pending`
+									: `Mark ${intention.text} as not today`}
+								onclick={() => onNotTodayToggled({ intention })}
 							>
 								{#if intention.status === 'not_today'}
-									<Undo2 class="size-4" />
+									<Undo2 class="hover:bg-base-300 size-4" />
 								{:else}
-									<CalendarX class="size-4" />
+									<CalendarX class="hover:bg-base-300 size-4" />
 								{/if}
 							</button>
 						{/if}

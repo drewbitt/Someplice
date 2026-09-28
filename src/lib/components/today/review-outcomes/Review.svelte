@@ -52,6 +52,7 @@
 
 		const targetDate = new Date(intentionDate);
 		const currentDate = localeCurrentDate();
+		// difference in calendar days (UTC), not elapsed 24h periods
 		daysAgo = Math.round(
 			(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()) -
 				Date.UTC(targetDate.getUTCFullYear(), targetDate.getUTCMonth(), targetDate.getUTCDate())) /
@@ -92,10 +93,20 @@
 		}
 	});
 
-	const listGoalsOnDate = async (date: Date) =>
-		trpc().goals.listGoalsOnDate.query({ active: 1, date });
-	const listIntentionsOnDate = async (date: Date) =>
-		trpc().intentions.list.query({ startDate: date, endDate: date });
+	const listGoalsOnDate = async (date: Date) => {
+		const goals = await trpc().goals.listGoalsOnDate.query({
+			active: 1,
+			date: date
+		});
+		return goals;
+	};
+	const listIntentionsOnDate = async (date: Date) => {
+		const intentions = await trpc().intentions.list.query({
+			startDate: date,
+			endDate: date
+		});
+		return intentions;
+	};
 
 	const handleSaveReview = async () => {
 		const statuses = Array.from(
@@ -144,14 +155,17 @@
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
 
+		// Rebuild this goal's pending rows from its latest texts, then renumber
+		// across all pending rows — (DATE(date), orderNumber) must stay unique
+		// across goals, so numbering per goal would collide.
 		newIntentionsToInsert = newIntentionsToInsert.filter(
 			(intention) => intention.goalId !== goalId
 		);
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId,
-					text,
+					goalId: goalId,
+					text: text,
 					date: intentionDate.toISOString(),
 					status: 'done',
 					subIntentionQualifier: null,

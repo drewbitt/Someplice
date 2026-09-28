@@ -28,7 +28,7 @@ export const outcomes = t.router({
 	 * @param input.limit - The maximum number of results to return (optional).
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @param input.order - The order to sort the results by (asc or desc, default is asc).
-	 * @param input.orderBy - The order column (id or date, default is id).
+	 * @param input.orderBy - The column to order the results by (either 'id' or 'date', default is 'id').
 	 * @returns An array of `Outcome` objects.
 	 */
 	list: t.procedure
@@ -67,7 +67,7 @@ export const outcomes = t.router({
 				if (input.offset) {
 					query = query.offset(input.offset);
 				}
-				query = query.orderBy(input.orderBy, input.order);
+				query = query.orderBy(input.orderBy || 'id', input.order);
 			} else {
 				query = query.orderBy('id', 'asc');
 			}
@@ -93,8 +93,13 @@ export const outcomes = t.router({
 		}),
 	/**
 	 * Save a review atomically: insert new intentions, apply status updates,
-	 * upsert the day's outcome, link every intention to it, and rewrite the
-	 * day's per-goal verdicts.
+	 * upsert the day's outcome, and link every intention to it — all in one
+	 * transaction so a failed save leaves nothing behind and can be retried.
+	 * @param input.outcome - `date` and `reviewed` for the outcome row.
+	 * @param input.newIntentions - New intentions to insert (without ids).
+	 * @param input.statuses - `intentionId`/`status` pairs for existing intentions.
+	 * @param input.verdicts - Per-goal verdicts for the outcome.
+	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
 	saveReview: t.procedure
 		.use(logger)
@@ -136,6 +141,7 @@ export const outcomes = t.router({
 							.executeTakeFirstOrThrow();
 					}
 
+					// outcomes.date is UNIQUE: insert, or update `reviewed` on the existing row
 					const outcome = await trx
 						.insertInto('outcomes')
 						.values(input.outcome)

@@ -134,15 +134,18 @@
 		const { goalId, texts } = detail;
 		if (goalId === null) return;
 
+		// Rebuild this goal's pending rows from its latest texts, then renumber
+		// across all pending rows — (DATE(date), orderNumber) must stay unique
+		// across goals, so numbering per goal would collide.
 		newIntentionsToInsert = newIntentionsToInsert.filter(
 			(intention) => intention.goalId !== goalId
 		);
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId,
-					text,
-					date,
+					goalId: goalId,
+					text: text,
+					date: date,
 					status: 'done',
 					subIntentionQualifier: null,
 					orderNumber: 0

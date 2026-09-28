@@ -1,3 +1,5 @@
+import type { Selectable } from 'kysely';
+import type { OutcomeVerdicts } from '$src/lib/types/data';
 import type { z } from 'zod';
 import type { GoalLogSchema } from './routes/goal_logs';
 import type { GoalSchema } from './routes/goals';
@@ -11,4 +13,4 @@ export type GoalLog = z.infer<typeof GoalLogSchema>;
 export type Outcome = z.infer<typeof OutcomeSchema>;
 export type Verdict = z.infer<typeof VerdictSchema>;
 export type VerdictValue = Verdict['verdict'];
-export type OutcomeVerdict = Verdict & { id: number | null; outcomeId: number };
+export type OutcomeVerdict = Selectable<OutcomeVerdicts>;
