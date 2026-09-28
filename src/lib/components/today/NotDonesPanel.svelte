@@ -60,7 +60,7 @@
 				.filter((id): id is number => id !== null);
 			if (!ids.length) return;
 			await trpc().intentions.setStatus.mutate({ ids, status: 'not_today' });
-			notDones.markStatuses(ids, 'not_today');
+			await notDones.markStatuses(ids, 'not_today');
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
