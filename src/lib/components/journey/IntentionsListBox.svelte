@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { Goal } from '$src/lib/trpc/types';
-	import { goalColorForIntention, goalOrderNumberForId, type IntentionRow } from '$src/lib/utils';
+	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import type { Intention } from '$src/lib/trpc/types';
 
-	let { goals, intentions }: { goals: Goal[]; intentions: IntentionRow[] } = $props();
+	let { goals, intentions }: { goals: Goal[]; intentions: Intention[] } = $props();
 
 	let numIntentions = $derived(intentions.length);
 </script>
@@ -21,7 +22,10 @@
 						? 'italic opacity-60'
 						: ''}"
 				>
-					{intention.status === 'not_today' ? '-' : ''}{goalOrderNumberForId(intention.goalId, goals)}{intention.subIntentionQualifier ?? ''}) {intention.text}
+					{intention.status === 'not_today' ? '-' : ''}{goalOrderNumberForId(
+						intention.goalId,
+						goals
+					)}{intention.subIntentionQualifier ?? ''}) {intention.text}
 				</span>
 			</div>
 		{/each}

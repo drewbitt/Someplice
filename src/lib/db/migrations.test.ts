@@ -99,6 +99,13 @@ describe('migrations', () => {
 			.orderBy('orderNumber')
 			.execute();
 		expect(rows.map((r) => r.status)).toEqual(['done', 'pending']);
+
+		await m002.down(migrationDb);
+		const downgradedRows = await sql<{ completed: number }>`
+			select completed from intentions order by orderNumber
+		`.execute(db);
+		expect(downgradedRows.rows.map((r) => r.completed)).toEqual([1, 0]);
+		await m002.up(migrationDb);
 	});
 
 	it('every migration with a down() rolls back cleanly', async () => {

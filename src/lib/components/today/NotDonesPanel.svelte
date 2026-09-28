@@ -1,13 +1,8 @@
 <script lang="ts">
 	import type { Goal } from '$src/lib/trpc/types';
-	import {
-		goalColorForIntention,
-		goalOrderNumberForId,
-		groupNotDones,
-		intentionMatchKey,
-		type IntentionRow,
-		type NotDoneGroup
-	} from '$src/lib/utils';
+	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '$src/lib/utils/notDones';
+	import type { Intention } from '$src/lib/trpc/types';
 	import { notDones } from '$src/lib/stores/notDones.svelte';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { trpc } from '$src/lib/trpc/client';
@@ -21,7 +16,7 @@
 	}: {
 		goals: Goal[];
 		/** Items already on today's list (saved or drafted) — skipped items matching one are not re-offered. */
-		plannedIntentions: IntentionRow[];
+		plannedIntentions: Intention[];
 		onImport: (line: string) => void;
 	} = $props();
 
@@ -56,7 +51,7 @@
 	const codeFor = (group: NotDoneGroup) =>
 		`${goalOrderNumberForId(group.representative.goalId, goals)}${group.representative.subIntentionQualifier ?? ''}${')'.repeat(1 + group.missCount)}`;
 
-	const dayFor = (intention: IntentionRow) =>
+	const dayFor = (intention: Intention) =>
 		new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' }).format(
 			new Date(`${intention.date.slice(0, 10)}T00:00:00Z`)
 		);
@@ -81,7 +76,7 @@
 
 	const importGroup = (group: NotDoneGroup, strategyText = '') => {
 		const text = strategyText
-			? `${group.representative.text} — ${strategyText}`
+			? `${group.representative.text} ⟶ ${strategyText}`
 			: group.representative.text;
 		onImport(
 			`${goalOrderNumberForId(group.representative.goalId, goals)}${group.representative.subIntentionQualifier ?? ''}) ${text}`

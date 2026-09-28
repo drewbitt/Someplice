@@ -3,7 +3,8 @@
 	import type { Goal, Intention, Outcome } from '$src/lib/trpc/types';
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
-	import { localeCurrentDate, statusFromReviewCheckbox, type IntentionRow } from '$src/lib/utils';
+	import { localeCurrentDate } from '$src/lib/utils';
+	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 
@@ -11,7 +12,7 @@
 		intentionsOnLatestDate,
 		setHasOutstandingOutcome
 	}: {
-		intentionsOnLatestDate: IntentionRow[];
+		intentionsOnLatestDate: Intention[];
 		setHasOutstandingOutcome: (value: boolean) => void;
 	} = $props();
 
@@ -22,7 +23,7 @@
 
 	let daysAgo = $state(0);
 	let goalsOnDate = $state<Goal[]>([]);
-	let intentionsOnDate = $state<IntentionRow[]>([]);
+	let intentionsOnDate = $state<Intention[]>([]);
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
 	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
@@ -173,11 +174,17 @@
 		});
 	}
 
-	const handleNotTodayToggled = async (detail: { intention: IntentionRow }) => {
+	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
 		const { intention } = detail;
+		if (intention.id === null) return;
 		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
 		try {
-			await trpc().intentions.edit.mutate({ ...intention, status });
+			await trpc().intentions.edit.mutate({
+				id: intention.id,
+				status,
+				text: intention.text,
+				subIntentionQualifier: intention.subIntentionQualifier
+			});
 			intention.status = status;
 		} catch (error) {
 			if (error instanceof Error) {

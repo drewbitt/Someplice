@@ -3,7 +3,8 @@
 	import type { Goal } from '$src/lib/trpc/types';
 	import { trpc } from '$src/lib/trpc/client';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { goalColorForIntention, goalOrderNumberForId, type IntentionRow } from '$src/lib/utils';
+	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import type { Intention } from '$src/lib/trpc/types';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import Trash2 from 'virtual:icons/lucide/trash-2';
@@ -14,7 +15,7 @@
 		goals,
 		opened = $bindable(),
 		intention
-	}: { goals: Goal[]; opened: boolean; intention: IntentionRow } = $props();
+	}: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
 
 	let dialog: HTMLDialogElement;
 	let intentionsModalOpened = $state(opened);
@@ -62,9 +63,15 @@
 	};
 
 	const toggleNotToday = async () => {
+		if (intention.id === null) return;
 		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
 		try {
-			await trpc().intentions.edit.mutate({ ...intention, status });
+			await trpc().intentions.edit.mutate({
+				id: intention.id,
+				status,
+				text: intention.text,
+				subIntentionQualifier: intention.subIntentionQualifier
+			});
 			opened = false;
 			dialog?.close();
 			await invalidateAll();

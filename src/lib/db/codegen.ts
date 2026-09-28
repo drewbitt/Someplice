@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import prettier from 'prettier';
 import { createDb } from './db.ts';
 import { runMigrations } from './migrate-to-latest.ts';
+import { INTENTION_STATUSES } from '../trpc/intention-statuses.ts';
 
 const OUT_FILE = './src/lib/types/data.d.ts';
 
@@ -18,10 +19,15 @@ export async function generateDbTypes(verify: boolean): Promise<void> {
 	try {
 		await runMigrations(db);
 		const dialect = new SqliteDialect();
+		const overrides = {
+			columns: {
+				'intentions.status': INTENTION_STATUSES.map((status) => `'${status}'`).join(' | ')
+			}
+		};
 		if (verify) {
 			// kysely-codegen's own verify diffs raw output; the committed file is
 			// prettier-formatted, so format before comparing
-			const newOutput = await generate({ db, dialect, outFile: null });
+			const newOutput = await generate({ db, dialect, outFile: null, overrides });
 			const formatted = await prettier.format(newOutput, {
 				...(await prettier.resolveConfig(OUT_FILE)),
 				filepath: OUT_FILE
@@ -31,7 +37,7 @@ export async function generateDbTypes(verify: boolean): Promise<void> {
 				throw new Error(`${OUT_FILE} is stale. Regenerate it with: pnpm run db:codegen`);
 			}
 		} else {
-			await generate({ db, dialect, outFile: OUT_FILE });
+			await generate({ db, dialect, outFile: OUT_FILE, overrides });
 		}
 	} finally {
 		await db.destroy();

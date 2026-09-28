@@ -4,13 +4,13 @@
 	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '$src/lib/trpc/client';
-	import { statusFromReviewCheckbox, type IntentionRow } from '$src/lib/utils';
+	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
 
 	let {
 		goals,
 		intentions,
 		outcomes
-	}: { goals: Goal[]; intentions: IntentionRow[]; outcomes: Outcome[] } = $props();
+	}: { goals: Goal[]; intentions: Intention[]; outcomes: Outcome[] } = $props();
 
 	let showSaveButton = $state(false);
 	let hasBeenSaved = $state(false);
@@ -104,12 +104,18 @@
 		});
 	}
 
-	const handleNotTodayToggled = async (detail: { intention: IntentionRow }) => {
+	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
 		const { intention } = detail;
+		if (intention.id === null) return;
 		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
 		try {
-			await trpc().intentions.edit.mutate({ ...intention, status });
-			intention.status = status;
+			await trpc().intentions.edit.mutate({
+				id: intention.id,
+				status,
+				text: intention.text,
+				subIntentionQualifier: intention.subIntentionQualifier
+			});
+			await invalidateAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);

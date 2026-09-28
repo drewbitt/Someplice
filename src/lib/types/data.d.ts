@@ -32,7 +32,7 @@ export interface Intentions {
 	goalId: number;
 	id: Generated<number | null>;
 	orderNumber: number;
-	status: Generated<string>;
+	status: 'pending' | 'done' | 'not_today';
 	subIntentionQualifier: string | null;
 	text: string;
 }

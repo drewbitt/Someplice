@@ -1,13 +1,8 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
 	import { notDones } from '$src/lib/stores/notDones.svelte';
-	import {
-		computeMissCount,
-		goalColorForIntention,
-		lighterHSLColor,
-		localeCurrentDate
-	} from '$src/lib/utils';
-	import { lightenHSL } from '$src/lib/utils';
+	import { goalColorForIntention, lightenHSL, localeCurrentDate } from '$src/lib/utils';
+	import { computeMissCount } from '$src/lib/utils/notDones';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';

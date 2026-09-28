@@ -5,8 +5,9 @@ import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
 import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
+import { INTENTION_STATUSES as intentionStatuses } from '../intention-statuses';
 
-export const INTENTION_STATUSES = ['pending', 'done', 'not_today'] as const;
+export const INTENTION_STATUSES = intentionStatuses;
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
@@ -219,14 +220,17 @@ export const intentions = t.router({
 		.input(
 			// Only the fields edit is allowed to change; orderNumber is owned by
 			// updateIntentions so reordering via edit can't trip the unique index.
-			IntentionsSchema
+			IntentionsSchema.pick({
+				id: true,
+				status: true,
+				text: true,
+				subIntentionQualifier: true
+			}).extend({ id: z.number() })
 		)
 		.mutation(async ({ input }) => {
 			const query = getDb()
 				.updateTable('intentions')
 				.set({
-					goalId: input.goalId,
-					orderNumber: input.orderNumber,
 					status: input.status,
 					text: input.text,
 					subIntentionQualifier: input.subIntentionQualifier

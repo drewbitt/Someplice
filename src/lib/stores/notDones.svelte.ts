@@ -1,5 +1,6 @@
 import { trpc } from '$src/lib/trpc/client';
-import { localePreviousDate, type IntentionRow, type IntentionStatus } from '$src/lib/utils';
+import type { Intention, IntentionStatus } from '$src/lib/trpc/types';
+import { localePreviousDate } from '$src/lib/utils';
 import { SvelteDate } from 'svelte/reactivity';
 
 /**
@@ -8,7 +9,7 @@ import { SvelteDate } from 'svelte/reactivity';
  * demand; `refresh` re-queries after mutations (dismiss, review marks).
  */
 class NotDonesStore {
-	recentIntentions = $state<IntentionRow[]>([]);
+	recentIntentions = $state<Intention[]>([]);
 	loaded = $state(false);
 
 	async refresh(days = 3) {
@@ -18,11 +19,6 @@ class NotDonesStore {
 
 		this.recentIntentions = await trpc().intentions.list.query({ startDate, endDate });
 		this.loaded = true;
-	}
-
-	removeIntentions(ids: (number | null)[]) {
-		const removed = new Set(ids);
-		this.recentIntentions = this.recentIntentions.filter((intention) => !removed.has(intention.id));
 	}
 
 	markStatuses(ids: (number | null)[], status: IntentionStatus) {

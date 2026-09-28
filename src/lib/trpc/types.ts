@@ -6,5 +6,6 @@ import type { OutcomeSchema } from './routes/outcomes';
 
 export type Goal = z.infer<typeof GoalSchema>;
 export type Intention = z.infer<typeof IntentionsSchema>;
+export type IntentionStatus = Intention['status'];
 export type GoalLog = z.infer<typeof GoalLogSchema>;
 export type Outcome = z.infer<typeof OutcomeSchema>;
