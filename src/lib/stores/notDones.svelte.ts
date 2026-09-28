@@ -25,7 +25,7 @@ class NotDonesStore {
 	}
 
 	async markStatuses(ids: (number | null)[], status: IntentionStatus) {
-		await this.inflight;
+		await this.inflight?.catch(() => undefined);
 		const marked = new Set(ids);
 		this.recentIntentions = this.recentIntentions.map((intention) =>
 			marked.has(intention.id) ? { ...intention, status } : intention
