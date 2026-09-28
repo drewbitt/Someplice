@@ -48,34 +48,6 @@ export const lightenHSL = (color: string, amount: number): string => {
 	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
 };
 
-export const evenLighterHSLColor = (color: string): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * 0.4;
-	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
-};
-
-// OK, this is getting ridiculous
-export const evenEvenLighterHSLColor = (color: string): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * 0.65;
-	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
-};
-
-export const darkerHSLColor = (color: string): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const darkerLightness = lightness * 0.55;
-	return `hsl(${hue},${saturation}%,${darkerLightness}%)`;
-};
-
 export const goalColorForIntention = (intention: Pick<Intention, 'goalId'>, goals: Goal[]) => {
 	const goal = goals.find((goal) => goal.id === intention.goalId);
 	if (goal) {

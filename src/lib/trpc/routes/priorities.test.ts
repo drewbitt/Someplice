@@ -101,12 +101,12 @@ describe('priorities', () => {
 		).rejects.toThrow();
 	});
 
-	it('edit changes fields in place without completing the priority', async () => {
+	it('upsert changes fields in place without completing the priority', async () => {
 		const goalId = await addGoal();
-		const { id } = await caller.priorities.upsert({ goalId, text: 'Original' });
+		await caller.priorities.upsert({ goalId, text: 'Original' });
 
-		await caller.priorities.edit({
-			id: Number(id),
+		await caller.priorities.upsert({
+			goalId,
 			text: 'Edited',
 			description: 'Added detail',
 			checkInDate: '2026-11-15'
@@ -125,16 +125,21 @@ describe('priorities', () => {
 		expect((await caller.priorities.listCompleted()) as Priority[]).toHaveLength(0);
 	});
 
-	it('edit clears nullable fields when passed null', async () => {
+	it('upsert clears nullable fields when passed null', async () => {
 		const goalId = await addGoal();
-		const { id } = await caller.priorities.upsert({
+		await caller.priorities.upsert({
 			goalId,
 			text: 'Original',
 			description: 'desc',
 			checkInDate: '2026-11-15'
 		});
 
-		await caller.priorities.edit({ id: Number(id), description: null, checkInDate: null });
+		await caller.priorities.upsert({
+			goalId,
+			text: 'Original',
+			description: null,
+			checkInDate: null
+		});
 
 		const active = (await caller.priorities.list()) as Priority[];
 		expect(active[0].description).toBeNull();

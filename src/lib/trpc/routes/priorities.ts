@@ -27,7 +27,7 @@ export const priorities = t.router({
 	 * List priorities as plain generated database rows.
 	 * @param input.activeOnly - When true (default), return only active priorities
 	 * (`completedAt IS NULL`) — at most one per goal.
-	 * @returns An array of priorities with `goalTitle`/`goalColor`/`goalOrderNumber`.
+	 * @returns An array of plain priority rows.
 	 */
 	list: t.procedure
 		.use(logger)
@@ -99,9 +99,8 @@ export const priorities = t.router({
 			return await query.execute();
 		}),
 	/**
-	 * Set a new top priority for a goal. Any existing active priority for the goal is
-	 * completed first (keeping the one-active-per-goal invariant); use `edit` to change
-	 * the current priority in place without completing it.
+	 * Set or replace a goal's active top priority in place; creates one if none is
+	 * active. Never completes the old one.
 	 * @param input.goalId - Goal to set the priority on.
 	 * @param input.text - The priority text.
 	 * @param input.description - Optional longer description.
@@ -160,46 +159,6 @@ export const priorities = t.router({
 						.returning('id')
 						.executeTakeFirstOrThrow();
 				});
-		}),
-	/**
-	 * Edit an existing priority's fields in place.
-	 * @param input.id - The priority to edit.
-	 * @param input.text - New text (optional).
-	 * @param input.description - New description (optional; pass null to clear).
-	 * @param input.checkInDate - New check-in date (optional; pass null to clear).
-	 * @returns An `UpdateResult` object.
-	 * @throws {NoResultError} If no priority with the provided `id` exists.
-	 */
-	edit: t.procedure
-		.use(logger)
-		.input(
-			z.object({
-				id: z.number(),
-				text: z.string().min(1).optional(),
-				description: z.string().nullable().optional(),
-				checkInDate: z
-					.string()
-					.regex(/^\d{4}-\d{2}-\d{2}$/)
-					.nullable()
-					.optional()
-			})
-		)
-		.mutation(async ({ input }) => {
-			const query = getDb()
-				.updateTable('priorities')
-				.set({
-					...(input.text !== undefined ? { text: input.text } : {}),
-					...(input.description !== undefined ? { description: input.description } : {}),
-					...(input.checkInDate !== undefined ? { checkInDate: input.checkInDate } : {})
-				})
-				.where('id', '=', input.id);
-			const result = await query.executeTakeFirst();
-			// executeTakeFirstOrThrow() does not work on updates where no rows are updated as nothing is returned?
-			// Manual throw
-			if (Number(result?.numUpdatedRows) === 0) {
-				throw new NoResultError(query.toOperationNode());
-			}
-			return result;
 		}),
 	/**
 	 * Complete a priority, recording when and an optional reflection. Completed
