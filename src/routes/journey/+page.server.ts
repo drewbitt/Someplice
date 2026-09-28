@@ -15,6 +15,16 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const completedPriorities = await trpcLoad(event, (t) =>
 		t.priorities.listCompleted({ startDate, endDate })
 	);
+	const verdicts = await trpcLoad(event, (t) =>
+		t.outcomes.verdictsByOutcomeIds({
+			outcomeIds: outcomes.map((outcome) => outcome.id).filter((id): id is number => id !== null)
+		})
+	);
+	const outcomeDateById = new Map(
+		outcomes
+			.filter((outcome): outcome is typeof outcome & { id: number } => outcome.id !== null)
+			.map((outcome) => [outcome.id, outcome.date])
+	);
 
 	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
 	// that date, not today's active set. Inactive goals that still have intentions
@@ -39,9 +49,14 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 						activeGoals,
 						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
 						intentionsByDate[date] ?? [],
-						completedPriorities
-							.filter((priority) => priority.completedAt?.slice(0, 10) === date)
-							.map((priority) => priority.goalId)
+						[
+							...verdicts
+								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+								.map((verdict) => verdict.goalId),
+							...completedPriorities
+								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+								.map((priority) => priority.goalId)
+						]
 					)
 				];
 			})
@@ -53,11 +68,7 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		intentionsByDate,
 		goalsByDate,
 		outcomes,
-		verdicts: await trpcLoad(event, (t) =>
-			t.outcomes.verdictsByOutcomeIds({
-				outcomeIds: outcomes.map((outcome) => outcome.id).filter((id): id is number => id !== null)
-			})
-		),
+		verdicts,
 		priorities,
 		completedPriorities
 	};
