@@ -43,7 +43,7 @@
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^24.13.6",
+		"@types/node": "^24.19.0",
 		"@typescript/native": "npm:typescript@^7.0.2",
 		"@vite-pwa/sveltekit": "^1.1.0",
 		"daisyui": "^5.7.42",
