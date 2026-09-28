@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import type { Goal } from '$src/lib/trpc/types';
+	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { trpc } from '$src/lib/trpc/client';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import type { Intention } from '$src/lib/trpc/types';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import TextCursorInput from 'virtual:icons/lucide/text-cursor-input';
 	import Trash2 from 'virtual:icons/lucide/trash-2';

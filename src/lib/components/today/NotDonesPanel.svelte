@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { Goal } from '$src/lib/trpc/types';
+	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
 	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '$src/lib/utils/notDones';
-	import type { Intention } from '$src/lib/trpc/types';
 	import { notDones } from '$src/lib/stores/notDones.svelte';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { trpc } from '$src/lib/trpc/client';
@@ -170,7 +169,7 @@
 			{#if group.missCount >= 3}
 				<input
 					bind:value={strategy}
-					class="input input-bordered w-full"
+					class="input w-full"
 					placeholder="How will you make it happen today?"
 					aria-label="How will you make it happen today?"
 				/>

@@ -1,7 +1,6 @@
 <script lang="ts">
-	import type { Goal } from '$src/lib/trpc/types';
+	import type { Goal, Intention } from '$src/lib/trpc/types';
 	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
-	import type { Intention } from '$src/lib/trpc/types';
 
 	let { goals, intentions }: { goals: Goal[]; intentions: Intention[] } = $props();
 

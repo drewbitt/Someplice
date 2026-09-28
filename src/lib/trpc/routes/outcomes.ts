@@ -3,7 +3,7 @@ import { t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
 import { z } from 'zod';
-import { IntentionsSchema } from './intentions';
+import { INTENTION_STATUSES, IntentionsSchema } from './intentions';
 
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),
@@ -85,7 +85,7 @@ export const outcomes = t.router({
 				statuses: z.array(
 					z.object({
 						intentionId: z.number(),
-						status: z.enum(['pending', 'done', 'not_today'])
+						status: z.enum(INTENTION_STATUSES)
 					})
 				)
 			})
