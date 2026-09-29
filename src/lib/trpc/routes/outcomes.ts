@@ -11,8 +11,14 @@ import { IntentionsSchema } from './intentions';
 export const OutcomeSchema = z.object({
 	id: z.number().nullable(),
 	reviewed: z.number(),
-	// date is ISOString without the time
-	date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+	// date is ISOString without the time; the refine rejects rollover values like
+	// 2026-02-30 that would store fine but never match a real day's bounds.
+	date: z
+		.string()
+		.regex(/^\d{4}-\d{2}-\d{2}$/)
+		.refine((value) => new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value, {
+			message: 'date must be a real calendar day'
+		})
 });
 
 export const VerdictSchema = z.object({

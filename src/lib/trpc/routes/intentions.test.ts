@@ -414,4 +414,19 @@ describe('intentions', () => {
 		}
 		expect(error?.code).toEqual('BAD_REQUEST');
 	});
+
+	it.each(['2023-02-30T00:01:00.000Z', '2023-07-01T24:00:00.000Z'])(
+		'updateIntentions rejects the rollover date %s',
+		async (date) => {
+			let error: { code?: string } | undefined;
+			try {
+				await caller.intentions.updateIntentions({
+					intentions: [{ ...TEST_INTENTION, date }]
+				});
+			} catch (e) {
+				error = e as { code?: string };
+			}
+			expect(error?.code).toEqual('BAD_REQUEST');
+		}
+	);
 });

@@ -18,8 +18,14 @@ export const IntentionsSchema = z.object({
 	subIntentionQualifier: z.string().nullable(),
 	// strftime-normalized wall clock (toISOString shape); the table CHECK demands
 	// exactly this form, and older databases without the COALESCE'd CHECK would
-	// otherwise store anything.
-	date: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+	// otherwise store anything. The refine rejects regex-valid impossibilities like
+	// 2026-02-30 or T24:00 that roll over to a different instant.
+	date: z
+		.string()
+		.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+		.refine((value) => new Date(value).toISOString() === value, {
+			message: 'date must be a real instant in canonical toISOString() form'
+		})
 });
 
 export const intentions = t.router({
