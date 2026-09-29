@@ -37,8 +37,9 @@ export async function checkMissingOutcomes() {
 	);
 
 	// Only past days get outcomes backfilled: today's intentions get theirs from
-	// the midnight job. An intention with no outcomes_intentions link is by
-	// definition missing its outcome's association.
+	// the midnight job. An intention counts as missing unless it is linked to an
+	// outcome for its OWN day — a stale link to another day's outcome (e.g. left
+	// behind by a cross-date move) must not exempt it.
 	const today = localeCurrentDate().toISOString().slice(0, 10);
 	const intentions = await getDb()
 		.selectFrom('intentions')
@@ -48,8 +49,12 @@ export async function checkMissingOutcomes() {
 			not(
 				exists(
 					selectFrom('outcomes_intentions')
+						.innerJoin('outcomes', 'outcomes.id', 'outcomes_intentions.outcomeId')
 						.select('outcomes_intentions.intentionId')
 						.whereRef('outcomes_intentions.intentionId', '=', 'intentions.id')
+						.where(({ eb }) =>
+							eb(sql`DATE("outcomes"."date")`, '=', sql`DATE("intentions"."date")`)
+						)
 				)
 			)
 		)
