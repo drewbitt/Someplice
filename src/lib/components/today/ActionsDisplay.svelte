@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
+	import { invalidateAll } from '$app/navigation';
 	import { notDones } from '$src/lib/stores/notDones.svelte';
+	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { goalColorForIntention, lightenHSL, localeCurrentDate } from '$src/lib/utils';
 	import { computeMissCount } from '$src/lib/utils/notDones';
 	import type { UpdateResult } from 'kysely';
@@ -30,6 +32,9 @@
 	let showMousoverMenu = $state(false);
 	let showMousoverIndex = $state<number | null>(null);
 	let showIntentionModal = $state(false);
+	// The open modal tracks its own intention id: rendering it under the hover
+	// guard meant moving the mouse unmounted the dialog (and lost typed text).
+	let modalIntentionId = $state<number | null>(null);
 
 	let goalOrderNumbers = new SvelteMap<number, number>();
 
@@ -81,6 +86,10 @@
 	const intentionCode = (intention: Intention) => {
 		const goalOrder = goalOrderNumbers.get(intention.goalId);
 		const qualifier = intention.subIntentionQualifier ?? '';
+		// x-prefixed: the goal is inactive, so its number isn't in today's editor.
+		if (inactiveGoalIds.has(intention.goalId)) {
+			return `x${goalOrder}${qualifier})`;
+		}
 		if (intention.status === 'not_today') {
 			return `-${goalOrder}${qualifier})`;
 		}
@@ -88,15 +97,25 @@
 		return `${goalOrder}${qualifier}${')'.repeat(1 + misses)}`;
 	};
 
+	let inactiveGoalIds = $derived(
+		new Set(
+			goals
+				.filter((goal) => goal.active === 0)
+				.map((goal) => goal.id)
+				.filter((id): id is number => id !== null)
+		)
+	);
+
 	const updateIntention = async (event: Event) => {
 		const target = event.target as HTMLInputElement;
 		const intentionId = target.id.split('-')[1];
 		if (intentionId) {
-			let intention = intentions.find((intention) => {
+			const original = intentions.find((intention) => {
 				return intention.id === parseInt(intentionId);
 			});
-			if (intention) {
-				intention = { ...intention, status: target.checked ? 'done' : 'pending' };
+			if (original) {
+				const status: Intention['status'] = target.checked ? 'done' : 'pending';
+				const intention = { ...original, status };
 				const updatedIntention = await handleUpdateSingleIntention(intention);
 				if (
 					updatedIntention?.numUpdatedRows !== undefined &&
@@ -108,6 +127,10 @@
 						}
 						return intention;
 					});
+				} else {
+					// The mutation failed or updated nothing: re-assert the stored
+					// status instead of leaving the DOM checkbox lying.
+					target.checked = original.status === 'done';
 				}
 			}
 		}
@@ -129,7 +152,16 @@
 			return { ...item, orderNumber: index + 1 };
 		});
 		intentions = items;
-		await trpc().intentions.updateIntentions.mutate({ intentions: items });
+		try {
+			await trpc().intentions.updateIntentions.mutate({ intentions: items });
+			await invalidateAll();
+		} catch (error) {
+			// Resync from the server so the rendered order can't diverge from the DB.
+			await invalidateAll();
+			if (error instanceof Error) {
+				todayPageErrorStore.setError(error.message);
+			}
+		}
 	};
 
 	const handleButtonPressIntention = (
@@ -184,7 +216,9 @@
 					aria-label="{intentionCode(intention)} {intention.text}"
 					class={'flex items-center pl-3' +
 						(intention.status === 'done' ? ' line-through' : '') +
-						(intention.status === 'not_today' ? ' opacity-60' : '') +
+						(intention.status === 'not_today' || inactiveGoalIds.has(intention.goalId)
+							? ' opacity-60'
+							: '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
 					onmouseover={() => {
 						showMousoverMenu = true;
@@ -200,15 +234,16 @@
 						showMousoverIndex = null;
 					}}
 				>
+					{#if showIntentionModal && modalIntentionId === intention.id}
+						<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
+					{/if}
 					{#if showMousoverMenu && showMousoverIndex === intention.id}
-						{#if showIntentionModal}
-							<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
-						{/if}
 						<button
 							aria-haspopup="dialog"
 							aria-label="Open intention menu"
 							class="hover:bg-base-300 cursor-pointer py-0.5"
 							onclick={() => {
+								modalIntentionId = intention.id;
 								showIntentionModal = true;
 							}}
 						>
@@ -249,12 +284,14 @@
 						aria-haspopup="dialog"
 						oncontextmenu={(e) => {
 							e.preventDefault();
+							modalIntentionId = intention.id;
 							showIntentionModal = true;
 						}}
 						onkeydown={(e) => {
 							handleButtonPressIntention(e);
 							if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
 								e.preventDefault();
+								modalIntentionId = intention.id;
 								showIntentionModal = true;
 							}
 						}}

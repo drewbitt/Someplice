@@ -2,10 +2,12 @@
 	import Archive from 'virtual:icons/lucide/archive';
 	import ArchiveRestore from 'virtual:icons/lucide/archive-restore';
 	import Trash from 'virtual:icons/lucide/trash-2';
+	import { readableTextColor } from '$src/lib/utils';
 
 	let {
 		currentlyEditing,
 		description = $bindable(),
+		goalColor,
 		handleDeleteGoal,
 		handleArchiveGoal,
 		handleRestoreGoal,
@@ -13,11 +15,16 @@
 	}: {
 		currentlyEditing: boolean;
 		description: string | null;
+		goalColor: string;
 		handleDeleteGoal: () => Promise<void>;
 		handleArchiveGoal: () => Promise<void>;
 		handleRestoreGoal: () => Promise<void>;
 		isInactiveGoal?: boolean;
 	} = $props();
+
+	const descriptionColor = $derived(
+		`color-mix(in srgb, ${readableTextColor(goalColor)} 80%, transparent)`
+	);
 </script>
 
 {#if currentlyEditing && !isInactiveGoal}
@@ -52,7 +59,7 @@
 {:else if currentlyEditing && isInactiveGoal}
 	<div class="goal-box-description w-full">
 		<div class="flex items-center justify-between">
-			<p class="text-base-content/80">{description ?? ''}</p>
+			<p style="color: {descriptionColor}">{description ?? ''}</p>
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"
@@ -77,6 +84,6 @@
 	</div>
 {:else}
 	<div class="goal-box-description w-full">
-		<p class="text-base-content/80">{description ?? ''}</p>
+		<p style="color: {descriptionColor}">{description ?? ''}</p>
 	</div>
 {/if}

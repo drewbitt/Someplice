@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention, Outcome, Priority, VerdictValue } from '$src/lib/trpc/types';
+	import type {
+		Goal,
+		Intention,
+		IntentionStatus,
+		Outcome,
+		Priority,
+		VerdictValue
+	} from '$src/lib/trpc/types';
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../../shared/PriorityModal.svelte';
@@ -28,12 +35,29 @@
 	let maxOrderNumber = $state<number>(0);
 	let hasBeenSaved = $state(false);
 	let verdicts = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
+	// Checkbox toggles are scraped from the DOM at save time and status toggles
+	// are staged locally — both are unsaved edits the navigation guard must see.
+	let checkboxDirty = $state(false);
+	let statusOverrides = new SvelteMap<number, IntentionStatus>();
+	let displayIntentions = $derived(
+		intentionsOnDate.map((intention) =>
+			intention.id !== null && statusOverrides.has(intention.id)
+				? { ...intention, status: statusOverrides.get(intention.id)! }
+				: intention
+		)
+	);
 
 	let showPriorityModal = $state(false);
 	let priorityModalGoal = $state<Goal | null>(null);
 
 	beforeNavigate((navigation) => {
-		if (!newIntentionsToInsert.length && verdicts.size === 0) return;
+		if (
+			!newIntentionsToInsert.length &&
+			verdicts.size === 0 &&
+			!checkboxDirty &&
+			statusOverrides.size === 0
+		)
+			return;
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -122,7 +146,7 @@
 			)
 		).map((checkbox) => {
 			const intentionId = Number(checkbox.value);
-			const intention = intentionsOnDate.find((intention) => intention.id === intentionId);
+			const intention = displayIntentions.find((intention) => intention.id === intentionId);
 			return { intentionId, status: statusFromReviewCheckbox(intention, checkbox.checked) };
 		});
 
@@ -147,6 +171,8 @@
 			setHasOutstandingOutcome(false);
 			newIntentionsToInsert = [];
 			verdicts.clear();
+			statusOverrides.clear();
+			checkboxDirty = false;
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
@@ -205,22 +231,18 @@
 		verdicts.set(goalId, { verdict, note });
 	}
 
-	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
+	// The ✕ toggle used to write immediately — a stray click rewrote a past day
+	// while sibling edits waited for Save. It now stages a pending status change
+	// that saveReview writes alongside everything else.
+	const handleNotTodayToggled = (detail: { intention: Intention }) => {
 		const { intention } = detail;
 		if (intention.id === null) return;
-		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
-		try {
-			await trpc().intentions.edit.mutate({
-				id: intention.id,
-				status,
-				text: intention.text,
-				subIntentionQualifier: intention.subIntentionQualifier
-			});
-			intention.status = status;
-		} catch (error) {
-			if (error instanceof Error) {
-				todayPageErrorStore.setError(error.message);
-			}
+		const next = intention.status === 'not_today' ? 'pending' : 'not_today';
+		const stored = intentionsOnDate.find((i) => i.id === intention.id);
+		if (stored && stored.status === next) {
+			statusOverrides.delete(intention.id);
+		} else {
+			statusOverrides.set(intention.id, next);
 		}
 	};
 
@@ -239,7 +261,8 @@
 			Finish reviewing {intentionDate.toLocaleDateString('en-US', {
 				weekday: 'long',
 				month: 'short',
-				day: 'numeric'
+				day: 'numeric',
+				timeZone: 'UTC'
 			})}
 		</h1>
 		<p class="mb-5 text-center text-lg">
@@ -259,10 +282,11 @@
 						{goal}
 						{hasBeenSaved}
 						showTitle={true}
-						intentions={intentionsOnDate}
+						intentions={displayIntentions}
 						verdict={verdicts.get(goal.id ?? -1) ?? null}
 						priority={prioritiesOnDate.find((priority) => priority.goalId === goal.id)}
 						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
+						onCheckboxClicked={() => (checkboxDirty = true)}
 						onVerdictChanged={handleVerdictChanged}
 						onNotTodayToggled={handleNotTodayToggled}
 						onNewPriority={handleNewPriority}

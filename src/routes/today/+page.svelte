@@ -6,7 +6,7 @@
 	import PriorityCards from '$src/lib/components/today/PriorityCards.svelte';
 	import Review from '$src/lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '$src/lib/trpc/client';
-	import { dayOfWeekFromDate } from '$src/lib/utils';
+	import { goalsForJourneyDay, localeDayOfWeek } from '$src/lib/utils';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
@@ -86,11 +86,28 @@
 		hasOutstandingOutcome = value;
 	};
 
-	const addIntentions = async () => {
-		const addResult = await trpc().intentions.updateIntentions.mutate({
-			intentions: intentions
+	// updateIntentions upserts every field of every row sent. Sending the whole
+	// array lets a stale tab silently rewrite another tab's checkbox/not-today
+	// edits — so only rows this tab changed (against the last server snapshot)
+	// and brand-new rows go in the payload.
+	const dirtyIntentions = () => {
+		const serverById = new Map(intentionsFromServer.map((i) => [i.id, i]));
+		return intentions.filter((i) => {
+			if (i.id === null) return true;
+			const previous = serverById.get(i.id);
+			return (
+				!previous ||
+				previous.status !== i.status ||
+				previous.text !== i.text ||
+				previous.subIntentionQualifier !== i.subIntentionQualifier ||
+				previous.orderNumber !== i.orderNumber
+			);
 		});
-		if (addResult?.length > 0) {
+	};
+
+	const applySaveResult = async (result: unknown[] | undefined, hideTextArea: boolean) => {
+		if (result && result.length > 0) {
+			if (hideTextArea) handleHideAdditionalIntentionsTextArea();
 			await invalidateAll();
 			intentions = data.intentions;
 			intentionsFromServer = data.intentions;
@@ -99,16 +116,35 @@
 		}
 	};
 
-	const updateIntentions = async () => {
-		const updateResult = await handleUpdateIntentions();
-		if (updateResult?.length > 0) {
+	const addIntentions = async () => {
+		const payload = dirtyIntentions();
+		if (payload.length === 0) {
+			// Nothing this tab changed — a no-op save is a success, not an error.
 			handleHideAdditionalIntentionsTextArea();
 			await invalidateAll();
 			intentions = data.intentions;
 			intentionsFromServer = data.intentions;
-		} else {
-			showDBErrorNotification = true;
+			return;
 		}
+		await applySaveResult(
+			await trpc().intentions.updateIntentions.mutate({ intentions: payload }),
+			true
+		);
+	};
+
+	const updateIntentions = async () => {
+		const payload = dirtyIntentions();
+		if (payload.length === 0) {
+			handleHideAdditionalIntentionsTextArea();
+			await invalidateAll();
+			intentions = data.intentions;
+			intentionsFromServer = data.intentions;
+			return;
+		}
+		await applySaveResult(
+			await trpc().intentions.updateIntentions.mutate({ intentions: payload }),
+			true
+		);
 	};
 
 	const isOldOutcomeOutstanding = async () => {
@@ -164,12 +200,6 @@
 		}
 	};
 
-	const handleUpdateIntentions = async () => {
-		return await trpc().intentions.updateIntentions.mutate({
-			intentions: intentions
-		});
-	};
-
 	const handleShowAdditionalIntentionsTextArea = () => {
 		showAdditionalIntentionsTextArea = true;
 	};
@@ -206,7 +236,11 @@
 		{:else if hasOutstandingOutcome}
 			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
 		{:else if intentionsFromServer.length > 0}
-			<ActionsDisplay bind:intentions {handleUpdateSingleIntention} goals={data.goals} />
+			<ActionsDisplay
+				bind:intentions
+				{handleUpdateSingleIntention}
+				goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
+			/>
 			{#if showAdditionalIntentionsTextArea}
 				<div class="flex items-center">
 					<button class="btn mr-2" onclick={handleHideAdditionalIntentionsTextArea}>Hide</button>
@@ -229,13 +263,13 @@
 				/>
 				<div>
 					<button class="btn" onclick={handleSaveIntentions}>
-						Set {dayOfWeekFromDate(new Date())} intentions
+						Set {localeDayOfWeek()} intentions
 					</button>
 				</div>
 			{:else}
 				<div>
 					<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
-						Add more {dayOfWeekFromDate(new Date())} intentions
+						Add more {localeDayOfWeek()} intentions
 					</button>
 				</div>
 			{/if}
@@ -252,7 +286,7 @@
 
 			<div>
 				<button class="btn" onclick={handleSaveIntentions}>
-					Set {dayOfWeekFromDate(new Date())} intentions
+					Set {localeDayOfWeek()} intentions
 				</button>
 			</div>
 		{/if}

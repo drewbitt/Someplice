@@ -3,6 +3,8 @@
 	min-height: 160px;
 	height: 170px;
 	width: 80%;
+	/* the highlight overlay must not spill past the textarea's box */
+	overflow: hidden;
 }
 
 .goal__editor__pre,
@@ -27,6 +29,8 @@
 	z-index: 1;
 	white-space: pre-wrap;
 	overflow-wrap: break-word;
+	/* scrollTop is synced from the textarea; the pre never scrolls itself */
+	overflow: hidden;
 }
 
 .goal__editor__textarea {

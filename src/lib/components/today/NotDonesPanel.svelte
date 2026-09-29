@@ -69,9 +69,10 @@
 	};
 
 	const importGroup = (group: NotDoneGroup, strategyText = '') => {
-		const text = strategyText
-			? `${group.representative.text} ⟶ ${strategyText}`
-			: group.representative.text;
+		// Re-importing a propagated item must not stack another "⟶ strategy"
+		// suffix onto the previous one.
+		const base = group.representative.text.replace(/ ⟶ .*$/, '').trim();
+		const text = strategyText ? `${base} ⟶ ${strategyText}` : base;
 		onImport(
 			`${goalOrderNumberForId(group.representative.goalId, goals)}${group.representative.subIntentionQualifier ?? ''}) ${text}`
 		);
@@ -86,11 +87,11 @@
 		}
 	};
 
-	const handleCancel = async () => {
-		const group = confirmGroup;
+	// Cancel must do nothing: previously it marked the group not_today, the
+	// opposite of what the button says.
+	const handleCancel = () => {
 		confirmGroup = null;
 		strategy = '';
-		if (group) await markGroupNotToday(group);
 	};
 
 	const handleKeep = () => {

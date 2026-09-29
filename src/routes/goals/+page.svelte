@@ -6,6 +6,7 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import type { GoalLog } from '$src/lib/trpc/types';
 	import { dndzone } from 'svelte-dnd-action';
+	import { untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageServerData } from './$types';
 
@@ -17,6 +18,10 @@
 	// svelte-ignore state_referenced_locally
 	let inactiveGoals = $state(data.inactiveGoals);
 	$effect(() => {
+		// Resyncing mid-edit silently discards unsaved text/color edits (any
+		// invalidateAll from a GoalBox action re-runs the loader). Skip while the
+		// user is editing; the next non-edit invalidation still resyncs.
+		if (editButtonActive) return;
 		goals = data.goals;
 		inactiveGoals = data.inactiveGoals;
 	});
@@ -40,6 +45,9 @@
 				return { ...goal };
 			});
 			editButtonActive = true;
+			// Entering edit mode while renumber mode is on left the New Goal
+			// button dead: edits stayed hidden until the user toggled Renumber.
+			dragDisabled = true;
 		}
 	});
 
@@ -101,7 +109,9 @@
 	};
 
 	async function sortInactiveGoals() {
-		const allInactiveGoals = inactiveGoals;
+		// untrack: reading inactiveGoals here while the effect writes it would
+		// otherwise make the sort effect re-trigger itself.
+		const allInactiveGoals = [...untrack(() => inactiveGoals)];
 		const goalDateMap = new SvelteMap<number, string>();
 		for (const iGoal of allInactiveGoals) {
 			if (!iGoal.id) continue;
@@ -125,6 +135,8 @@
 		inactiveGoals = allInactiveGoals;
 	}
 	$effect(() => {
+		// Track data.goalLogs (the sort input), not the store it writes.
+		data.goalLogs;
 		sortInactiveGoals();
 	});
 </script>
@@ -177,8 +189,10 @@
 				priority={data.priorities.find((p) => p.goalId === goal.id)}
 			/>
 		{/each}
-		<NewGoalBoxComponent bind:addedGoal />
 	</section>
+	<!-- Inside the dndzone it became a droppable item: dragging the "+ New
+	Goal" card appended a broken goal instead of opening the editor. -->
+	<NewGoalBoxComponent bind:addedGoal />
 	{#if goals.length > 0 || inactiveGoals.length > 0}
 		<h2 class="text-3xl font-bold">Inactive Goals</h2>
 		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">

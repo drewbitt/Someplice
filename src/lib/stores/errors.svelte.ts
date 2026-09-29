@@ -1,5 +1,6 @@
 class TimedErrorStore {
 	current = $state<string | null>(null);
+	private timer: ReturnType<typeof setTimeout> | null = null;
 
 	/**
 	 * Set an error message for a given time. Default is 6 seconds.
@@ -7,8 +8,14 @@ class TimedErrorStore {
 	 * @param timeout Time in ms to display the message
 	 */
 	setError(message: string | null, timeout = 6000) {
+		// Cancel the outstanding timer: an older message's expiry must not wipe
+		// a newer one early.
+		if (this.timer !== null) clearTimeout(this.timer);
 		this.current = message;
-		setTimeout(() => (this.current = null), timeout);
+		this.timer = setTimeout(() => {
+			this.current = null;
+			this.timer = null;
+		}, timeout);
 	}
 }
 

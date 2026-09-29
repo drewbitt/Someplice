@@ -39,6 +39,11 @@ export const dayOfWeekFromDate = (date: Date) => {
 	return formatter.format(date);
 };
 
+// Today's label domain is the browser-local wall clock: during UTC/local
+// overlap hours the UTC weekday is a day off from what the user means.
+export const localeDayOfWeek = () =>
+	new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+
 export const lightenHSL = (color: string, amount: number): string => {
 	const [hue, saturation, lightness] = color
 		.slice(4, -1)
@@ -62,6 +67,29 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 		return goal.orderNumber;
 	}
 	return -1;
+};
+
+// Theme text over an arbitrary goal color is unreadable whenever the color is
+// close to the theme background; pick a fixed light/dark foreground instead.
+// Parses hsl(...) and #rrggbb; anything else falls back to dark text.
+export const readableTextColor = (color: string): string => {
+	const lightness = colorLightness(color);
+	if (lightness === null) return 'hsl(0, 0%, 12%)';
+	return lightness > 0.55 ? 'hsl(0, 0%, 12%)' : 'hsl(0, 0%, 97%)';
+};
+
+const colorLightness = (color: string): number | null => {
+	const hslMatch = color.trim().match(/^hsl\(\s*([\d.]+)[,\s]+([\d.]+)%?[,\s]+([\d.]+)%?\s*\)$/i);
+	if (hslMatch) return parseFloat(hslMatch[3]) / 100;
+	const hexMatch = color.trim().match(/^#?([0-9a-f]{6})$/i);
+	if (hexMatch) {
+		const value = parseInt(hexMatch[1], 16);
+		const r = (value >> 16) & 0xff;
+		const g = (value >> 8) & 0xff;
+		const b = value & 0xff;
+		return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+	}
+	return null;
 };
 
 // A journey day needs active goals plus inactive goals that have intentions that

@@ -35,8 +35,10 @@
 			}
 		}
 	};
+	// Scoped element ref — a global document.getElementById('append-text')
+	// lookup returns the first match, which may be another instance's input.
+	let appendInput: HTMLInputElement;
 	let appendInputValue = () => {
-		const appendInput = document.getElementById('append-text') as HTMLInputElement;
 		if (appendInput) {
 			appendText(appendInput.value);
 		}
@@ -68,9 +70,9 @@
 			<span class="w-11/12">
 				<input
 					class="input h-12 w-full text-xl"
-					id="append-text"
 					aria-label="Text to append"
 					autocomplete="off"
+					bind:this={appendInput}
 				/>
 			</span>
 			<span class="append-buttons mt-8 flex gap-2">

@@ -17,7 +17,10 @@
 	}: { goals: Goal[]; opened: boolean; intention: Intention } = $props();
 
 	let dialog: HTMLDialogElement;
-	let intentionsModalOpened = $state(opened);
+	// Writable derived: follows the bound `opened` prop, but can be closed
+	// locally (e.g. while the append modal is open). A $state copy made at
+	// init never saw prop changes, so a reopened modal never showed.
+	let intentionsModalOpened = $derived(opened);
 	let showAppendModal = $state(false);
 
 	let modalTitle = $derived(goalOrderNumberForId(intention.goalId, goals) + ') ' + intention.text);
