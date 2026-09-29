@@ -20,13 +20,16 @@
 		intentions,
 		outcomes,
 		verdicts = [],
-		priorities = []
+		priorities = [],
+		date: dateProp
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
+		// Day date as ISO midnight; used when the day has no intentions to take it from.
+		date?: string;
 	} = $props();
 
 	let showSaveButton = $state(false);
@@ -34,7 +37,7 @@
 	let showPriorityModal = $state(false);
 	let priorityModalGoal = $state<Goal | null>(null);
 
-	let date = $derived(intentions[intentions.length - 1].date);
+	let date = $derived(intentions[intentions.length - 1]?.date ?? dateProp ?? '');
 	let dateWithoutTime = $derived(date.split('T')[0]);
 	let outcomeForDate = $derived(outcomes.find((outcome) => outcome.date === dateWithoutTime));
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
@@ -108,7 +111,7 @@
 		});
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
-			date: date.split('T')[0],
+			date: dateWithoutTime,
 			reviewed: 1
 		};
 

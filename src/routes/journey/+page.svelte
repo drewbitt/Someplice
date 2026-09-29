@@ -5,20 +5,38 @@
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
 	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '$src/lib/trpc/types';
 	import { goalsForJourneyDay } from '$src/lib/utils';
+	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
 	import { onMount } from 'svelte';
 	import { SvelteDate } from 'svelte/reactivity';
-	import { browser } from '$app/environment';
 
 	let { data }: { data: PageServerData } = $props();
 
+	// Older pages live in their own state, merged with `data` below. Mutating the
+	// `data` props directly never invalidated the derived day list (page-2+
+	// fetched but never rendered) and got clobbered by invalidateAll anyway.
+	let extraOutcomes = $state<Outcome[]>([]);
+	let extraVerdicts = $state<OutcomeVerdict[]>([]);
+	let extraIntentionsByDate = $state<Record<string, Intention[]>>({});
+	let extraGoalsByDate = $state<Record<string, Goal[]>>({});
+	let extraCompletedPriorities = $state<Priority[]>([]);
+
+	let outcomes = $derived([...data.outcomes, ...extraOutcomes]);
+	let verdicts = $derived([...data.verdicts, ...extraVerdicts]);
+	let intentionsByDate = $derived({ ...extraIntentionsByDate, ...data.intentionsByDate });
+	let goalsByDate = $derived({ ...extraGoalsByDate, ...data.goalsByDate });
+	let completedPriorities = $derived([...data.completedPriorities, ...extraCompletedPriorities]);
+
 	let noGoals = $derived(data.goals.length === 0);
+	// Outcome rows belong to the day set too: a reviewed day whose intentions
+	// were later deleted must still render.
 	let dates = $derived(
 		[
 			...new Set([
-				...Object.keys(data.intentionsByDate),
-				...data.completedPriorities
+				...Object.keys(intentionsByDate),
+				...outcomes.map((outcome) => outcome.date),
+				...completedPriorities
 					.map((priority) => priority.completedAt?.slice(0, 10))
 					.filter((date): date is string => Boolean(date))
 			])
@@ -26,7 +44,6 @@
 	);
 	let noJourneyDays = $derived(dates.length === 0);
 
-	let currentPage = $state(1);
 	let oldestLoadedDate = $state<string>();
 	$effect(() => {
 		oldestLoadedDate ??= data.oldestLoadedDate;
@@ -36,123 +53,119 @@
 	let invisibleFooter = $state<HTMLDivElement>();
 
 	onMount(() => {
-		if (browser) {
-			type HandleIntersect = (entries: IntersectionObserverEntry[]) => void;
+		const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting && hasMore && !isLoadingMore) {
+					loadMore();
+				}
+			});
+		};
 
-			const handleIntersect: HandleIntersect = (entries) => {
-				entries.forEach((entry) => {
-					if (entry.isIntersecting && hasMore && !isLoadingMore) {
-						loadMore();
-					}
-				});
-			};
-
-			const observer = new IntersectionObserver(handleIntersect, { threshold: 0.1 });
-			if (invisibleFooter) {
-				observer.observe(invisibleFooter);
-			}
+		const observer = new IntersectionObserver(handleIntersect, { threshold: 0.1 });
+		if (invisibleFooter) {
+			observer.observe(invisibleFooter);
 		}
+		return () => observer.disconnect();
 	});
 
+	// Pages are anchored on a date cursor rather than a row offset: offsets drift
+	// when days are added, and a day's data spans several tables that must be
+	// fetched over one shared window instead of paged independently.
 	async function loadMore() {
+		if (isLoadingMore || !hasMore || !oldestLoadedDate) return;
 		isLoadingMore = true;
-		const limit = 15;
-		const offset = currentPage * limit;
+		try {
+			const limit = 15;
+			const endDate = new SvelteDate(`${oldestLoadedDate}T00:00:00.000Z`);
+			endDate.setUTCDate(endDate.getUTCDate() - 1);
+			const uniqueDates = (
+				await trpc().intentions.listUniqueDates.query({
+					startDate: new Date(0),
+					endDate,
+					limit
+				})
+			).map((d) => d.date);
 
-		const newOutcomes = await trpc().outcomes.list.query({
-			limit,
-			offset,
-			order: 'desc',
-			orderBy: 'date'
-		});
+			if (uniqueDates.length === 0) {
+				hasMore = false;
+				return;
+			}
 
-		if (newOutcomes.length) {
-			data.outcomes = [...data.outcomes, ...newOutcomes];
+			const windowStart = new Date(uniqueDates[uniqueDates.length - 1]);
+			const windowEnd = new Date(uniqueDates[0]);
+			const [newIntentionsByDate, newOutcomes, newCompletedPriorities] = await Promise.all([
+				trpc().intentions.listByDate.query({ startDate: windowStart, endDate: windowEnd }),
+				trpc().outcomes.list.query({
+					startDate: windowStart,
+					endDate: windowEnd,
+					order: 'desc',
+					orderBy: 'date'
+				}),
+				trpc().priorities.listCompleted.query({ startDate: windowStart, endDate: windowEnd })
+			]);
+
+			extraOutcomes = [...extraOutcomes, ...newOutcomes];
 			const newVerdicts = await trpc().outcomes.verdictsByOutcomeIds.query({
 				outcomeIds: newOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
 			});
-			data.verdicts = [...data.verdicts, ...newVerdicts];
+			extraVerdicts = [...extraVerdicts, ...newVerdicts];
+
+			const knownPriorities = new Set(completedPriorities.map((priority) => priority.id));
+			extraCompletedPriorities = [
+				...extraCompletedPriorities,
+				...newCompletedPriorities.filter((priority) => !knownPriorities.has(priority.id))
+			];
+
+			for (const date in newIntentionsByDate) {
+				extraIntentionsByDate[date] = extraIntentionsByDate[date]
+					? [...extraIntentionsByDate[date], ...newIntentionsByDate[date]]
+					: newIntentionsByDate[date];
+			}
+
 			const outcomeDateById = new Map(
-				data.outcomes
+				outcomes
 					.filter((outcome): outcome is typeof outcome & { id: number } => outcome.id !== null)
 					.map((outcome) => [outcome.id, outcome.date])
 			);
-			const uniqueDatesResult = await trpc().intentions.listUniqueDates.query({
-				limit,
-				offset
-			});
-			const uniqueDates = uniqueDatesResult.map((d) => d.date);
+			const newDates = [
+				...new Set([
+					...Object.keys(newIntentionsByDate),
+					...newOutcomes.map((outcome) => outcome.date),
+					...newCompletedPriorities
+						.map((priority) => priority.completedAt?.slice(0, 10))
+						.filter((date): date is string => Boolean(date))
+				])
+			];
+			await Promise.all(
+				newDates.map(async (date) => {
+					const [activeGoals, inactiveGoals] = await Promise.all([
+						trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
+						trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
+					]);
+					extraGoalsByDate[date] = goalsForJourneyDay(
+						activeGoals,
+						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
+						newIntentionsByDate[date] ?? [],
+						[
+							...verdicts
+								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+								.map((verdict) => verdict.goalId),
+							...newCompletedPriorities
+								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+								.map((priority) => priority.goalId)
+						]
+					);
+				})
+			);
 
-			if (uniqueDates.length) {
-				const [startDate, endDate] = [
-					new Date(uniqueDates[uniqueDates.length - 1]),
-					new Date(uniqueDates[0])
-				];
-				const completedPrioritiesEndDate = new SvelteDate(`${oldestLoadedDate}T00:00:00.000Z`);
-				completedPrioritiesEndDate.setUTCDate(completedPrioritiesEndDate.getUTCDate() - 1);
-				const [newIntentionsByDate, newCompletedPriorities] = await Promise.all([
-					trpc().intentions.listByDate.query({
-						startDate,
-						endDate
-					}),
-					trpc().priorities.listCompleted.query({
-						startDate,
-						endDate: completedPrioritiesEndDate
-					})
-				]);
-
-				const known = new Set(data.completedPriorities.map((priority) => priority.id));
-				data.completedPriorities = [
-					...data.completedPriorities,
-					...newCompletedPriorities.filter((priority) => !known.has(priority.id))
-				];
-
-				for (let date in newIntentionsByDate) {
-					data.intentionsByDate[date] = data.intentionsByDate[date]
-						? [...data.intentionsByDate[date], ...newIntentionsByDate[date]]
-						: newIntentionsByDate[date];
-				}
-
-				const dates = [
-					...new Set([
-						...Object.keys(newIntentionsByDate),
-						...newCompletedPriorities
-							.map((priority) => priority.completedAt?.slice(0, 10))
-							.filter((date): date is string => Boolean(date))
-					])
-				];
-				await Promise.all(
-					dates.map(async (date) => {
-						const [activeGoals, inactiveGoals] = await Promise.all([
-							trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
-							trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
-						]);
-						data.goalsByDate[date] = goalsForJourneyDay(
-							activeGoals,
-							inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-							newIntentionsByDate[date] ?? [],
-							[
-								...data.verdicts
-									.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-									.map((verdict) => verdict.goalId),
-								...newCompletedPriorities
-									.filter((priority) => priority.completedAt?.slice(0, 10) === date)
-									.map((priority) => priority.goalId)
-							]
-						);
-					})
-				);
-
-				currentPage += 1;
-				oldestLoadedDate = uniqueDates[uniqueDates.length - 1];
-			} else {
-				hasMore = false;
-			}
-		} else {
-			hasMore = false;
+			oldestLoadedDate = uniqueDates[uniqueDates.length - 1];
+		} catch (error) {
+			journeyPageErrorStore.setError(
+				error instanceof Error ? error.message : 'Failed to load more days'
+			);
+		} finally {
+			isLoadingMore = false;
 		}
-
-		isLoadingMore = false;
 	}
 </script>
 
@@ -177,13 +190,13 @@
 		<div class="mx-4 grid gap-4 py-6 sm:mx-12 xl:mx-36">
 			{#each dates as date, i (date)}
 				<JourneyDayBox
-					goals={data.goalsByDate[date] ?? data.goals}
+					goals={goalsByDate[date] ?? data.goals}
 					{date}
-					intentions={data.intentionsByDate[date] ?? []}
-					outcomes={data.outcomes}
-					verdicts={data.verdicts}
+					intentions={intentionsByDate[date] ?? []}
+					{outcomes}
+					{verdicts}
 					priorities={data.priorities}
-					completedPriorities={data.completedPriorities}
+					{completedPriorities}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />
