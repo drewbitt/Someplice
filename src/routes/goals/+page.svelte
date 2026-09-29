@@ -18,11 +18,22 @@
 	// svelte-ignore state_referenced_locally
 	let inactiveGoals = $state(data.inactiveGoals);
 	$effect(() => {
-		// Resyncing mid-edit silently discards unsaved text/color edits (any
-		// invalidateAll from a GoalBox action re-runs the loader). Skip while the
-		// user is editing; the next non-edit invalidation still resyncs.
-		if (editButtonActive) return;
-		goals = data.goals;
+		if (!editButtonActive) {
+			goals = data.goals;
+			inactiveGoals = data.inactiveGoals;
+			return;
+		}
+		// Mid-edit: merge by id instead of replacing. A wholesale resync would
+		// discard unsaved text/color edits, but skipping it entirely leaves the
+		// editor stale after Add/Archive/Delete (which invalidateAll themselves).
+		// Keep local editable fields; adopt server adds, removals, and order.
+		const localById = new Map(goals.map((goal) => [goal.id, goal]));
+		goals = data.goals.map((fresh) => {
+			const local = localById.get(fresh.id);
+			return local
+				? { ...fresh, title: local.title, description: local.description, color: local.color }
+				: fresh;
+		});
 		inactiveGoals = data.inactiveGoals;
 	});
 

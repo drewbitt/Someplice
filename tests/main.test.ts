@@ -32,8 +32,9 @@ test('Pressing New Goal button adds a new goal', async ({ page }) => {
 	await page.goto('/goals');
 	await page.getByRole('button', { name: 'New Goal' }).click();
 	const goalsListContainer = page.locator('#goals-list-container');
-	// The created goal box plus the "New Goal" box itself are the container's two children
-	await expect(goalsListContainer.locator(':scope > *')).toHaveCount(2);
+	// The New Goal box sits outside the dnd list, so the container holds just
+	// the created goal box.
+	await expect(goalsListContainer.locator(':scope > *')).toHaveCount(1);
 	// Adding a goal enters edit mode, so the title is rendered as an input
 	await expect(goalsListContainer.locator('.goal-box-title-editable input')).toHaveValue('Goal 1');
 });

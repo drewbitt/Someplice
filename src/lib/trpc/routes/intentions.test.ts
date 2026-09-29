@@ -279,8 +279,8 @@ describe('intentions', () => {
 	});
 
 	it('updateIntentions reorders when an unchanged row holds a large orderNumber', async () => {
-		// A row already in the old scratch range (orderNumber + 100000) must not block
-		// reorders; as a leftover outside the payload it trails the input's orderNumbers
+		// A row already in the old scratch range (orderNumber + 100000) must not
+		// collide with the submitted row's slot, so it keeps its position verbatim.
 		const largeOrder = { ...TEST_INTENTION, id: 2, orderNumber: 100001 };
 		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, largeOrder] });
 
@@ -290,7 +290,48 @@ describe('intentions', () => {
 
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result.find((i) => i.id === 1)?.orderNumber).toEqual(2);
-		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(3);
+		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(100001);
+	});
+
+	it('updateIntentions field edit on a middle row preserves omitted rows order', async () => {
+		// A partial payload that only edits fields (no reorder intent) must not
+		// push the omitted rows behind the submitted row's orderNumber.
+		const intentions = [1, 2, 3].map((orderNumber) => ({
+			...TEST_INTENTION,
+			id: orderNumber,
+			orderNumber
+		}));
+		await caller.intentions.updateIntentions({ intentions });
+
+		await caller.intentions.updateIntentions({
+			intentions: [{ ...intentions[1], text: 'edited' }]
+		});
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result.map((i) => [i.id, i.orderNumber])).toEqual([
+			[1, 1],
+			[2, 2],
+			[3, 3]
+		]);
+		expect(result.find((i) => i.id === 2)?.text).toEqual('edited');
+	});
+
+	it('updateIntentions reorders omitted rows when a submitted orderNumber collides', async () => {
+		const intentions = [1, 2, 3].map((orderNumber) => ({
+			...TEST_INTENTION,
+			id: orderNumber,
+			orderNumber
+		}));
+		await caller.intentions.updateIntentions({ intentions });
+
+		// Move row 3 to position 1 without sending the other rows: their slots
+		// collide, so the whole date reorders with leftovers trailing the input.
+		await caller.intentions.updateIntentions({
+			intentions: [{ ...intentions[2], orderNumber: 1 }]
+		});
+
+		const result = (await caller.intentions.list(undefined)) as Intention[];
+		expect(result.map((i) => i.id)).toEqual([3, 1, 2]);
 	});
 
 	it('updateIntentions is an upsert, not a duplicate insert', async () => {

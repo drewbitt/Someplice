@@ -15,8 +15,9 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		trpcLoad(event, (t) => t.intentions.intentionsOnLatestDate()),
 		trpcLoad(event, (t) => t.priorities.list({ activeOnly: true })),
 		// Intentions on inactive goals still render (greyed); without them the
-		// day list silently hides pending rows.
-		trpcLoad(event, (t) => t.goals.list(0))
+		// day list silently hides pending rows. listGoalsSortedByDate recovers
+		// the orderNumber an archived goal had (archive resets it to 0).
+		trpcLoad(event, (t) => t.goals.listGoalsSortedByDate(0))
 	]);
 	return { goals, intentions, intentionsOnLatestDate, priorities, inactiveGoals };
 };

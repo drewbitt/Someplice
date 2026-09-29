@@ -363,10 +363,11 @@ export const intentions = t.router({
 
 					// The unique index on (DATE(date), orderNumber) can't be deferred, so a
 					// permutation (e.g. swapping two intentions) would collide mid-statement.
-					// Move ALL rows on each touched date to a scratch range first: the client
-					// may send a subset of the date's rows (hidden intentions of inactive
-					// goals), and their untouched orderNumbers could collide with the input's.
-					// Dates whose input only inserts new rows are append-only and skipped.
+					// Submitted rows move to a scratch range first. Only when a submitted
+					// orderNumber lands on an omitted row's slot does the WHOLE date move
+					// and the leftovers renumber: the client may send a subset of rows (a
+					// field-only update), and treating it as a reorder would silently
+					// scramble the order of untouched rows.
 					const reorderedDates = new Set<string>();
 					for (const [dateKey, rows] of inputByDate) {
 						const inputIds = rows
@@ -375,19 +376,43 @@ export const intentions = t.router({
 						if (inputIds.length === 0) continue;
 						const existing = await trx
 							.selectFrom('intentions')
-							.select('id')
-							.where(sql`DATE("date")`, '=', dateKey)
-							.where('id', 'in', inputIds)
-							.execute();
-						if (existing.length === 0) continue;
-						reorderedDates.add(dateKey);
-						await trx
-							.updateTable('intentions')
-							.set({
-								orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
-							})
+							.select(['id', 'orderNumber'])
 							.where(sql`DATE("date")`, '=', dateKey)
 							.execute();
+						const inputIdSet = new Set(inputIds);
+						const submittedIds = existing
+							.filter((row) => row.id !== null && inputIdSet.has(row.id))
+							.map((row) => row.id as number);
+						if (submittedIds.length === 0) continue;
+						const omittedOrderNumbers = new Set(
+							existing
+								.filter((row) => row.id === null || !inputIdSet.has(row.id))
+								.map((row) => row.orderNumber)
+						);
+						const reordersOmitted = rows.some((intention) =>
+							omittedOrderNumbers.has(intention.orderNumber)
+						);
+						if (reordersOmitted) {
+							reorderedDates.add(dateKey);
+							await trx
+								.updateTable('intentions')
+								.set({
+									orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
+								})
+								.where(sql`DATE("date")`, '=', dateKey)
+								.execute();
+						} else {
+							// Field-only update: scratch just the submitted rows (covers
+							// swaps inside the payload); omitted rows keep their
+							// positions verbatim.
+							await trx
+								.updateTable('intentions')
+								.set({
+									orderNumber: sql`"orderNumber" + ((SELECT COALESCE(MAX("orderNumber"), 0) FROM "intentions") + 1)`
+								})
+								.where('id', 'in', submittedIds)
+								.execute();
+						}
 					}
 
 					const results = await trx
