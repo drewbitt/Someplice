@@ -27,7 +27,9 @@
 		// discard unsaved text/color edits, but skipping it entirely leaves the
 		// editor stale after Add/Archive/Delete (which invalidateAll themselves).
 		// Keep local editable fields; adopt server adds, removals, and order.
-		const localById = new Map(goals.map((goal) => [goal.id, goal]));
+		// untrack the local reads: the effect assigns goals/inactiveGoals, so
+		// tracking them would retrigger the effect on its own writes.
+		const localById = new Map(untrack(() => goals).map((goal) => [goal.id, goal]));
 		goals = data.goals.map((fresh) => {
 			const local = localById.get(fresh.id);
 			return local
