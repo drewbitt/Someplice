@@ -10,7 +10,8 @@
 		outcomes,
 		verdicts = [],
 		priorities = [],
-		completedPriorities = []
+		completedPriorities = [],
+		onDayChanged
 	}: {
 		goals: Goal[];
 		date?: string;
@@ -19,6 +20,9 @@
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
 		completedPriorities?: Priority[];
+		// Called after an in-box write (saveReview, not_today) so the page can
+		// re-fetch days that live in client-side extras state.
+		onDayChanged?: () => void | Promise<void>;
 	} = $props();
 
 	let date = $derived(dateProp ?? intentions[intentions.length - 1]?.date);
@@ -64,7 +68,15 @@
 			{#if intentions.length}
 				<IntentionsListBox {goals} {intentions} />
 			{/if}
-			<OutcomesBox {goals} {intentions} {outcomes} {verdicts} {priorities} date={dateISO} />
+			<OutcomesBox
+				{goals}
+				{intentions}
+				{outcomes}
+				{verdicts}
+				{priorities}
+				date={dateISO}
+				{onDayChanged}
+			/>
 		</div>
 	{/if}
 </div>

@@ -68,6 +68,116 @@
 		return () => observer.disconnect();
 	});
 
+	// A window's data spans several tables, so everything is fetched into local
+	// staging first and committed to the extra* state in one shot — a mid-fetch
+	// failure otherwise leaves partial merges that a retry duplicates.
+	interface DayWindow {
+		intentionsByDate: Record<string, Intention[]>;
+		goalsByDate: Record<string, Goal[]>;
+		outcomes: Outcome[];
+		verdicts: OutcomeVerdict[];
+		completedPriorities: Priority[];
+	}
+
+	async function fetchWindow(windowStart: Date, windowEnd: Date): Promise<DayWindow> {
+		const [windowIntentionsByDate, windowOutcomes, windowCompletedPriorities] = await Promise.all([
+			trpc().intentions.listByDate.query({ startDate: windowStart, endDate: windowEnd }),
+			trpc().outcomes.list.query({
+				startDate: windowStart,
+				endDate: windowEnd,
+				order: 'desc',
+				orderBy: 'date'
+			}),
+			trpc().priorities.listCompleted.query({ startDate: windowStart, endDate: windowEnd })
+		]);
+
+		const windowVerdicts = await trpc().outcomes.verdictsByOutcomeIds.query({
+			outcomeIds: windowOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
+		});
+
+		const outcomeDateById = new Map(
+			windowOutcomes
+				.filter((outcome): outcome is Outcome & { id: number } => outcome.id !== null)
+				.map((outcome) => [outcome.id, outcome.date])
+		);
+		const windowDays = [
+			...new Set([
+				...Object.keys(windowIntentionsByDate),
+				...windowOutcomes.map((outcome) => outcome.date),
+				...windowCompletedPriorities
+					.map((priority) => priority.completedAt?.slice(0, 10))
+					.filter((date): date is string => Boolean(date))
+			])
+		];
+		const windowGoalsByDate: Record<string, Goal[]> = {};
+		await Promise.all(
+			windowDays.map(async (date) => {
+				const [activeGoals, inactiveGoals] = await Promise.all([
+					trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
+					trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
+				]);
+				windowGoalsByDate[date] = goalsForJourneyDay(
+					activeGoals,
+					inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
+					windowIntentionsByDate[date] ?? [],
+					[
+						...windowVerdicts
+							.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
+							.map((verdict) => verdict.goalId),
+						...windowCompletedPriorities
+							.filter((priority) => priority.completedAt?.slice(0, 10) === date)
+							.map((priority) => priority.goalId)
+					]
+				);
+			})
+		);
+
+		return {
+			intentionsByDate: windowIntentionsByDate,
+			goalsByDate: windowGoalsByDate,
+			outcomes: windowOutcomes,
+			verdicts: windowVerdicts,
+			completedPriorities: windowCompletedPriorities
+		};
+	}
+
+	function mergeWindow(window: DayWindow) {
+		const knownOutcomeIds = new Set(outcomes.map((outcome) => outcome.id));
+		extraOutcomes = [
+			...extraOutcomes,
+			...window.outcomes.filter((outcome) => !knownOutcomeIds.has(outcome.id))
+		];
+
+		const knownVerdictKeys = new Set(
+			verdicts.map((verdict) => `${verdict.outcomeId}:${verdict.goalId}`)
+		);
+		extraVerdicts = [
+			...extraVerdicts,
+			...window.verdicts.filter(
+				(verdict) => !knownVerdictKeys.has(`${verdict.outcomeId}:${verdict.goalId}`)
+			)
+		];
+
+		const knownPriorityIds = new Set(completedPriorities.map((priority) => priority.id));
+		extraCompletedPriorities = [
+			...extraCompletedPriorities,
+			...window.completedPriorities.filter((priority) => !knownPriorityIds.has(priority.id))
+		];
+
+		for (const [date, dayIntentions] of Object.entries(window.intentionsByDate)) {
+			const knownIntentionIds = new Set(
+				(extraIntentionsByDate[date] ?? []).map((intention) => intention.id)
+			);
+			extraIntentionsByDate[date] = [
+				...(extraIntentionsByDate[date] ?? []),
+				...dayIntentions.filter((intention) => !knownIntentionIds.has(intention.id))
+			];
+		}
+		for (const [date, goalsForDate] of Object.entries(window.goalsByDate)) {
+			extraGoalsByDate[date] = goalsForDate;
+		}
+	}
+
 	// Pages are anchored on a date cursor rather than a row offset: offsets drift
 	// when days are added, and a day's data spans several tables that must be
 	// fetched over one shared window instead of paged independently.
@@ -86,85 +196,96 @@
 				})
 			).map((d) => d.date);
 
-			if (uniqueDates.length === 0) {
-				hasMore = false;
+			if (uniqueDates.length > 0) {
+				// The window runs from the oldest anchor all the way up to the cursor,
+				// so outcome/priority-only days between two pages aren't skipped.
+				const windowStart = new Date(
+					`${uniqueDates[uniqueDates.length - 1].slice(0, 10)}T00:00:00.000Z`
+				);
+				mergeWindow(await fetchWindow(windowStart, endDate));
+				oldestLoadedDate = uniqueDates[uniqueDates.length - 1].slice(0, 10);
 				return;
 			}
 
-			const windowStart = new Date(uniqueDates[uniqueDates.length - 1]);
-			const windowEnd = new Date(uniqueDates[0]);
-			const [newIntentionsByDate, newOutcomes, newCompletedPriorities] = await Promise.all([
-				trpc().intentions.listByDate.query({ startDate: windowStart, endDate: windowEnd }),
+			// No intention days remain below the cursor, but days that only have an
+			// outcome or a completed priority may still exist further back.
+			const [tailOutcomes, tailPriorities] = await Promise.all([
 				trpc().outcomes.list.query({
-					startDate: windowStart,
-					endDate: windowEnd,
+					startDate: new Date(0),
+					endDate,
 					order: 'desc',
-					orderBy: 'date'
+					orderBy: 'date',
+					limit
 				}),
-				trpc().priorities.listCompleted.query({ startDate: windowStart, endDate: windowEnd })
+				trpc().priorities.listCompleted.query({
+					startDate: new Date(0),
+					endDate,
+					limit
+				})
 			]);
-
-			extraOutcomes = [...extraOutcomes, ...newOutcomes];
-			const newVerdicts = await trpc().outcomes.verdictsByOutcomeIds.query({
-				outcomeIds: newOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
-			});
-			extraVerdicts = [...extraVerdicts, ...newVerdicts];
-
-			const knownPriorities = new Set(completedPriorities.map((priority) => priority.id));
-			extraCompletedPriorities = [
-				...extraCompletedPriorities,
-				...newCompletedPriorities.filter((priority) => !knownPriorities.has(priority.id))
-			];
-
-			for (const date in newIntentionsByDate) {
-				extraIntentionsByDate[date] = extraIntentionsByDate[date]
-					? [...extraIntentionsByDate[date], ...newIntentionsByDate[date]]
-					: newIntentionsByDate[date];
-			}
-
-			const outcomeDateById = new Map(
-				outcomes
-					.filter((outcome): outcome is typeof outcome & { id: number } => outcome.id !== null)
-					.map((outcome) => [outcome.id, outcome.date])
-			);
-			const newDates = [
+			const tailDays = [
 				...new Set([
-					...Object.keys(newIntentionsByDate),
-					...newOutcomes.map((outcome) => outcome.date),
-					...newCompletedPriorities
+					...tailOutcomes.map((outcome) => outcome.date),
+					...tailPriorities
 						.map((priority) => priority.completedAt?.slice(0, 10))
 						.filter((date): date is string => Boolean(date))
 				])
-			];
-			await Promise.all(
-				newDates.map(async (date) => {
-					const [activeGoals, inactiveGoals] = await Promise.all([
-						trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
-						trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
-					]);
-					extraGoalsByDate[date] = goalsForJourneyDay(
-						activeGoals,
-						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-						newIntentionsByDate[date] ?? [],
-						[
-							...verdicts
-								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-								.map((verdict) => verdict.goalId),
-							...newCompletedPriorities
-								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
-								.map((priority) => priority.goalId)
-						]
-					);
-				})
-			);
+			]
+				.sort((a, b) => b.localeCompare(a))
+				.slice(0, limit);
 
-			oldestLoadedDate = uniqueDates[uniqueDates.length - 1];
+			if (tailDays.length === 0) {
+				hasMore = false;
+				return;
+			}
+			const windowStart = new Date(`${tailDays[tailDays.length - 1]}T00:00:00.000Z`);
+			mergeWindow(await fetchWindow(windowStart, endDate));
+			oldestLoadedDate = tailDays[tailDays.length - 1];
 		} catch (error) {
 			journeyPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Failed to load more days'
 			);
 		} finally {
 			isLoadingMore = false;
+		}
+	}
+
+	// Days that only exist in extras aren't refreshed by invalidateAll, so after
+	// an in-page write (saveReview, not_today) re-fetch that day and reconcile.
+	async function refreshDay(dateKey: string) {
+		try {
+			const window = await fetchWindow(
+				new Date(`${dateKey}T00:00:00.000Z`),
+				new Date(`${dateKey}T23:59:59.999Z`)
+			);
+
+			const dayOutcomeIds = new Set(
+				[...data.outcomes, ...extraOutcomes]
+					.filter((outcome) => outcome.date === dateKey)
+					.map((outcome) => outcome.id)
+			);
+			extraOutcomes = [
+				...extraOutcomes.filter((outcome) => outcome.date !== dateKey),
+				...window.outcomes
+			];
+			extraVerdicts = [
+				...extraVerdicts.filter((verdict) => !dayOutcomeIds.has(verdict.outcomeId)),
+				...window.verdicts
+			];
+			extraCompletedPriorities = [
+				...extraCompletedPriorities.filter(
+					(priority) => priority.completedAt?.slice(0, 10) !== dateKey
+				),
+				...window.completedPriorities
+			];
+			extraIntentionsByDate[dateKey] = window.intentionsByDate[dateKey] ?? [];
+			if (window.goalsByDate[dateKey]) {
+				extraGoalsByDate[dateKey] = window.goalsByDate[dateKey];
+			}
+		} catch (error) {
+			journeyPageErrorStore.setError(
+				error instanceof Error ? error.message : 'Failed to refresh the day'
+			);
 		}
 	}
 </script>
@@ -197,6 +318,7 @@
 					{verdicts}
 					priorities={data.priorities}
 					{completedPriorities}
+					onDayChanged={() => refreshDay(date)}
 				/>
 				{#if i < dates.length - 1}
 					<EmptyDayBoxWrapper {date} nextDate={dates[i + 1]} />
