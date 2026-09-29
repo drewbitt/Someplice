@@ -17,48 +17,56 @@ export function createCronJobs() {
 	}
 
 	// Run at 00:00 every day. The Cron constructor self-registers in scheduledJobs.
-	new Cron('0 0 * * *', { name: jobName }, async () => {
-		await getDb()
-			.transaction()
-			.execute(async (db) => {
-				const previousDayString = localePreviousDate().toISOString().slice(0, 10);
+	// `catch` keeps a transient failure (e.g. SQLITE_BUSY) from becoming an
+	// unhandled rejection that exits the process.
+	new Cron(
+		'0 0 * * *',
+		{ name: jobName, catch: (error) => cronLogger.error('outcomeCron: job failed', error) },
+		async () => {
+			await getDb()
+				.transaction()
+				.execute(async (db) => {
+					const previousDayString = localePreviousDate().toISOString().slice(0, 10);
 
-				// select the previous day's intentions first: a day without intentions
-				// gets no outcome row at all
-				const intentions = await db
-					.selectFrom('intentions')
-					.selectAll()
-					.where('date', '>=', `${previousDayString}T00:00:00.000Z`)
-					.where('date', '<=', `${previousDayString}T23:59:59.999Z`)
-					.execute();
+					// select the previous day's intentions first: a day without intentions
+					// gets no outcome row at all
+					const intentions = await db
+						.selectFrom('intentions')
+						.selectAll()
+						.where('date', '>=', `${previousDayString}T00:00:00.000Z`)
+						.where('date', '<=', `${previousDayString}T23:59:59.999Z`)
+						.execute();
 
-				if (intentions.length === 0) {
-					cronLogger.debug(
-						`outcomeCron: No intentions for date: ${previousDayString}, skipping outcome creation`
-					);
-					return;
-				}
-
-				const outcomeId = await ensureOutcomeForDate(db, previousDayString);
-				if (outcomeId === null) {
-					cronLogger.error(`outcomeCron: Could not create outcome for date: ${previousDayString}`);
-					return;
-				}
-
-				for (const intention of intentions) {
-					if (intention.id === null) {
-						continue;
+					if (intentions.length === 0) {
+						cronLogger.debug(
+							`outcomeCron: No intentions for date: ${previousDayString}, skipping outcome creation`
+						);
+						return;
 					}
-					const linked = await linkIntentionToOutcome(db, outcomeId, intention.id);
-					cronLogger.debug(
-						`outcomeCron: outcomeId: ${outcomeId}, intentionId: ${intention.id} ` +
-							(linked
-								? `inserted into outcomes_intentions`
-								: `already exists in outcomes_intentions`)
-					);
-				}
-			});
-	});
+
+					const outcomeId = await ensureOutcomeForDate(db, previousDayString);
+					if (outcomeId === null) {
+						cronLogger.error(
+							`outcomeCron: Could not create outcome for date: ${previousDayString}`
+						);
+						return;
+					}
+
+					for (const intention of intentions) {
+						if (intention.id === null) {
+							continue;
+						}
+						const linked = await linkIntentionToOutcome(db, outcomeId, intention.id);
+						cronLogger.debug(
+							`outcomeCron: outcomeId: ${outcomeId}, intentionId: ${intention.id} ` +
+								(linked
+									? `inserted into outcomes_intentions`
+									: `already exists in outcomes_intentions`)
+						);
+					}
+				});
+		}
+	);
 }
 
 export async function checkMissingOutcomes() {

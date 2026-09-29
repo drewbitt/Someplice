@@ -10,20 +10,19 @@ export const ensureOutcomeForDate = async (
 	db: Kysely<DB>,
 	date: string
 ): Promise<number | null> => {
-	const existing = await db
+	// INSERT-or-ignore then SELECT: a read-then-insert races with a concurrent
+	// caller and one of them dies on the outcomes.date UNIQUE constraint.
+	await db
+		.insertInto('outcomes')
+		.values({ reviewed: 0, date })
+		.onConflict((oc) => oc.column('date').doNothing())
+		.execute();
+	const outcome = await db
 		.selectFrom('outcomes')
 		.select('id')
 		.where('date', '=', date)
 		.executeTakeFirst();
-	if (existing) {
-		return existing.id;
-	}
-	const created = await db
-		.insertInto('outcomes')
-		.values({ reviewed: 0, date })
-		.returning('id')
-		.executeTakeFirst();
-	return created?.id ?? null;
+	return outcome?.id ?? null;
 };
 
 /**
