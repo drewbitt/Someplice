@@ -20,6 +20,9 @@
 	$effect(() => {
 		if (dialog) {
 			if (showModal) {
+				// Re-opening must clear the previous confirm so a failed action
+				// that reopens the modal can't fire without a fresh click.
+				actionConfirmed = false;
 				dialog.showModal();
 			} else {
 				dialog.close();

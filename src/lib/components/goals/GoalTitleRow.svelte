@@ -1,5 +1,6 @@
 <script lang="ts">
 	import GoalColorPalette from './GoalColorPalette.svelte';
+	import { readableTextColor } from '$src/lib/utils';
 
 	let {
 		goalColor = $bindable(),
@@ -20,16 +21,17 @@
 			<input
 				bind:value={title}
 				autocomplete="off"
-				class="input text-base-content w-full max-w-lg bg-transparent px-0 text-3xl"
+				class="input w-full max-w-lg bg-transparent px-0 text-3xl"
+				style="color: {readableTextColor(goalColor)}"
 			/>
 		</div>
 		<div id="goal-box-title-color-picker" class="flex items-center">
-			<span class="text-base-content/80 pr-1">Color:</span>
+			<span class="pr-1" style="color: {readableTextColor(goalColor)}">Color:</span>
 			<GoalColorPalette bind:goalColor />
 		</div>
 	</div>
 {:else}
 	<div class="goal-box-title w-1/2">
-		<p class="text-base-content text-3xl">{title}</p>
+		<p class="text-3xl" style="color: {readableTextColor(goalColor)}">{title}</p>
 	</div>
 {/if}

@@ -2,6 +2,7 @@
 	import type {
 		Goal,
 		Intention,
+		IntentionStatus,
 		Outcome,
 		OutcomeVerdict,
 		Priority,
@@ -61,6 +62,17 @@
 		)
 	);
 	let verdictEdits = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
+	// Checkbox toggles are scraped from the DOM at save time and not_today
+	// toggles are staged locally — both are unsaved edits the guard must see.
+	let checkboxDirty = $state(false);
+	let statusOverrides = new SvelteMap<number, IntentionStatus>();
+	let displayIntentions = $derived(
+		intentions.map((intention) =>
+			intention.id !== null && statusOverrides.has(intention.id)
+				? { ...intention, status: statusOverrides.get(intention.id)! }
+				: intention
+		)
+	);
 
 	const verdictForGoal = (goalId: number | null) => {
 		if (goalId === null) return null;
@@ -68,7 +80,13 @@
 	};
 
 	beforeNavigate((navigation) => {
-		if (!newIntentionsToInsert.length && verdictEdits.size === 0) return;
+		if (
+			!newIntentionsToInsert.length &&
+			verdictEdits.size === 0 &&
+			!checkboxDirty &&
+			statusOverrides.size === 0
+		)
+			return;
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -77,6 +95,7 @@
 	});
 
 	const handleReviewGoalBoxChange = () => {
+		checkboxDirty = true;
 		showSaveButton = true;
 	};
 
@@ -110,7 +129,7 @@
 			)
 		).map((checkbox) => {
 			const intentionId = Number(checkbox.value);
-			const intention = intentions.find((intention) => intention.id === intentionId);
+			const intention = displayIntentions.find((intention) => intention.id === intentionId);
 			return { intentionId, status: statusFromReviewCheckbox(intention, checkbox.checked) };
 		});
 
@@ -145,6 +164,8 @@
 			showSaveButton = false;
 			newIntentionsToInsert = [];
 			verdictEdits.clear();
+			statusOverrides.clear();
+			checkboxDirty = false;
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
@@ -184,24 +205,20 @@
 		});
 	}
 
-	const handleNotTodayToggled = async (detail: { intention: Intention }) => {
+	// The ✕ toggle used to write immediately — a stray click rewrote a past day
+	// and the resulting invalidateAll discarded pending checkbox/verdict edits.
+	// It now stages a pending status change that saveReview writes with the rest.
+	const handleNotTodayToggled = (detail: { intention: Intention }) => {
 		const { intention } = detail;
 		if (intention.id === null) return;
-		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
-		try {
-			await trpc().intentions.edit.mutate({
-				id: intention.id,
-				status,
-				text: intention.text,
-				subIntentionQualifier: intention.subIntentionQualifier
-			});
-			await invalidateAll();
-			await onDayChanged?.();
-		} catch (error) {
-			if (error instanceof Error) {
-				journeyPageErrorStore.setError(error.message);
-			}
+		const next = intention.status === 'not_today' ? 'pending' : 'not_today';
+		const stored = intentions.find((i) => i.id === intention.id);
+		if (stored && stored.status === next) {
+			statusOverrides.delete(intention.id);
+		} else {
+			statusOverrides.set(intention.id, next);
 		}
+		showSaveButton = true;
 	};
 </script>
 
@@ -214,7 +231,7 @@
 		{#if outcomeReviewed}
 			<ReviewGoalBox
 				{goal}
-				{intentions}
+				intentions={displayIntentions}
 				{hasBeenSaved}
 				showTitle={false}
 				verdict={verdictForGoal(goal.id)}

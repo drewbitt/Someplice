@@ -9,6 +9,7 @@
 	import PriorityModal from '../shared/PriorityModal.svelte';
 	import type { Priority } from '$src/lib/trpc/types';
 	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { readableTextColor } from '$src/lib/utils';
 
 	let {
 		goal = $bindable(),
@@ -111,7 +112,7 @@
 		style="background-color: {goal.color}"
 		class="mx-5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
 	>
-		<span class="text-base-content pl-2 font-mono text-7xl">
+		<span class="pl-2 font-mono text-7xl" style="color: {readableTextColor(goal.color)}">
 			{goal.active ? goal.orderNumber : 'X'}
 		</span>
 		{#if showDeletionPrompt}
@@ -153,6 +154,7 @@
 			/>
 			<GoalDescription
 				bind:description={goal.description}
+				goalColor={goal.color}
 				{currentlyEditing}
 				{handleDeleteGoal}
 				{handleArchiveGoal}
@@ -164,7 +166,7 @@
 	{#if !isInactiveGoal}
 		<button
 			class="mx-5 block w-[calc(100%-2.5rem)] truncate rounded-md px-3 py-1.5 text-left font-semibold hover:underline"
-			style="background-color: {goal.color}20; color: {goal.color}"
+			style="background-color: color-mix(in srgb, {goal.color} 12%, transparent); color: color-mix(in srgb, {goal.color} 65%, var(--color-base-content))"
 			onclick={openPriorityModal}
 		>
 			Top Priority | {priority?.text ?? '+'}{#if priority?.checkInDate}
