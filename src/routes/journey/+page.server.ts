@@ -1,16 +1,20 @@
 import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
-import { goalsForJourneyDay } from '$src/lib/utils';
+import { goalsForJourneyDay, localeCurrentDate } from '$src/lib/utils';
 import type { Goal } from '$src/lib/trpc/types';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
-	const outcomes = await trpcLoad(event, (t) =>
-		t.outcomes.list({ limit, order: 'desc', orderBy: 'date' })
-	);
 	const { intentionsByDate, startDate, endDate: intentionsEndDate } = await getIntentionsByDate();
-	const endDate = new Date(Math.max(intentionsEndDate.getTime(), Date.now()));
+	// Bound by wall-clock "now", not Date.now(): stored timestamps use the
+	// fake-Z local convention, so a real instant compares against the wrong day.
+	const endDate = new Date(Math.max(intentionsEndDate.getTime(), localeCurrentDate().getTime()));
+	// Outcomes are windowed with the day set (as in loadMore) so outcome-only
+	// days inside the window arrive with the first page.
+	const outcomes = await trpcLoad(event, (t) =>
+		t.outcomes.list({ startDate, endDate, order: 'desc', orderBy: 'date' })
+	);
 	const priorities = await trpcLoad(event, (t) => t.priorities.list({ activeOnly: true }));
 	const completedPriorities = await trpcLoad(event, (t) =>
 		t.priorities.listCompleted({ startDate, endDate })
@@ -34,6 +38,7 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 			[
 				...new Set([
 					...Object.keys(intentionsByDate),
+					...outcomes.map((outcome) => outcome.date),
 					...completedPriorities
 						.map((priority) => priority.completedAt?.slice(0, 10))
 						.filter((date): date is string => Boolean(date))

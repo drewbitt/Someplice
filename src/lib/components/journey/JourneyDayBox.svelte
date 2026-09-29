@@ -10,7 +10,8 @@
 		outcomes,
 		verdicts = [],
 		priorities = [],
-		completedPriorities = []
+		completedPriorities = [],
+		onDayChanged
 	}: {
 		goals: Goal[];
 		date?: string;
@@ -19,9 +20,16 @@
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
 		completedPriorities?: Priority[];
+		// Called after an in-box write (saveReview, not_today) so the page can
+		// re-fetch days that live in client-side extras state.
+		onDayChanged?: () => void | Promise<void>;
 	} = $props();
 
 	let date = $derived(dateProp ?? intentions[intentions.length - 1]?.date);
+	// A reviewed day keeps its outcome even when every intention is deleted;
+	// the day box must still render it.
+	let outcomeForDay = $derived(outcomes.find((outcome) => outcome.date === date?.slice(0, 10)));
+	let dateISO = $derived(date ? `${date.slice(0, 10)}T00:00:00.000Z` : undefined);
 	let milestones = $derived(
 		completedPriorities.flatMap((priority) => {
 			const goal = goals.find((goal) => goal.id === priority.goalId);
@@ -55,10 +63,20 @@
 			★ {milestone.goal.orderNumber} completed top priority: {milestone.priority.text}
 		</p>
 	{/each}
-	{#if intentions.length}
+	{#if intentions.length || outcomeForDay}
 		<div class="grid md:grid-cols-2">
-			<IntentionsListBox {goals} {intentions} />
-			<OutcomesBox {goals} {intentions} {outcomes} {verdicts} {priorities} />
+			{#if intentions.length}
+				<IntentionsListBox {goals} {intentions} />
+			{/if}
+			<OutcomesBox
+				{goals}
+				{intentions}
+				{outcomes}
+				{verdicts}
+				{priorities}
+				date={dateISO}
+				{onDayChanged}
+			/>
 		</div>
 	{/if}
 </div>

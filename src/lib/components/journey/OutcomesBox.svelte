@@ -20,13 +20,20 @@
 		intentions,
 		outcomes,
 		verdicts = [],
-		priorities = []
+		priorities = [],
+		date: dateProp,
+		onDayChanged
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
+		// Day date as ISO midnight; used when the day has no intentions to take it from.
+		date?: string;
+		// Called after a write so extras-supplied days can be re-fetched;
+		// invalidateAll alone only refreshes server-loaded data.
+		onDayChanged?: () => void | Promise<void>;
 	} = $props();
 
 	let showSaveButton = $state(false);
@@ -34,7 +41,7 @@
 	let showPriorityModal = $state(false);
 	let priorityModalGoal = $state<Goal | null>(null);
 
-	let date = $derived(intentions[intentions.length - 1].date);
+	let date = $derived(intentions[intentions.length - 1]?.date ?? dateProp ?? '');
 	let dateWithoutTime = $derived(date.split('T')[0]);
 	let outcomeForDate = $derived(outcomes.find((outcome) => outcome.date === dateWithoutTime));
 	let newIntentionsToInsert: Omit<Intention, 'id'>[] = [];
@@ -108,7 +115,7 @@
 		});
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
-			date: date.split('T')[0],
+			date: dateWithoutTime,
 			reviewed: 1
 		};
 
@@ -145,6 +152,7 @@
 		} finally {
 			if (saved) {
 				await invalidateAll();
+				await onDayChanged?.();
 			}
 		}
 	};
@@ -188,6 +196,7 @@
 				subIntentionQualifier: intention.subIntentionQualifier
 			});
 			await invalidateAll();
+			await onDayChanged?.();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
