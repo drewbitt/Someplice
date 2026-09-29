@@ -1,20 +1,24 @@
 {
 	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
-	extends: ['config:best-practices', ':semanticCommits'],
+	extends: [
+		'config:best-practices',
+		':semanticCommits',
+		// Raise each PR the moment its branch is pushed (weekly window), not
+		// whenever CI happens to settle.
+		':prImmediately',
+		// No off-schedule rebases or updates on existing PRs.
+		':noUnscheduledUpdates',
+		// pnpm autoDedupe dedupes the lockfile on every update.
+		':maintainLockFilesDisabled',
+		// Majors wait for Dependency Dashboard approval.
+		':approveMajorUpdates'
+	],
 	rangeStrategy: 'bump',
 	// Bad or yanked releases self-filter before they can be proposed.
 	minimumReleaseAge: '7 days',
 	timezone: 'America/New_York',
-	// All update work happens inside the weekly Monday window — no mid-week
-	// branch updates or rebases on existing PRs either.
+	// All update work happens inside the weekly Monday window.
 	schedule: ['* * * * 1'],
-	updateNotScheduled: false,
-	// Raise each PR as soon as its branch is pushed so PRs appear during the
-	// weekly window instead of whenever CI happens to settle.
-	prCreation: 'immediate',
-	// pnpm autoDedupe keeps the lockfile deduplicated on every update;
-	// no standalone lock-file maintenance PRs.
-	lockFileMaintenance: { enabled: false },
 	// Vulnerability fix PRs skip the schedule by default — hold them to it too.
 	vulnerabilityAlerts: { schedule: ['* * * * 1'] },
 	packageRules: [
@@ -32,10 +36,6 @@
 			groupSlug: 'non-major',
 			automerge: true,
 			schedule: ['* 17-23 * * 1']
-		},
-		{
-			matchUpdateTypes: ['major'],
-			dependencyDashboardApproval: true
 		}
 	]
 }
