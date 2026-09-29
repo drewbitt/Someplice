@@ -1,14 +1,26 @@
 {
 	$schema: 'https://docs.renovatebot.com/renovate-schema.json',
-	extends: ['config:best-practices', ':semanticCommits'],
+	extends: [
+		'config:best-practices',
+		':semanticCommits',
+		// Raise each PR the moment its branch is pushed (weekly window), not
+		// whenever CI happens to settle.
+		':prImmediately',
+		// No off-schedule rebases or updates on existing PRs.
+		':noUnscheduledUpdates',
+		// pnpm autoDedupe dedupes the lockfile on every update.
+		':maintainLockFilesDisabled',
+		// Majors wait for Dependency Dashboard approval.
+		':approveMajorUpdates'
+	],
 	rangeStrategy: 'bump',
 	// Bad or yanked releases self-filter before they can be proposed.
 	minimumReleaseAge: '7 days',
 	timezone: 'America/New_York',
-	schedule: ['on Monday'],
-	// pnpm autoDedupe keeps the lockfile deduplicated on every update;
-	// no standalone lock-file maintenance PRs.
-	lockFileMaintenance: { enabled: false },
+	// All update work happens inside the weekly Monday window.
+	schedule: ['* * * * 1'],
+	// Vulnerability fix PRs skip the schedule by default — hold them to it too.
+	vulnerabilityAlerts: { schedule: ['* * * * 1'] },
 	packageRules: [
 		{
 			// Keep SemVer ranges in package.json — undoes :pinDevDependencies
@@ -17,18 +29,13 @@
 			rangeStrategy: 'bump'
 		},
 		{
-			matchUpdateTypes: ['patch', 'pin', 'digest'],
+			// All non-major updates in a single weekly PR instead of
+			// separate PRs per dependency.
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			groupName: 'non-major updates',
+			groupSlug: 'non-major',
 			automerge: true,
-			schedule: ['after 5:00pm on Monday']
-		},
-		{
-			matchUpdateTypes: ['minor'],
-			groupName: 'minor updates',
-			groupSlug: 'minor'
-		},
-		{
-			matchUpdateTypes: ['major'],
-			dependencyDashboardApproval: true
+			schedule: ['* 17-23 * * 1']
 		}
 	]
 }
