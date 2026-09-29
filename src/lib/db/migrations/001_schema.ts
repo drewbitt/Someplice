@@ -27,9 +27,10 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('subIntentionQualifier', 'text', (col) =>
 			col.check(sql`"subIntentionQualifier" REGEXP '^[a-z]{0,3}$'`)
 		)
-		// ISO 8601 date string
+		// ISO 8601 date string. COALESCE turns strftime's NULL (unparseable input)
+		// into a CHECK failure instead of a NULL that silently passes.
 		.addColumn('date', 'text', (col) =>
-			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)
+			col.notNull().check(sql`COALESCE("date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date"), 0)`)
 		)
 		.addForeignKeyConstraint('intentions_goalId_fk', ['goalId'], 'goals', ['id'], (fk) =>
 			fk.deferrable().initiallyDeferred().onDelete('cascade')
@@ -47,7 +48,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('date', 'text', (col) =>
 			col
 				.notNull()
-				.check(sql`"date" = strftime('%Y-%m-%d', "date")`)
+				.check(sql`COALESCE("date" = strftime('%Y-%m-%d', "date"), 0)`)
 				.unique()
 		)
 		.modifyEnd(sql`strict`)
@@ -77,7 +78,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		)
 		// ISO 8601 date string
 		.addColumn('date', 'text', (col) =>
-			col.notNull().check(sql`"date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date")`)
+			col.notNull().check(sql`COALESCE("date" = strftime('%Y-%m-%dT%H:%M:%fZ', "date"), 0)`)
 		)
 		.modifyEnd(sql`strict`)
 		.execute();

@@ -1,5 +1,6 @@
 import { logger } from '$lib/trpc/middleware/logger';
-import { t } from '$lib/trpc/t';
+import { procedure, t } from '$lib/trpc/t';
+import { TRPCError } from '@trpc/server';
 import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
@@ -15,7 +16,21 @@ export const IntentionsSchema = z.object({
 	status: z.enum(INTENTION_STATUSES),
 	text: z.string(),
 	subIntentionQualifier: z.string().nullable(),
-	date: z.string()
+	// strftime-normalized wall clock (toISOString shape); the table CHECK demands
+	// exactly this form, and older databases without the COALESCE'd CHECK would
+	// otherwise store anything. The refine rejects regex-valid impossibilities like
+	// 2026-02-30 or T24:00 that roll over to a different instant, and the NaN guard
+	// keeps unparseable shapes (month 13, hour 25) from throwing RangeError in zod.
+	date: z
+		.string()
+		.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+		.refine(
+			(value) => {
+				const parsed = new Date(value);
+				return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+			},
+			{ message: 'date must be a real instant in canonical toISOString() form' }
+		)
 });
 
 export const intentions = t.router({
@@ -29,7 +44,7 @@ export const intentions = t.router({
 	 * @param input.order - The order to sort the results by based on `orderNumber` (asc or desc, default is asc).
 	 * @returns The intentions.
 	 */
-	list: t.procedure
+	list: procedure
 		.use(logger)
 		.input(
 			z
@@ -83,7 +98,7 @@ export const intentions = t.router({
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @returns The intentions grouped by date.
 	 */
-	listByDate: t.procedure
+	listByDate: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -140,7 +155,7 @@ export const intentions = t.router({
 	 * @param input.offset - The offset to start returning results from (optional).
 	 * @returns An array of unique dates as strings in the format "YYYY-MM-DD"
 	 */
-	listUniqueDates: t.procedure
+	listUniqueDates: procedure
 		.use(logger)
 		.input(
 			z
@@ -185,7 +200,7 @@ export const intentions = t.router({
 	 * Retrieve all the intentions for the latest date that intentions exist for.
 	 * @returns The intentions for the latest date, or an empty array if there are no intentions.
 	 */
-	intentionsOnLatestDate: t.procedure.use(logger).query(async () => {
+	intentionsOnLatestDate: procedure.use(logger).query(async () => {
 		const maxDate = await getDb()
 			.selectFrom('intentions')
 			.select(['id', 'date'])
@@ -215,7 +230,7 @@ export const intentions = t.router({
 	 * @returns {UpdateResult}
 	 * @throws {NoResultError} If could not edit the intention
 	 */
-	edit: t.procedure
+	edit: procedure
 		.use(logger)
 		.input(
 			// Only the fields edit is allowed to change; orderNumber is owned by
@@ -245,7 +260,7 @@ export const intentions = t.router({
 			return result;
 		}),
 	/** Set the status of multiple intentions without changing their ordering. */
-	setStatus: t.procedure
+	setStatus: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -268,7 +283,7 @@ export const intentions = t.router({
 	 * @returns The result of the update operation.
 	 * @throws If could not edit the intention.
 	 */
-	appendText: t.procedure
+	appendText: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -299,7 +314,7 @@ export const intentions = t.router({
 	 * @param input.intentions - The intentions to update.
 	 * @returns The rows parameter will always be defined, but empty since we're not returning anything.
 	 */
-	updateIntentions: t.procedure
+	updateIntentions: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -317,6 +332,33 @@ export const intentions = t.router({
 					for (const intention of input.intentions) {
 						const dateKey = intention.date.slice(0, 10);
 						inputByDate.set(dateKey, [...(inputByDate.get(dateKey) ?? []), intention]);
+					}
+
+					// An existing intention's day is immutable: moving it across days
+					// would silently unlink it from its day's outcome and reorder a
+					// different day's numbering. Deletes + inserts are the move API.
+					const updateIds = input.intentions
+						.filter((intention) => intention.id !== null)
+						.map((intention) => intention.id as number);
+					if (updateIds.length > 0) {
+						const existingDays = await trx
+							.selectFrom('intentions')
+							.select(['id', sql<string>`DATE("date")`.as('day')])
+							.where('id', 'in', updateIds)
+							.execute();
+						const dayById = new Map(existingDays.map((row) => [row.id, row.day]));
+						for (const intention of input.intentions) {
+							if (
+								intention.id !== null &&
+								dayById.has(intention.id) &&
+								dayById.get(intention.id) !== intention.date.slice(0, 10)
+							) {
+								throw new TRPCError({
+									code: 'BAD_REQUEST',
+									message: `Intention ${intention.id} cannot move to a different date`
+								});
+							}
+						}
 					}
 
 					// The unique index on (DATE(date), orderNumber) can't be deferred, so a
@@ -399,7 +441,7 @@ export const intentions = t.router({
 	 * @returns A `DeleteResult` object.
 	 * @throws {NoResultError} If no intention with the provided `id` exists.
 	 */
-	delete: t.procedure
+	delete: procedure
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
