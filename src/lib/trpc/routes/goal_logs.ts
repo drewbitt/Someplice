@@ -1,5 +1,5 @@
 import { logger } from '$lib/trpc/middleware/logger';
-import { t } from '$lib/trpc/t';
+import { procedure, t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { z } from 'zod';
 
@@ -18,7 +18,7 @@ export const goal_logs = t.router({
 	 * @returns An array of `GoalLog` objects.
 	 * @throws {NoResultError} If could not find any goal logs for the goal.
 	 */
-	getAllForGoal: t.procedure
+	getAllForGoal: procedure
 		.use(logger)
 		.input(z.number())
 		.query(async ({ input }) => {
@@ -39,7 +39,7 @@ export const goal_logs = t.router({
 	 * Get all goal logs.
 	 * @returns An array of `GoalLog` objects.
 	 */
-	getAll: t.procedure.use(logger).query(async () => {
+	getAll: procedure.use(logger).query(async () => {
 		return await getDb().selectFrom('goal_logs').selectAll().execute();
 	})
 });

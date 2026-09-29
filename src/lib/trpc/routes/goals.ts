@@ -1,5 +1,5 @@
 import { logger } from '$lib/trpc/middleware/logger';
-import { t } from '$lib/trpc/t';
+import { procedure, t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
@@ -83,7 +83,7 @@ export const goals = t.router({
 	 * @param input - 0 (false) or 1 (true) to return inactive or active goals respectively.
 	 * @returns An array of `Goal` objects.
 	 */
-	list: t.procedure
+	list: procedure
 		.use(logger)
 		.input(z.number().nonnegative().lte(1).optional().default(1))
 		.query<Goal[]>(
@@ -100,7 +100,7 @@ export const goals = t.router({
 	 * @param input - 0 (false) or 1 (true) to return inactive or active goals respectively.
 	 * @returns An array of `Goal` objects.
 	 */
-	listGoalsSortedByDate: t.procedure
+	listGoalsSortedByDate: procedure
 		.use(logger)
 		.input(z.number().nonnegative().lte(1).optional().default(1))
 		.query<Goal[]>(async ({ input }) => {
@@ -140,7 +140,7 @@ export const goals = t.router({
 	 * @param input.date - Date to return goals as they were on.
 	 * @returns An array of `Goal` objects.
 	 */
-	listGoalsOnDate: t.procedure
+	listGoalsOnDate: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -225,7 +225,7 @@ export const goals = t.router({
 	 * @throws {Error} - if the maximum number of goals was reached.
 	 * @returns An object containing the `id` of the goal inserted.
 	 */
-	add: t.procedure
+	add: procedure
 		.use(logger)
 		.input(GoalSchema.omit({ id: true, orderNumber: true }))
 		.mutation(async ({ input }) => {
@@ -256,7 +256,7 @@ export const goals = t.router({
 	 * @param input.goals - Array of `Goal` objects to update.
 	 * @returns An array of now current `Goal` objects.
 	 */
-	updateGoals: t.procedure
+	updateGoals: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -283,6 +283,31 @@ export const goals = t.router({
 							code: 'BAD_REQUEST',
 							message:
 								'You have reached the maximum number of 9 goals. Delete or archive a goal first.'
+						});
+					}
+
+					// orderNumbers across active goals must remain a contiguous 1..N
+					// permutation: the editor's "N)" syntax and listGoalsOnDate's replayed
+					// ordering both assume it, and gaps/duplicates/out-of-range values
+					// otherwise only fail later at the unique index or not at all.
+					const activeIds = new Set(
+						existingGoals.filter((goal) => goal.active === 1).map((goal) => goal.id)
+					);
+					const updateIds = new Set(updates.map((goal) => goal.id));
+					const finalActiveOrderNumbers = [
+						...existingGoals
+							.filter((goal) => goal.active === 1 && !updateIds.has(goal.id))
+							.map((goal) => goal.orderNumber),
+						...updates
+							.filter((goal) => activeIds.has(goal.id as number))
+							.map((goal) => goal.orderNumber),
+						...inserts.map((goal) => goal.orderNumber)
+					];
+					const sortedOrderNumbers = [...finalActiveOrderNumbers].sort((a, b) => a - b);
+					if (!sortedOrderNumbers.every((orderNumber, index) => orderNumber === index + 1)) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Active goal orderNumbers must form a contiguous 1..N permutation.'
 						});
 					}
 
@@ -358,7 +383,7 @@ export const goals = t.router({
 	 * @throws {NoResultError} If no goal with the provided `id` exists in the database.
 	 * @returns A `DeleteResult` object.
 	 */
-	delete: t.procedure
+	delete: procedure
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
@@ -406,7 +431,7 @@ export const goals = t.router({
 	 * @throws {Error} If the goal is already archived.
 	 * @returns An `UpdateResult` object.
 	 */
-	archive: t.procedure
+	archive: procedure
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
@@ -463,7 +488,7 @@ export const goals = t.router({
 	 * @throws {Error} If the maximum number of goals has been reached.
 	 * @throws {Error} If the goal is already active.
 	 */
-	restore: t.procedure
+	restore: procedure
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {

@@ -277,4 +277,24 @@ describe('outcomes', () => {
 		expect(result.length).toBe(1);
 		expect(result[0].date).toBe('2026-02-01');
 	});
+
+	it('saveReview rejects statuses for intentions on a different day', async () => {
+		await db
+			.insertInto('intentions')
+			.values({ ...TEST_INTENTION, orderNumber: 2, date: '2020-01-01T00:01:00.000Z' })
+			.execute();
+		const date = new Date().toISOString().split('T')[0];
+
+		let error: { code?: string } | undefined;
+		try {
+			await caller.outcomes.saveReview({
+				outcome: { date, reviewed: 1 },
+				newIntentions: [],
+				statuses: [{ intentionId: 2, status: 'done' }]
+			});
+		} catch (e) {
+			error = e as { code?: string };
+		}
+		expect(error?.code).toEqual('BAD_REQUEST');
+	});
 });

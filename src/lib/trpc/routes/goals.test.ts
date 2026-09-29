@@ -396,6 +396,25 @@ describe('goals', () => {
 		expect(after[1].orderNumber).toEqual(2);
 	});
 
+	it('updateGoals rejects a non-contiguous orderNumber set', async () => {
+		(await caller.goals.add(TEST_GOAL)) as GoalResult;
+		(await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;
+
+		const rows = await db.selectFrom('goals').selectAll().orderBy('id', 'asc').execute();
+		const gapped = rows.map((row, index) => ({
+			...row,
+			orderNumber: index === 0 ? 1 : 9
+		}));
+
+		let error: { code?: string } | undefined;
+		try {
+			await caller.goals.updateGoals({ goals: gapped as Goal[] });
+		} catch (e) {
+			error = e as { code?: string };
+		}
+		expect(error?.code).toEqual('BAD_REQUEST');
+	});
+
 	it('listGoalsOnDate reflects reorder logs on a later date', async () => {
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;
 		const added2 = (await caller.goals.add({ ...TEST_GOAL, title: 'Test Goal 2' })) as GoalResult;

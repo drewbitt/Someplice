@@ -1,5 +1,5 @@
 import { logger } from '$lib/trpc/middleware/logger';
-import { t } from '$lib/trpc/t';
+import { procedure, t } from '$lib/trpc/t';
 import { getDb } from '$src/lib/db/db';
 import { NoResultError, type Selectable } from 'kysely';
 import { z } from 'zod';
@@ -29,7 +29,7 @@ export const priorities = t.router({
 	 * (`completedAt IS NULL`) — at most one per goal.
 	 * @returns An array of plain priority rows.
 	 */
-	list: t.procedure
+	list: procedure
 		.use(logger)
 		.input(
 			z
@@ -56,7 +56,7 @@ export const priorities = t.router({
 	 * @param input.offset - Offset into the result set (optional).
 	 * @returns An array of completed priorities with goal display fields.
 	 */
-	listCompleted: t.procedure
+	listCompleted: procedure
 		.use(logger)
 		.input(
 			z
@@ -107,7 +107,7 @@ export const priorities = t.router({
 	 * @param input.checkInDate - Optional YYYY-MM-DD check-in date.
 	 * @returns An object containing the `id` of the new priority.
 	 */
-	upsert: t.procedure
+	upsert: procedure
 		.use(logger)
 		.input(
 			PrioritySchema.pick({ goalId: true, text: true }).extend({
@@ -168,7 +168,7 @@ export const priorities = t.router({
 	 * @returns An `UpdateResult` object.
 	 * @throws {NoResultError} If no active priority with the provided `id` exists.
 	 */
-	complete: t.procedure
+	complete: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -197,7 +197,7 @@ export const priorities = t.router({
 	 * @param input - `goalId` of the goal whose active priority should be removed.
 	 * @returns A `DeleteResult` object.
 	 */
-	clear: t.procedure
+	clear: procedure
 		.use(logger)
 		.input(z.object({ goalId: z.number() }))
 		.mutation(async ({ input }) => {

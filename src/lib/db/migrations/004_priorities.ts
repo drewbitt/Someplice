@@ -10,18 +10,24 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		)
 		.addColumn('text', 'text', (col) => col.notNull())
 		.addColumn('description', 'text')
-		// YYYY-MM-DD check-in date, optional
+		// YYYY-MM-DD check-in date, optional. COALESCE turns strftime's NULL
+		// (unparseable input) into a CHECK failure instead of a NULL that
+		// silently passes.
 		.addColumn('checkInDate', 'text', (col) =>
-			col.check(sql`"checkInDate" IS NULL OR "checkInDate" = strftime('%Y-%m-%d', "checkInDate")`)
+			col.check(
+				sql`"checkInDate" IS NULL OR COALESCE("checkInDate" = strftime('%Y-%m-%d', "checkInDate"), 0)`
+			)
 		)
 		// ISO 8601 date string
 		.addColumn('createdAt', 'text', (col) =>
-			col.notNull().check(sql`"createdAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "createdAt")`)
+			col
+				.notNull()
+				.check(sql`COALESCE("createdAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "createdAt"), 0)`)
 		)
 		// ISO 8601 date string; NULL = the priority is still active
 		.addColumn('completedAt', 'text', (col) =>
 			col.check(
-				sql`"completedAt" IS NULL OR "completedAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "completedAt")`
+				sql`"completedAt" IS NULL OR COALESCE("completedAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "completedAt"), 0)`
 			)
 		)
 		// filled at completion, optional

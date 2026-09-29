@@ -390,4 +390,28 @@ describe('intentions', () => {
 		}
 		expect(error).toBeDefined();
 	});
+
+	it('delete a non-existent intention returns NOT_FOUND', async () => {
+		let error: { code?: string } | undefined;
+		try {
+			await caller.intentions.delete(9999);
+		} catch (e) {
+			error = e as { code?: string };
+		}
+		expect(error?.code).toEqual('NOT_FOUND');
+	});
+
+	it('updateIntentions rejects moving an intention to a different date', async () => {
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+
+		let error: { code?: string } | undefined;
+		try {
+			await caller.intentions.updateIntentions({
+				intentions: [{ ...TEST_INTENTION, date: '2023-07-02T00:01:00.000Z' }]
+			});
+		} catch (e) {
+			error = e as { code?: string };
+		}
+		expect(error?.code).toEqual('BAD_REQUEST');
+	});
 });

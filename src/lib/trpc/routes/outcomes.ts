@@ -1,7 +1,9 @@
 import { logger } from '$lib/trpc/middleware/logger';
-import { t } from '$lib/trpc/t';
+import { procedure, t } from '$lib/trpc/t';
+import { TRPCError } from '@trpc/server';
 import { getDb } from '$src/lib/db/db';
 import { linkIntentionToOutcome } from '$src/lib/db/queries';
+import { sql } from 'kysely';
 import { z } from 'zod';
 import { INTENTION_STATUSES, VERDICTS } from '../enums';
 import { IntentionsSchema } from './intentions';
@@ -31,7 +33,7 @@ export const outcomes = t.router({
 	 * @param input.orderBy - The column to order the results by (either 'id' or 'date', default is 'id').
 	 * @returns An array of `Outcome` objects.
 	 */
-	list: t.procedure
+	list: procedure
 		.use(logger)
 		.input(
 			z
@@ -78,7 +80,7 @@ export const outcomes = t.router({
 	 * List per-goal verdicts for the given outcomes (used by the journey page,
 	 * where each day-card knows its outcomeId).
 	 */
-	verdictsByOutcomeIds: t.procedure
+	verdictsByOutcomeIds: procedure
 		.use(logger)
 		.input(z.object({ outcomeIds: z.array(z.number()) }))
 		.query(({ input }) => {
@@ -101,7 +103,7 @@ export const outcomes = t.router({
 	 * @param input.verdicts - Per-goal verdicts for the outcome.
 	 * @returns `{ outcomeId }` of the upserted outcome.
 	 */
-	saveReview: t.procedure
+	saveReview: procedure
 		.use(logger)
 		.input(
 			z.object({
@@ -121,6 +123,35 @@ export const outcomes = t.router({
 				.transaction()
 				.execute(async (trx) => {
 					const intentionIds = input.statuses.map((status) => status.intentionId);
+
+					// A review is scoped to its day: new intentions must carry that day,
+					// and status/link targets must already live on it. Otherwise a
+					// foreign id would bind another day's intention to this outcome.
+					for (const intention of input.newIntentions) {
+						if (intention.date.slice(0, 10) !== input.outcome.date) {
+							throw new TRPCError({
+								code: 'BAD_REQUEST',
+								message: 'New intentions must belong to the reviewed outcome date'
+							});
+						}
+					}
+					if (intentionIds.length > 0) {
+						const days = await trx
+							.selectFrom('intentions')
+							.select(['id', sql<string>`DATE("date")`.as('day')])
+							.where('id', 'in', intentionIds)
+							.execute();
+						const dayById = new Map(days.map((row) => [row.id, row.day]));
+						for (const intentionId of intentionIds) {
+							const day = dayById.get(intentionId);
+							if (day !== undefined && day !== input.outcome.date) {
+								throw new TRPCError({
+									code: 'BAD_REQUEST',
+									message: `Intention ${intentionId} does not belong to outcome date ${input.outcome.date}`
+								});
+							}
+						}
+					}
 
 					if (input.newIntentions.length > 0) {
 						const inserted = await trx
