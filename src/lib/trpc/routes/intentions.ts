@@ -19,13 +19,18 @@ export const IntentionsSchema = z.object({
 	// strftime-normalized wall clock (toISOString shape); the table CHECK demands
 	// exactly this form, and older databases without the COALESCE'd CHECK would
 	// otherwise store anything. The refine rejects regex-valid impossibilities like
-	// 2026-02-30 or T24:00 that roll over to a different instant.
+	// 2026-02-30 or T24:00 that roll over to a different instant, and the NaN guard
+	// keeps unparseable shapes (month 13, hour 25) from throwing RangeError in zod.
 	date: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
-		.refine((value) => new Date(value).toISOString() === value, {
-			message: 'date must be a real instant in canonical toISOString() form'
-		})
+		.refine(
+			(value) => {
+				const parsed = new Date(value);
+				return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+			},
+			{ message: 'date must be a real instant in canonical toISOString() form' }
+		)
 });
 
 export const intentions = t.router({

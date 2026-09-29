@@ -278,6 +278,25 @@ describe('outcomes', () => {
 		expect(result[0].date).toBe('2026-02-01');
 	});
 
+	it.each(['2023-02-30', '2023-13-01'])(
+		'saveReview rejects the invalid outcome date %s with BAD_REQUEST, not a 500',
+		async (date) => {
+			// 2023-02-30 rolls over to March 2; 2023-13-01 is unparseable — a bare
+			// toISOString() call would throw RangeError and surface as a 500.
+			let error: { code?: string } | undefined;
+			try {
+				await caller.outcomes.saveReview({
+					outcome: { date, reviewed: 1 },
+					newIntentions: [],
+					statuses: []
+				});
+			} catch (e) {
+				error = e as { code?: string };
+			}
+			expect(error?.code).toEqual('BAD_REQUEST');
+		}
+	);
+
 	it('saveReview rejects statuses for intentions on a different day', async () => {
 		await db
 			.insertInto('intentions')

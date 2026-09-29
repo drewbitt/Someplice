@@ -429,4 +429,21 @@ describe('intentions', () => {
 			expect(error?.code).toEqual('BAD_REQUEST');
 		}
 	);
+
+	it.each(['2023-13-01T00:01:00.000Z', '2023-07-01T25:00:00.000Z', '2023-07-01T00:60:00.000Z'])(
+		'updateIntentions rejects the unparseable date %s with BAD_REQUEST, not a 500',
+		async (date) => {
+			// These shapes pass the regex but produce Invalid Date; a bare
+			// toISOString() call would throw RangeError and surface as a 500.
+			let error: { code?: string } | undefined;
+			try {
+				await caller.intentions.updateIntentions({
+					intentions: [{ ...TEST_INTENTION, date }]
+				});
+			} catch (e) {
+				error = e as { code?: string };
+			}
+			expect(error?.code).toEqual('BAD_REQUEST');
+		}
+	);
 });
