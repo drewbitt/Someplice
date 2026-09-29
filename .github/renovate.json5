@@ -5,10 +5,18 @@
 	// Bad or yanked releases self-filter before they can be proposed.
 	minimumReleaseAge: '7 days',
 	timezone: 'America/New_York',
-	schedule: ['on Monday'],
+	// All update work happens inside the weekly Monday window — no mid-week
+	// branch updates or rebases on existing PRs either.
+	schedule: ['* * * * 1'],
+	updateNotScheduled: false,
+	// Raise each PR as soon as its branch is pushed so PRs appear during the
+	// weekly window instead of whenever CI happens to settle.
+	prCreation: 'immediate',
 	// pnpm autoDedupe keeps the lockfile deduplicated on every update;
 	// no standalone lock-file maintenance PRs.
 	lockFileMaintenance: { enabled: false },
+	// Vulnerability fix PRs skip the schedule by default — hold them to it too.
+	vulnerabilityAlerts: { schedule: ['* * * * 1'] },
 	packageRules: [
 		{
 			// Keep SemVer ranges in package.json — undoes :pinDevDependencies
@@ -17,14 +25,13 @@
 			rangeStrategy: 'bump'
 		},
 		{
-			matchUpdateTypes: ['patch', 'pin', 'digest'],
+			// All non-major updates in a single weekly PR instead of
+			// separate PRs per dependency.
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			groupName: 'non-major updates',
+			groupSlug: 'non-major',
 			automerge: true,
-			schedule: ['after 5:00pm on Monday']
-		},
-		{
-			matchUpdateTypes: ['minor'],
-			groupName: 'minor updates',
-			groupSlug: 'minor'
+			schedule: ['* 17-23 * * 1']
 		},
 		{
 			matchUpdateTypes: ['major'],
