@@ -127,6 +127,30 @@ describe('checkMissingOutcomes', () => {
 		expect(pairs[0].outcomeId).toBe(outcomes[0].id);
 	});
 
+	it('relinks an intention whose date moved after its first outcome link', async () => {
+		const goalId = await insertGoal(db);
+		const intentionId = await insertIntention(db, goalId, '2023-07-01T00:01:00.000Z', 1);
+		await checkMissingOutcomes();
+
+		// The intention moved to July 2 but its July 1 link survives; a stale
+		// link must not exempt it from the July 2 outcome.
+		await db
+			.updateTable('intentions')
+			.set({ date: '2023-07-02T00:01:00.000Z' })
+			.where('id', '=', intentionId)
+			.execute();
+		await checkMissingOutcomes();
+
+		const outcomes = await db.selectFrom('outcomes').selectAll().orderBy('date', 'asc').execute();
+		expect(outcomes).toHaveLength(2);
+		expect(outcomes[1].date).toBe('2023-07-02');
+
+		const pairs = await db.selectFrom('outcomes_intentions').selectAll().execute();
+		expect(
+			pairs.some((pair) => pair.outcomeId === outcomes[1].id && pair.intentionId === intentionId)
+		).toBe(true);
+	});
+
 	it('does nothing when there are no intentions', async () => {
 		await checkMissingOutcomes();
 		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(0);

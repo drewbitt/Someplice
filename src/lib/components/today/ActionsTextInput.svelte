@@ -106,6 +106,12 @@
 		return null;
 	}
 
+	// Everything interpolated below lands in an innerHTML write, so escape
+	// text content and only allow injection-proof CSS color forms inline.
+	const escapeHtml = (text: string) =>
+		text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+	const SAFE_CSS_COLOR = /^#[0-9a-fA-F]{3,8}$|^[a-zA-Z]+$|^[a-zA-Z]+\([^"'<>;{}\\]{1,64}\)$/;
+
 	const highlight = (value: string) => {
 		// Match lines that start with a number followed by a letter or letters and a closing parenthesis
 		// Don't match when the parenthesis is followed by a letter/number without a space in between
@@ -113,18 +119,22 @@
 		const lines = value.split('\n');
 		const highlightedLines = lines.map((line) => {
 			const matches = line.match(regex);
+			const escaped = escapeHtml(line);
 			if (matches) {
 				// Determine color from matched number
 				const number = parseInt(matches[0].slice(0, -1));
 				// Check goal for color
 				const goal = goals.find((goal: Goal) => goal.orderNumber === number);
 				if (goal) {
-					return `<span class="goal__editor__span goal-text" style="--goal-color: ${goal.color}">${line}</span>`;
+					const style = SAFE_CSS_COLOR.test(goal.color)
+						? ` style="--goal-color: ${goal.color}"`
+						: '';
+					return `<span class="goal__editor__span goal-text"${style}>${escaped}</span>`;
 				}
 				// If no goal matches, add a dashed underline
-				return `<span class="border-b-2 border-dashed border-blue-600">${line}</span>`;
+				return `<span class="border-b-2 border-dashed border-blue-600">${escaped}</span>`;
 			}
-			return line;
+			return escaped;
 		});
 		return highlightedLines.join('\n');
 	};
