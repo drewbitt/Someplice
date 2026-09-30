@@ -67,6 +67,11 @@ export interface Priorities {
 	text: string;
 }
 
+export interface Settings {
+	key: string;
+	value: string;
+}
+
 export interface DB {
 	goal_logs: GoalLogs;
 	goals: Goals;
@@ -75,4 +80,5 @@ export interface DB {
 	outcomes: Outcomes;
 	outcomes_intentions: OutcomesIntentions;
 	priorities: Priorities;
+	settings: Settings;
 }

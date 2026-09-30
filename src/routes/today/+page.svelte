@@ -6,7 +6,8 @@
 	import PriorityCards from '$src/lib/components/today/PriorityCards.svelte';
 	import Review from '$src/lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '$src/lib/trpc/client';
-	import { goalsForJourneyDay, localeDayOfWeek } from '$src/lib/utils';
+	import { dayOfWeekInZone, goalsForJourneyDay } from '$src/lib/utils';
+	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
@@ -263,13 +264,13 @@
 				/>
 				<div>
 					<button class="btn" onclick={handleSaveIntentions}>
-						Set {localeDayOfWeek()} intentions
+						Set {dayOfWeekInZone(appTimeZone.current)} intentions
 					</button>
 				</div>
 			{:else}
 				<div>
 					<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
-						Add more {localeDayOfWeek()} intentions
+						Add more {dayOfWeekInZone(appTimeZone.current)} intentions
 					</button>
 				</div>
 			{/if}
@@ -286,7 +287,7 @@
 
 			<div>
 				<button class="btn" onclick={handleSaveIntentions}>
-					Set {localeDayOfWeek()} intentions
+					Set {dayOfWeekInZone(appTimeZone.current)} intentions
 				</button>
 			</div>
 		{/if}

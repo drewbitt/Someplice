@@ -2,9 +2,28 @@
 	import HeaderContent from '$lib/components/HeaderContent.svelte';
 	import '../app.css';
 	import theme from '$lib/stores/theme';
+	import { appTimeZone } from '$lib/stores/timezone.svelte';
+	import { trpc } from '$src/lib/trpc/client';
+	import { onMount } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	// One zone for every day boundary, server and client: the layout load
+	// resolves the stored setting and first visits persist the browser's zone.
+	$effect(() => {
+		appTimeZone.set(data.timeZone);
+	});
+	onMount(() => {
+		trpc()
+			.settings.ensureTimeZone.mutate({
+				timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+			})
+			.then(appTimeZone.set)
+			.catch(() => {
+				// auto-detect is best-effort; the stored/env zone still applies
+			});
+	});
 
 	let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '');
 

@@ -6,8 +6,8 @@ import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { DB } from '$src/lib/types/data';
 import type { Goal } from '../types';
-import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
-import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
+import { configuredZoneNow, deleteOrphanedOutcomes } from '$src/lib/db/queries';
+import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
 import { TRPCError } from '@trpc/server';
 
 const MAX_GOALS = 9;
@@ -229,6 +229,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(GoalSchema.omit({ id: true, orderNumber: true }))
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
@@ -244,11 +245,7 @@ export const goals = t.router({
 					const orderNumber = count + 1;
 
 					// added goals are always active; archive/restore manage `active` elsewhere
-					return await insertGoal(
-						trx,
-						{ ...input, orderNumber },
-						localeCurrentDate().toISOString()
-					);
+					return await insertGoal(trx, { ...input, orderNumber }, now);
 				});
 		}),
 	/**
@@ -265,6 +262,7 @@ export const goals = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
@@ -330,7 +328,6 @@ export const goals = t.router({
 					}
 
 					const results = [];
-					const now = localeCurrentDate().toISOString();
 
 					for (const goal of updates) {
 						const existing = existingById.get(goal.id as number);
@@ -355,7 +352,7 @@ export const goals = t.router({
 								.where('id', '=', goal.id)
 								.execute()
 						);
-						await insertReorderLog(trx, goal.id as number, existing, goal.orderNumber);
+						await insertReorderLog(trx, goal.id as number, existing, goal.orderNumber, now);
 					}
 
 					for (const goal of inserts) {
@@ -387,6 +384,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
@@ -412,11 +410,7 @@ export const goals = t.router({
 
 					// close the gap left by an active goal and log each shift, mirroring archive
 					if (goalToDelete.active === 1) {
-						await compactActiveGoalsAfter(
-							trx,
-							goalToDelete.orderNumber,
-							localeCurrentDate().toISOString()
-						);
+						await compactActiveGoalsAfter(trx, goalToDelete.orderNumber, now);
 					}
 
 					await deleteOrphanedOutcomes(trx, associatedOutcomeIds);
@@ -435,6 +429,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
@@ -459,7 +454,7 @@ export const goals = t.router({
 						.where('id', '=', input)
 						.execute();
 
-					const endDate = localeCurrentDate().toISOString();
+					const endDate = now;
 
 					// close the gap and log each shift so historical queries see post-archive positions
 					await compactActiveGoalsAfter(trx, archivedGoalOrder, endDate);
@@ -492,6 +487,7 @@ export const goals = t.router({
 		.use(logger)
 		.input(z.number())
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
@@ -536,7 +532,7 @@ export const goals = t.router({
 							.values({
 								goalId: input,
 								type: 'start',
-								date: localeCurrentDate().toISOString(),
+								date: now,
 								orderNumber: restoredOrderNumber
 							})
 							.executeTakeFirst();
@@ -556,7 +552,7 @@ async function insertReorderLog(
 	goalId: number,
 	existing: { active: number; orderNumber: number },
 	newOrderNumber: number,
-	date = localeCurrentDate().toISOString()
+	date: string
 ) {
 	if (existing.active === 1 && existing.orderNumber !== newOrderNumber) {
 		await trx

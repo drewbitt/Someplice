@@ -3,7 +3,7 @@ import { runMigrations } from '$src/lib/db/migrate-to-latest';
 import type { DB } from '$src/lib/types/data';
 import type { Kysely } from 'kysely';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { localeCurrentDate, localePreviousDate } from '$src/lib/utils';
+import { dateKeyInZone, previousDateKey } from '$src/lib/utils';
 import { checkMissingOutcomes } from './cron';
 
 const TEST_GOAL = {
@@ -111,8 +111,8 @@ describe('checkMissingOutcomes', () => {
 
 	it('backfills only past days, never today', async () => {
 		const goalId = await insertGoal(db);
-		const today = localeCurrentDate().toISOString().slice(0, 10);
-		const yesterday = localePreviousDate().toISOString().slice(0, 10);
+		const today = dateKeyInZone('UTC');
+		const yesterday = previousDateKey(today);
 		await insertIntention(db, goalId, `${yesterday}T12:00:00.000Z`, 1);
 		await insertIntention(db, goalId, `${today}T12:00:00.000Z`, 1);
 
@@ -149,6 +149,26 @@ describe('checkMissingOutcomes', () => {
 		expect(
 			pairs.some((pair) => pair.outcomeId === outcomes[1].id && pair.intentionId === intentionId)
 		).toBe(true);
+	});
+
+	it('uses the stored timezone, not the server clock, for the day boundary', async () => {
+		const goalId = await insertGoal(db);
+		await db
+			.insertInto('settings')
+			.values({ key: 'timezone', value: 'Pacific/Kiritimati' })
+			.execute();
+
+		// UTC sees July 2 15:00; Kiritimati (UTC+14) is already July 3 05:00.
+		const now = new Date('2023-07-02T15:00:00.000Z');
+		await insertIntention(db, goalId, '2023-07-02T12:00:00.000Z', 1);
+
+		await checkMissingOutcomes(now);
+
+		// Under UTC this day would still be "today" and get no outcome; in the
+		// stored zone it is yesterday and gets one.
+		const outcomes = await db.selectFrom('outcomes').selectAll().execute();
+		expect(outcomes).toHaveLength(1);
+		expect(outcomes[0].date).toBe('2023-07-02');
 	});
 
 	it('does nothing when there are no intentions', async () => {

@@ -4,7 +4,8 @@ import { getDb } from '$src/lib/db/db';
 import { NoResultError, type Selectable } from 'kysely';
 import { z } from 'zod';
 import type { Priorities } from '$src/lib/types/data';
-import { adjustToUTCStartAndEndOfDay, localeCurrentDate } from '$src/lib/utils';
+import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
+import { configuredZoneNow } from '$src/lib/db/queries';
 
 export const PrioritySchema = z.object({
 	id: z.number().nullable(),
@@ -121,11 +122,10 @@ export const priorities = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
+			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
-					const now = localeCurrentDate().toISOString();
-
 					const active = await trx
 						.selectFrom('priorities')
 						.select('id')
@@ -180,7 +180,7 @@ export const priorities = t.router({
 			const query = getDb()
 				.updateTable('priorities')
 				.set({
-					completedAt: localeCurrentDate().toISOString(),
+					completedAt: (await configuredZoneNow()).toISOString(),
 					reflection: input.reflection ?? null
 				})
 				.where('id', '=', input.id)

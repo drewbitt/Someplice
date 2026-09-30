@@ -1,15 +1,5 @@
 import type { Goal, Intention } from '../trpc/types';
 
-export const localeCurrentDate = () => {
-	return new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
-};
-
-export const localePreviousDate = () => {
-	const currentDate = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
-	currentDate.setDate(currentDate.getDate() - 1); // subtract one day
-	return currentDate;
-};
-
 export const adjustToUTCStartAndEndOfDay = (start: Date, end: Date) => {
 	const adjustDate = (
 		date: Date,
@@ -39,10 +29,50 @@ export const dayOfWeekFromDate = (date: Date) => {
 	return formatter.format(date);
 };
 
-// Today's label domain is the browser-local wall clock: during UTC/local
-// overlap hours the UTC weekday is a day off from what the user means.
-export const localeDayOfWeek = () =>
-	new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+/**
+ * The instant's wall-clock fields in `timeZone`, expressed as a Date whose
+ * UTC components equal those fields (the codebase's fake-Z convention:
+ * `toISOString()` reads back the zone-local wall time).
+ */
+export const wallClockInZone = (timeZone: string, instant: Date = new Date()): Date => {
+	const parts = new Intl.DateTimeFormat('en-US', {
+		timeZone,
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		hourCycle: 'h23'
+	}).formatToParts(instant);
+	const part = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+	return new Date(
+		Date.UTC(
+			part('year'),
+			part('month') - 1,
+			part('day'),
+			part('hour'),
+			part('minute'),
+			part('second'),
+			instant.getMilliseconds()
+		)
+	);
+};
+
+/** `YYYY-MM-DD` day key for the instant in `timeZone`. */
+export const dateKeyInZone = (timeZone: string, instant: Date = new Date()): string =>
+	wallClockInZone(timeZone, instant).toISOString().slice(0, 10);
+
+/** `YYYY-MM-DD` key for the day before `dateKey` (pure label math). */
+export const previousDateKey = (dateKey: string): string => {
+	const day = new Date(`${dateKey}T00:00:00.000Z`);
+	day.setUTCDate(day.getUTCDate() - 1);
+	return day.toISOString().slice(0, 10);
+};
+
+/** Long weekday name for the instant in `timeZone`. */
+export const dayOfWeekInZone = (timeZone: string, instant: Date = new Date()): string =>
+	new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(instant);
 
 export const lightenHSL = (color: string, amount: number): string => {
 	const [hue, saturation, lightness] = color

@@ -3,6 +3,7 @@ import { goals } from '$lib/trpc/routes/goals';
 import { intentions } from '$lib/trpc/routes/intentions';
 import { outcomes } from '$lib/trpc/routes/outcomes';
 import { priorities } from '$lib/trpc/routes/priorities';
+import { settings } from '$lib/trpc/routes/settings';
 import { t } from '$lib/trpc/t';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 
@@ -13,7 +14,8 @@ export const router = t.router({
 	intentions,
 	goal_logs,
 	outcomes,
-	priorities
+	priorities,
+	settings
 });
 
 export type Router = typeof router;

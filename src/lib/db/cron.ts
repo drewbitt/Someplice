@@ -1,9 +1,9 @@
 import { Cron, scheduledJobs } from 'croner';
 import { sql } from 'kysely';
 import { getDb } from './db';
-import { ensureOutcomeForDate, linkIntentionToOutcome } from './queries';
+import { ensureOutcomeForDate, getConfiguredTimeZone, linkIntentionToOutcome } from './queries';
 import { cronLogger } from '../utils/logger';
-import { localeCurrentDate } from '../utils';
+import { dateKeyInZone } from '../utils';
 
 const jobName = 'outcomeCron';
 
@@ -16,14 +16,15 @@ export function createCronJobs() {
 		return;
 	}
 
-	// Run at 00:00 every day. The Cron constructor self-registers in scheduledJobs.
-	// The tick runs the same repair pass as startup: every past day with unlinked
-	// intentions gets its outcome, so a failed tick is retried by the next one
-	// instead of leaving the day missing until restart. `catch` keeps a
-	// transient failure (e.g. SQLITE_BUSY) from becoming an unhandled rejection
-	// that exits the process.
+	// Hourly. The day boundary lives in the configured timezone, not the
+	// server's, so a fixed-midnight tick can't line up with every user's 00:00 —
+	// instead each tick runs the same repair pass as startup: every past day
+	// with unlinked intentions gets its outcome, meaning the day rollover lands
+	// within an hour of the zone's midnight and a failed tick is retried by the
+	// next one. `catch` keeps a transient failure (e.g. SQLITE_BUSY) from
+	// becoming an unhandled rejection that exits the process.
 	new Cron(
-		'0 0 * * *',
+		'0 * * * *',
 		{ name: jobName, catch: (error) => cronLogger.error('outcomeCron: job failed', error) },
 		async () => {
 			await checkMissingOutcomes();
@@ -31,16 +32,16 @@ export function createCronJobs() {
 	);
 }
 
-export async function checkMissingOutcomes() {
+export async function checkMissingOutcomes(now: Date = new Date()) {
 	cronLogger.info(
 		'checkMissingOutcomes: Checking for missing outcomes from past days when the application is restarted'
 	);
 
-	// Only past days get outcomes backfilled: today's intentions get theirs from
-	// the midnight job. An intention counts as missing unless it is linked to an
+	// Only past days get outcomes backfilled: today's intentions get theirs once
+	// their day ends. An intention counts as missing unless it is linked to an
 	// outcome for its OWN day — a stale link to another day's outcome (e.g. left
 	// behind by a cross-date move) must not exempt it.
-	const today = localeCurrentDate().toISOString().slice(0, 10);
+	const today = dateKeyInZone(await getConfiguredTimeZone(), now);
 	const intentions = await getDb()
 		.selectFrom('intentions')
 		.selectAll()

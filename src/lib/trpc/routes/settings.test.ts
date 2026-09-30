@@ -1,0 +1,60 @@
+import { createDb, getDb, setDb } from '$src/lib/db/db';
+import { runMigrations } from '$src/lib/db/migrate-to-latest';
+import type { DB } from '$src/lib/types/data';
+import type { Kysely } from 'kysely';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { createCallerFactory, router } from '../router';
+
+describe('settings', () => {
+	let db: Kysely<DB>;
+	const createCaller = createCallerFactory(router);
+	const caller = createCaller({});
+
+	beforeEach(async () => {
+		setDb(createDb(':memory:'));
+		db = getDb();
+		await runMigrations(db);
+	});
+
+	afterEach(async () => {
+		await db.destroy();
+	});
+
+	it('defaults to UTC with no stored zone', async () => {
+		expect(await caller.settings.getTimeZone()).toBe('UTC');
+	});
+
+	it('ensureTimeZone writes the browser zone once', async () => {
+		expect(await caller.settings.ensureTimeZone({ timeZone: 'America/New_York' })).toBe(
+			'America/New_York'
+		);
+		expect(await caller.settings.getTimeZone()).toBe('America/New_York');
+
+		// a second browser with a different zone must not overwrite the stored one
+		expect(await caller.settings.ensureTimeZone({ timeZone: 'Pacific/Kiritimati' })).toBe(
+			'America/New_York'
+		);
+	});
+
+	it('setTimeZone validates and overrides the stored zone', async () => {
+		await expect(caller.settings.setTimeZone({ timeZone: 'not-a-zone' })).rejects.toMatchObject({
+			code: 'BAD_REQUEST'
+		});
+		expect(await caller.settings.getTimeZone()).toBe('UTC');
+
+		await caller.settings.setTimeZone({ timeZone: 'Asia/Tokyo' });
+		expect(await caller.settings.getTimeZone()).toBe('Asia/Tokyo');
+	});
+
+	it('SOMEPLICE_TIMEZONE seeds the zone only while unset', async () => {
+		process.env.SOMEPLICE_TIMEZONE = 'Europe/Berlin';
+		try {
+			expect(await caller.settings.getTimeZone()).toBe('Europe/Berlin');
+
+			await caller.settings.ensureTimeZone({ timeZone: 'America/Chicago' });
+			expect(await caller.settings.getTimeZone()).toBe('America/Chicago');
+		} finally {
+			delete process.env.SOMEPLICE_TIMEZONE;
+		}
+	});
+});

@@ -1,6 +1,7 @@
 import { trpc } from '$src/lib/trpc/client';
 import type { Intention, IntentionStatus } from '$src/lib/trpc/types';
-import { localePreviousDate } from '$src/lib/utils';
+import { wallClockInZone } from '$src/lib/utils';
+import { appTimeZone } from '$src/lib/stores/timezone.svelte';
 import { SvelteDate } from 'svelte/reactivity';
 
 /**
@@ -13,7 +14,8 @@ class NotDonesStore {
 
 	refresh(days = 3) {
 		this.inflight ??= (async () => {
-			const endDate = localePreviousDate();
+			const endDate = wallClockInZone(appTimeZone.current);
+			endDate.setUTCDate(endDate.getUTCDate() - 1);
 			const startDate = new SvelteDate(endDate);
 			startDate.setDate(startDate.getDate() - (days - 1));
 

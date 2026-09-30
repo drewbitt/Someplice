@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { localeCurrentDate } from '$src/lib/utils';
+	import { wallClockInZone } from '$src/lib/utils';
+	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
@@ -100,7 +101,7 @@
 				status: 'pending',
 				subIntentionQualifier: subIntention,
 				text: text,
-				date: localeCurrentDate().toISOString()
+				date: wallClockInZone(appTimeZone.current).toISOString()
 			};
 		}
 		return null;
