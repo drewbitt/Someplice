@@ -11,7 +11,8 @@
 	import theme from '$lib/stores/theme';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../../shared/PriorityModal.svelte';
-	import { localeCurrentDate } from '$src/lib/utils';
+	import { wallClockInZone } from '$src/lib/utils';
+	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
 	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
@@ -80,7 +81,7 @@
 		}
 
 		const targetDate = new Date(intentionDate);
-		const currentDate = localeCurrentDate();
+		const currentDate = wallClockInZone(appTimeZone.current);
 		// difference in calendar days (UTC), not elapsed 24h periods
 		daysAgo = Math.round(
 			(Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate()) -

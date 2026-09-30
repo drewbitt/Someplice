@@ -2,8 +2,9 @@
 	import { trpc } from '$src/lib/trpc/client';
 	import { invalidateAll } from '$app/navigation';
 	import { notDones } from '$src/lib/stores/notDones.svelte';
+	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
 	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { goalColorForIntention, lightenHSL, localeCurrentDate } from '$src/lib/utils';
+	import { goalColorForIntention, lightenHSL, wallClockInZone } from '$src/lib/utils';
 	import { computeMissCount } from '$src/lib/utils/notDones';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
@@ -191,7 +192,7 @@
 				</h2>
 				<h2 class="text-base-content/60 text-2xl font-bold tabular-nums">
 					{(() => {
-						const dateObj = localeCurrentDate();
+						const dateObj = wallClockInZone(appTimeZone.current);
 						const formatter = new Intl.DateTimeFormat('en-US', {
 							weekday: 'long',
 							month: 'short',

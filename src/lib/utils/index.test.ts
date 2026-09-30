@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
 	adjustToUTCStartAndEndOfDay,
+	dateKeyInZone,
 	dayOfWeekFromDate,
+	dayOfWeekInZone,
 	goalColorForIntention,
 	goalOrderNumberForId,
 	goalsForJourneyDay,
 	lightenHSL,
-	localeCurrentDate,
-	localePreviousDate
+	previousDateKey,
+	wallClockInZone
 } from './index.ts';
 import type { Goal, Intention } from '../trpc/types';
 
@@ -23,15 +25,28 @@ const goal = (over: Partial<Goal>): Goal =>
 	}) as Goal;
 
 describe('utils', () => {
-	it('localeCurrentDate is shifted by the timezone offset', () => {
-		const now = new Date();
-		const expected = now.getTime() - now.getTimezoneOffset() * 60000;
-		expect(Math.abs(localeCurrentDate().getTime() - expected)).toBeLessThan(1000);
+	it("wallClockInZone gives the instant's wall time in the zone as fake-Z UTC fields", () => {
+		const instant = new Date('2024-06-03T20:30:00.000Z');
+		// UTC+14: the wall clock is June 4 10:30 there
+		expect(wallClockInZone('Pacific/Kiritimati', instant).toISOString()).toBe(
+			'2024-06-04T10:30:00.000Z'
+		);
+		expect(wallClockInZone('America/New_York', instant).toISOString()).toBe(
+			'2024-06-03T16:30:00.000Z'
+		);
 	});
 
-	it('localePreviousDate is about one day earlier', () => {
-		const diffMs = localeCurrentDate().getTime() - localePreviousDate().getTime();
-		expect(Math.abs(diffMs - 24 * 60 * 60 * 1000)).toBeLessThan(1000);
+	it("dateKeyInZone buckets the instant by the zone's calendar day", () => {
+		const instant = new Date('2024-06-03T20:30:00.000Z');
+		expect(dateKeyInZone('Pacific/Kiritimati', instant)).toBe('2024-06-04');
+		expect(dateKeyInZone('UTC', instant)).toBe('2024-06-03');
+		expect(previousDateKey('2024-06-04')).toBe('2024-06-03');
+	});
+
+	it('dayOfWeekInZone names the weekday in the zone, not the environment', () => {
+		const instant = new Date('2024-06-03T20:30:00.000Z'); // Monday UTC, Tuesday in Kiritimati
+		expect(dayOfWeekInZone('Pacific/Kiritimati', instant)).toBe('Tuesday');
+		expect(dayOfWeekInZone('UTC', instant)).toBe('Monday');
 	});
 
 	it('adjustToUTCStartAndEndOfDay bounds the UTC day', () => {

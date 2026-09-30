@@ -1,5 +1,6 @@
 import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
-import { goalsForJourneyDay, localeCurrentDate } from '$src/lib/utils';
+import { configuredZoneNow } from '$src/lib/db/queries';
+import { goalsForJourneyDay } from '$src/lib/utils';
 import type { Goal } from '$src/lib/trpc/types';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -7,9 +8,11 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const limit = 15;
 	const { intentionsByDate, startDate, endDate: intentionsEndDate } = await getIntentionsByDate();
-	// Bound by wall-clock "now", not Date.now(): stored timestamps use the
-	// fake-Z local convention, so a real instant compares against the wrong day.
-	const endDate = new Date(Math.max(intentionsEndDate.getTime(), localeCurrentDate().getTime()));
+	// Bound by wall-clock "now" in the configured zone, not Date.now(): stored
+	// timestamps use the fake-Z convention, so a real instant compares wrong.
+	const endDate = new Date(
+		Math.max(intentionsEndDate.getTime(), (await configuredZoneNow()).getTime())
+	);
 	// Outcomes are windowed with the day set (as in loadMore) so outcome-only
 	// days inside the window arrive with the first page.
 	const outcomes = await trpcLoad(event, (t) =>

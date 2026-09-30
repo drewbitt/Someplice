@@ -12,6 +12,7 @@ import * as m001 from './migrations/001_schema.ts';
 import * as m002 from './migrations/002_intention_status.ts';
 import * as m003 from './migrations/003_outcome_verdicts.ts';
 import * as m004 from './migrations/004_priorities.ts';
+import * as m005 from './migrations/005_settings.ts';
 
 const APP_TABLES = [
 	'goal_logs',
@@ -20,7 +21,8 @@ const APP_TABLES = [
 	'outcome_verdicts',
 	'outcomes',
 	'outcomes_intentions',
-	'priorities'
+	'priorities',
+	'settings'
 ].sort();
 const APP_INDEXES = [
 	'idx_goal_logs_goalId_date',
@@ -117,6 +119,7 @@ describe('migrations', () => {
 	});
 
 	it('every migration with a down() rolls back cleanly', async () => {
+		await m005.down(migrationDb);
 		await m004.down(migrationDb);
 		await m003.down(migrationDb);
 		await m002.down(migrationDb);
@@ -128,6 +131,7 @@ describe('migrations', () => {
 		await m002.up(migrationDb);
 		await m003.up(migrationDb);
 		await m004.up(migrationDb);
+		await m005.up(migrationDb);
 		expect((await listObjects(db, 'table')).sort()).toEqual(APP_TABLES);
 		expect((await listObjects(db, 'index')).sort()).toEqual(APP_INDEXES);
 	});
