@@ -46,12 +46,19 @@ describe('settings', () => {
 		expect(await caller.settings.getTimeZone()).toBe('Asia/Tokyo');
 	});
 
-	it('SOMEPLICE_TIMEZONE seeds the zone only while unset', async () => {
+	it('SOMEPLICE_TIMEZONE stays authoritative until an explicit setTimeZone', async () => {
 		process.env.SOMEPLICE_TIMEZONE = 'Europe/Berlin';
 		try {
 			expect(await caller.settings.getTimeZone()).toBe('Europe/Berlin');
 
-			await caller.settings.ensureTimeZone({ timeZone: 'America/Chicago' });
+			// browser auto-detect must not clobber the operator's env zone
+			expect(await caller.settings.ensureTimeZone({ timeZone: 'America/Chicago' })).toBe(
+				'Europe/Berlin'
+			);
+			expect(await caller.settings.getTimeZone()).toBe('Europe/Berlin');
+
+			// the explicit override still wins
+			await caller.settings.setTimeZone({ timeZone: 'America/Chicago' });
 			expect(await caller.settings.getTimeZone()).toBe('America/Chicago');
 		} finally {
 			delete process.env.SOMEPLICE_TIMEZONE;

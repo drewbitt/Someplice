@@ -96,6 +96,19 @@ export const setSetting = async (db: Kysely<DB>, key: string, value: string): Pr
 		.execute();
 };
 
+/** Write-once insert: keeps the existing row on conflict. */
+export const setSettingIfAbsent = async (
+	db: Kysely<DB>,
+	key: string,
+	value: string
+): Promise<void> => {
+	await db
+		.insertInto('settings')
+		.values({ key, value })
+		.onConflict((oc) => oc.column('key').doNothing())
+		.execute();
+};
+
 /**
  * The single timezone every day boundary uses, server and client alike:
  * the stored `timezone` setting (written once from the browser's

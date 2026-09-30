@@ -5,9 +5,9 @@ import { z } from 'zod';
 import { getDb } from '$src/lib/db/db';
 import {
 	getConfiguredTimeZone,
-	getSetting,
 	isValidTimeZone,
-	setSetting
+	setSetting,
+	setSettingIfAbsent
 } from '$src/lib/db/queries';
 
 const TimeZoneSchema = z.object({
@@ -48,16 +48,18 @@ export const settings = t.router({
 		.use(logger)
 		.input(TimeZoneSchema)
 		.mutation(async ({ input }) => {
+			if (!isValidTimeZone(input.timeZone)) {
+				throw new TRPCError({
+					code: 'BAD_REQUEST',
+					message: `"${input.timeZone}" is not a valid IANA timezone`
+				});
+			}
 			const db = getDb();
-			const stored = await getSetting(db, 'timezone');
-			if (stored === null) {
-				if (!isValidTimeZone(input.timeZone)) {
-					throw new TRPCError({
-						code: 'BAD_REQUEST',
-						message: `"${input.timeZone}" is not a valid IANA timezone`
-					});
-				}
-				await setSetting(db, 'timezone', input.timeZone);
+			// Atomic write-once. A stored row already wins; an operator-set
+			// SOMEPLICE_TIMEZONE stays authoritative until an explicit
+			// setTimeZone stores a row above it.
+			if (!process.env.SOMEPLICE_TIMEZONE) {
+				await setSettingIfAbsent(db, 'timezone', input.timeZone);
 			}
 			return getConfiguredTimeZone(db);
 		})

@@ -17,7 +17,7 @@ class NotDonesStore {
 			const endDate = wallClockInZone(appTimeZone.current);
 			endDate.setUTCDate(endDate.getUTCDate() - 1);
 			const startDate = new SvelteDate(endDate);
-			startDate.setDate(startDate.getDate() - (days - 1));
+			startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
 
 			this.recentIntentions = await trpc().intentions.list.query({ startDate, endDate });
 		})().finally(() => {
