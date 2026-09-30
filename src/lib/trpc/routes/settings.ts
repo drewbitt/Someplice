@@ -40,9 +40,10 @@ export const settings = t.router({
 			return input.timeZone;
 		}),
 	/**
-	 * Persist the browser's timezone only when none is stored — auto-detection
-	 * on first load. Returns the zone that is now effective so the caller can
-	 * update its rendering without a reload.
+	 * Persist the browser's timezone when none is stored and no valid
+	 * SOMEPLICE_TIMEZONE is configured — auto-detection on first load.
+	 * Returns the zone that is now effective so the caller can update its
+	 * rendering without a reload.
 	 */
 	ensureTimeZone: procedure
 		.use(logger)
@@ -55,10 +56,12 @@ export const settings = t.router({
 				});
 			}
 			const db = getDb();
-			// Atomic write-once. A stored row already wins; an operator-set
+			// Atomic write-once. A stored row already wins; a VALID operator-set
 			// SOMEPLICE_TIMEZONE stays authoritative until an explicit
-			// setTimeZone stores a row above it.
-			if (!process.env.SOMEPLICE_TIMEZONE) {
+			// setTimeZone stores a row above it. An invalid env value is treated
+			// as unset (getConfiguredTimeZone logs it and falls back anyway).
+			const envZone = process.env.SOMEPLICE_TIMEZONE;
+			if (!envZone || !isValidTimeZone(envZone)) {
 				await setSettingIfAbsent(db, 'timezone', input.timeZone);
 			}
 			return getConfiguredTimeZone(db);

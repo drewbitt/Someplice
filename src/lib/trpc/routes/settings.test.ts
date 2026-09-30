@@ -64,4 +64,16 @@ describe('settings', () => {
 			delete process.env.SOMEPLICE_TIMEZONE;
 		}
 	});
+
+	it('an invalid SOMEPLICE_TIMEZONE does not block browser auto-detect', async () => {
+		process.env.SOMEPLICE_TIMEZONE = 'Europe/Unknown';
+		try {
+			expect(await caller.settings.ensureTimeZone({ timeZone: 'America/Chicago' })).toBe(
+				'America/Chicago'
+			);
+			expect(await caller.settings.getTimeZone()).toBe('America/Chicago');
+		} finally {
+			delete process.env.SOMEPLICE_TIMEZONE;
+		}
+	});
 });
