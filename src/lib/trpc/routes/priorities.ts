@@ -1,11 +1,11 @@
-import { logger } from '$lib/trpc/middleware/logger';
-import { procedure, t } from '$lib/trpc/t';
-import { getDb } from '$src/lib/db/db';
+import { logger } from '#lib/trpc/middleware/logger.js';
+import { procedure, t } from '#lib/trpc/t.js';
+import { getDb } from '#src/lib/db/db.js';
 import { NoResultError, type Selectable } from 'kysely';
 import { z } from 'zod';
-import type { Priorities } from '$src/lib/types/data';
-import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
-import { configuredZoneNow } from '$src/lib/db/queries';
+import type { Priorities } from '#src/lib/types/data.js';
+import { adjustToUTCStartAndEndOfDay } from '#src/lib/utils/index.js';
+import { configuredZoneNow } from '#src/lib/db/queries.js';
 
 export const PrioritySchema = z.object({
 	id: z.number().nullable(),

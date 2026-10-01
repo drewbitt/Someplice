@@ -1,10 +1,10 @@
-import { goal_logs } from '$lib/trpc/routes/goal_logs';
-import { goals } from '$lib/trpc/routes/goals';
-import { intentions } from '$lib/trpc/routes/intentions';
-import { outcomes } from '$lib/trpc/routes/outcomes';
-import { priorities } from '$lib/trpc/routes/priorities';
-import { settings } from '$lib/trpc/routes/settings';
-import { t } from '$lib/trpc/t';
+import { goal_logs } from '#lib/trpc/routes/goal_logs.js';
+import { goals } from '#lib/trpc/routes/goals.js';
+import { intentions } from '#lib/trpc/routes/intentions.js';
+import { outcomes } from '#lib/trpc/routes/outcomes.js';
+import { priorities } from '#lib/trpc/routes/priorities.js';
+import { settings } from '#lib/trpc/routes/settings.js';
+import { t } from '#lib/trpc/t.js';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 
 const { createCallerFactory } = t;

@@ -1,11 +1,11 @@
-import { logger } from '$lib/trpc/middleware/logger';
-import { procedure, t } from '$lib/trpc/t';
+import { logger } from '#lib/trpc/middleware/logger.js';
+import { procedure, t } from '#lib/trpc/t.js';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '$src/lib/db/db';
+import { getDb } from '#src/lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import { deleteOrphanedOutcomes } from '$src/lib/db/queries';
-import { adjustToUTCStartAndEndOfDay } from '$src/lib/utils';
+import { deleteOrphanedOutcomes } from '#src/lib/db/queries.js';
+import { adjustToUTCStartAndEndOfDay } from '#src/lib/utils/index.js';
 import { INTENTION_STATUSES as intentionStatuses } from '../enums';
 
 export const INTENTION_STATUSES = intentionStatuses;

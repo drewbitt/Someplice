@@ -1,6 +1,6 @@
-import { createDb, getDb, setDb } from '$src/lib/db/db';
-import { runMigrations } from '$src/lib/db/migrate-to-latest';
-import type { DB } from '$src/lib/types/data';
+import { createDb, getDb, setDb } from '#src/lib/db/db.js';
+import { runMigrations } from '#src/lib/db/migrate-to-latest.js';
+import type { DB } from '#src/lib/types/data.js';
 import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { GoalLog } from '../types';

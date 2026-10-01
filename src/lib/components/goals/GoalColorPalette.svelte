@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { trpc } from '$src/lib/trpc/client';
-	import { lightenHSL } from '$src/lib/utils';
+	import { trpc } from '#src/lib/trpc/client.js';
+	import { lightenHSL } from '#src/lib/utils/index.js';
 	import { colors } from './colors';
 
 	let { goalColor = $bindable() }: { goalColor: string } = $props();

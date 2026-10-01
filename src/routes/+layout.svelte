@@ -1,10 +1,10 @@
 <script>
-	import HeaderContent from '$lib/components/HeaderContent.svelte';
+	import HeaderContent from '#lib/components/HeaderContent.svelte';
 	import '../app.css';
-	import theme from '$lib/stores/theme';
-	import { appTimeZone } from '$lib/stores/timezone.svelte';
+	import theme from '#lib/stores/theme.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
+	import { trpc } from '#src/lib/trpc/client.js';
 	import { onMount } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
 

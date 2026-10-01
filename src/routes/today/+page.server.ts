@@ -1,7 +1,7 @@
-import { configuredZoneNow } from '$src/lib/db/queries';
+import { configuredZoneNow } from '#src/lib/db/queries.js';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
+import { trpcLoad } from '#src/lib/trpc/middleware/trpc-load.js';
 
 export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 	const now = await configuredZoneNow();

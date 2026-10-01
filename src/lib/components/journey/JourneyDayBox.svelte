@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '$src/lib/trpc/types';
+	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '#src/lib/trpc/types.js';
 	import IntentionsListBox from './IntentionsListBox.svelte';
 	import OutcomesBox from './OutcomesBox.svelte';
 

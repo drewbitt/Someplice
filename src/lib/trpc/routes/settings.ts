@@ -1,14 +1,14 @@
-import { logger } from '$lib/trpc/middleware/logger';
-import { procedure, t } from '$lib/trpc/t';
+import { logger } from '#lib/trpc/middleware/logger.js';
+import { procedure, t } from '#lib/trpc/t.js';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { getDb } from '$src/lib/db/db';
+import { getDb } from '#src/lib/db/db.js';
 import {
 	getConfiguredTimeZone,
 	isValidTimeZone,
 	setSetting,
 	setSettingIfAbsent
-} from '$src/lib/db/queries';
+} from '#src/lib/db/queries.js';
 
 const TimeZoneSchema = z.object({
 	timeZone: z.string()

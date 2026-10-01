@@ -1,7 +1,7 @@
-import { trpc } from '$src/lib/trpc/client';
-import type { Intention, IntentionStatus } from '$src/lib/trpc/types';
-import { wallClockInZone } from '$src/lib/utils';
-import { appTimeZone } from '$src/lib/stores/timezone.svelte';
+import { trpc } from '#src/lib/trpc/client.js';
+import type { Intention, IntentionStatus } from '#src/lib/trpc/types.js';
+import { wallClockInZone } from '#src/lib/utils/index.js';
+import { appTimeZone } from '#src/lib/stores/timezone.svelte.js';
 import { SvelteDate } from 'svelte/reactivity';
 
 /**

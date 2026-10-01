@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { wallClockInZone } from '$src/lib/utils';
-	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
+	import { wallClockInZone } from '#src/lib/utils/index.js';
+	import { appTimeZone } from '#src/lib/stores/timezone.svelte.js';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
 	import NotDonesPanel from './NotDonesPanel.svelte';
-	import { todaysIntentions } from '$src/lib/stores/todaysIntentions';
+	import { todaysIntentions } from '#src/lib/stores/todaysIntentions.js';
 
 	let {
 		goals,

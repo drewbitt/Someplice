@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Priority } from '$src/lib/trpc/types';
-	import { appLogger } from '$src/lib/utils/logger';
+	import { trpc } from '#src/lib/trpc/client.js';
+	import type { Goal, Priority } from '#src/lib/trpc/types.js';
+	import { appLogger } from '#src/lib/utils/logger.js';
 
 	let {
 		showModal = $bindable(),

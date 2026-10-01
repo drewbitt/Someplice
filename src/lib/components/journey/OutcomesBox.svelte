@@ -7,13 +7,13 @@
 		OutcomeVerdict,
 		Priority,
 		VerdictValue
-	} from '$src/lib/trpc/types';
+	} from '#src/lib/trpc/types.js';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
-	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { journeyPageErrorStore } from '#src/lib/stores/errors.svelte.js';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
-	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
+	import { trpc } from '#src/lib/trpc/client.js';
+	import { statusFromReviewCheckbox } from '#src/lib/utils/notDones.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
@@ -24,16 +24,17 @@
 		priorities = [],
 		date: dateProp,
 		onDayChanged
+
+		// Day date as ISO midnight; used when the day has no intentions to take it from.
+		// Called after a write so extras-supplied days can be re-fetched;
+		// invalidateAll alone only refreshes server-loaded data.
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
-		// Day date as ISO midnight; used when the day has no intentions to take it from.
 		date?: string;
-		// Called after a write so extras-supplied days can be re-fetched;
-		// invalidateAll alone only refreshes server-loaded data.
 		onDayChanged?: () => void | Promise<void>;
 	} = $props();
 
@@ -80,6 +81,7 @@
 	};
 
 	beforeNavigate((navigation) => {
+		if (navigation.shallow) return;
 		if (
 			!newIntentionsToInsert.length &&
 			verdictEdits.size === 0 &&
@@ -87,6 +89,7 @@
 			statusOverrides.size === 0
 		)
 			return;
+
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -191,9 +194,9 @@
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId: goalId,
-					text: text,
-					date: date,
+					goalId,
+					text,
+					date,
 					status: 'done',
 					subIntentionQualifier: null,
 					orderNumber: 0

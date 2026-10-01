@@ -1,5 +1,5 @@
-import type { Context } from '$lib/trpc/context';
-import { transformer } from '$lib/trpc/transformer';
+import type { Context } from '#lib/trpc/context.js';
+import { transformer } from '#lib/trpc/transformer.js';
 import { initTRPC, TRPCError } from '@trpc/server';
 import { NoResultError } from 'kysely';
 

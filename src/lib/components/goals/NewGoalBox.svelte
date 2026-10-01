@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
+	import { trpc } from '#src/lib/trpc/client.js';
 	import { colors } from './colors';
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { goalPageErrorStore } from '#src/lib/stores/errors.svelte.js';
 
 	let { addedGoal = $bindable() }: { addedGoal: boolean } = $props();
 

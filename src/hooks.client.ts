@@ -1,4 +1,4 @@
-import type { HandleClientError } from '@sveltejs/kit';
+import type { HandleClientError } from '@sveltejs/kit/hooks';
 import { todaysIntentions } from './lib/stores/todaysIntentions';
 import { appLogger } from './lib/utils/logger';
 
