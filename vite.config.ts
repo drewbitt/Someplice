@@ -12,7 +12,8 @@ const config = {
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
-			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter()
+			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter(),
+			output: { linkHeaderPreload: true }
 		}),
 
 		SvelteKitPWA({
