@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention, Priority, VerdictValue } from '$src/lib/trpc/types';
-	import { lightenHSL } from '$src/lib/utils';
+	import { lightenHSL, readableTextColor } from '$src/lib/utils';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
 	import Undo2 from 'virtual:icons/lucide/undo-2';
@@ -113,8 +113,8 @@
 						{goal.orderNumber}
 					</span>
 					<span
-						style="background-color: {goal.color}"
-						class="px-1.5 text-[1.1rem] leading-6 font-semibold tracking-wider text-white"
+						style="background-color: {goal.color}; color: {readableTextColor(goal.color)}"
+						class="px-1.5 text-[1.1rem] leading-6 font-semibold tracking-wider"
 					>
 						{goal.title}
 					</span>
@@ -123,9 +123,9 @@
 		{/if}
 		<div
 			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
-			style="border-color: {goal.color}"
+			style="border-color: {goal.color}; --goal-color: {goal.color}"
 		>
-			<div class="flex justify-end font-semibold" style="color: {goal.color}">
+			<div class="goal-text flex justify-end font-semibold">
 				{#if priority}
 					<span>
 						{goal.orderNumber} : {priority.text}{#if priority.checkInDate}&nbsp;by {priority.checkInDate}{/if}

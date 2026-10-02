@@ -9,6 +9,7 @@ import {
 	goalsForJourneyDay,
 	lightenHSL,
 	previousDateKey,
+	readableTextColor,
 	wallClockInZone
 } from './index.ts';
 import type { Goal, Intention } from '../trpc/types';
@@ -66,6 +67,16 @@ describe('utils', () => {
 		const color = 'hsl(200 50% 40%)';
 		expect(lightenHSL(color, 0.2)).toBe('hsl(200,50%,52%)');
 		expect(lightenHSL(color, 0.4)).toBe('hsl(200,50%,64%)');
+	});
+
+	it('readableTextColor picks the higher-contrast foreground', () => {
+		// Pale colors take dark text, dark colors take light text.
+		expect(readableTextColor('hsl(212.602 72.053% 80.416%)')).toBe('hsl(0, 0%, 12%)');
+		expect(readableTextColor('hsl(211.619 61.056% 19.112%)')).toBe('hsl(0, 0%, 97%)');
+		// Luminous mid-lights defeat a raw HSL-lightness threshold; luminance still picks dark text.
+		expect(readableTextColor('hsl(153.615 33.569% 48.904%)')).toBe('hsl(0, 0%, 12%)');
+		expect(readableTextColor('#1d232a')).toBe('hsl(0, 0%, 97%)');
+		expect(readableTextColor('not a color')).toBe('hsl(0, 0%, 12%)');
 	});
 
 	it('goalColorForIntention falls back to black', () => {

@@ -29,8 +29,8 @@
 	{#each goals as goal (goal.id)}
 		{@const priority = priorityForGoal(goal.id)}
 		<button
-			class="priority-card flex items-center gap-1 rounded-md border-2 px-3 py-1.5 font-semibold"
-			style="border-color: {goal.color}; color: {goal.color}"
+			class="priority-card goal-text flex items-center gap-1 rounded-md border-2 px-3 py-1.5 font-semibold"
+			style="--goal-color: {goal.color}; border-color: currentcolor"
 			onclick={() => openModal(goal)}
 		>
 			<span class="font-mono text-xl">{goal.orderNumber}</span>
