@@ -7,13 +7,13 @@
 		OutcomeVerdict,
 		Priority,
 		VerdictValue
-	} from '#src/lib/trpc/types.js';
+	} from '#lib/trpc/types.js';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
-	import { journeyPageErrorStore } from '#src/lib/stores/errors.svelte.js';
+	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
-	import { trpc } from '#src/lib/trpc/client.js';
-	import { statusFromReviewCheckbox } from '#src/lib/utils/notDones.js';
+	import { trpc } from '#lib/trpc/client.js';
+	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {

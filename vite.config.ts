@@ -12,11 +12,7 @@ const config = {
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
-			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter(),
-			compilerOptions: {
-				experimental: { async: true }
-			},
-			paths: { assets: '' }
+			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter()
 		}),
 
 		SvelteKitPWA({

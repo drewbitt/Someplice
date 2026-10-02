@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import ActionsTextInput from '#lib/components/today/ActionsTextInput.svelte';
-	import ActionsDisplay from '#src/lib/components/today/ActionsDisplay.svelte';
-	import GoalBadges from '#src/lib/components/today/GoalBadges.svelte';
-	import PriorityCards from '#src/lib/components/today/PriorityCards.svelte';
-	import Review from '#src/lib/components/today/review-outcomes/Review.svelte';
-	import { trpc } from '#src/lib/trpc/client.js';
-	import { dayOfWeekInZone, goalsForJourneyDay } from '#src/lib/utils/index.js';
-	import { appTimeZone } from '#src/lib/stores/timezone.svelte.js';
+	import ActionsDisplay from '#lib/components/today/ActionsDisplay.svelte';
+	import GoalBadges from '#lib/components/today/GoalBadges.svelte';
+	import PriorityCards from '#lib/components/today/PriorityCards.svelte';
+	import Review from '#lib/components/today/review-outcomes/Review.svelte';
+	import { trpc } from '#lib/trpc/client.js';
+	import { dayOfWeekInZone, goalsForJourneyDay } from '#lib/utils/index.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
-	import { todaysIntentions } from '#src/lib/stores/todaysIntentions.js';
+	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 	import { onMount } from 'svelte';
-	import { appLogger } from '#src/lib/utils/logger.js';
+	import { appLogger } from '#lib/utils/logger.js';
 
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];

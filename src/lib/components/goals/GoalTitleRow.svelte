@@ -1,6 +1,6 @@
 <script lang="ts">
 	import GoalColorPalette from './GoalColorPalette.svelte';
-	import { readableTextColor } from '#src/lib/utils/index.js';
+	import { readableTextColor } from '#lib/utils/index.js';
 
 	let {
 		goalColor = $bindable(),

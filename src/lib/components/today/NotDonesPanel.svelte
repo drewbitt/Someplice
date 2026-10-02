@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { Goal, Intention } from '#src/lib/trpc/types.js';
-	import { goalColorForIntention, goalOrderNumberForId } from '#src/lib/utils/index.js';
-	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '#src/lib/utils/notDones.js';
-	import { notDones } from '#src/lib/stores/notDones.svelte.js';
-	import { todayPageErrorStore } from '#src/lib/stores/errors.svelte.js';
-	import { trpc } from '#src/lib/trpc/client.js';
+	import type { Goal, Intention } from '#lib/trpc/types.js';
+	import { goalColorForIntention, goalOrderNumberForId } from '#lib/utils/index.js';
+	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '#lib/utils/notDones.js';
+	import { notDones } from '#lib/stores/notDones.svelte.js';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
 	import Trash2 from 'virtual:icons/lucide/trash-2';
 

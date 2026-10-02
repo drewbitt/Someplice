@@ -1,6 +1,6 @@
 import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
-import { getDb } from '#src/lib/db/db.js';
+import { getDb } from '#lib/db/db.js';
 import { z } from 'zod';
 
 export const GoalLogSchema = z.object({

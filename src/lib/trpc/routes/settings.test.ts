@@ -1,6 +1,6 @@
-import { createDb, getDb, setDb } from '#src/lib/db/db.js';
-import { runMigrations } from '#src/lib/db/migrate-to-latest.js';
-import type { DB } from '#src/lib/types/data.js';
+import { createDb, getDb, setDb } from '#lib/db/db.js';
+import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import type { DB } from '#lib/types/data.js';
 import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createCallerFactory, router } from '../router';

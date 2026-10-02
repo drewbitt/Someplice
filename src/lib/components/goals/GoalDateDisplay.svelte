@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { trpc } from '#src/lib/trpc/client.js';
-	import { lightenHSL } from '#src/lib/utils/index.js';
-	import { appLogger } from '#src/lib/utils/logger.js';
+	import { trpc } from '#lib/trpc/client.js';
+	import { lightenHSL } from '#lib/utils/index.js';
+	import { appLogger } from '#lib/utils/logger.js';
 	import { onMount } from 'svelte';
 	import type { PageServerData } from '../../../routes/goals/$types';
 

@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { trpc } from '#src/lib/trpc/client.js';
+	import { trpc } from '#lib/trpc/client.js';
 	import { invalidateAll } from '$app/navigation';
-	import { notDones } from '#src/lib/stores/notDones.svelte.js';
-	import { appTimeZone } from '#src/lib/stores/timezone.svelte.js';
-	import { todayPageErrorStore } from '#src/lib/stores/errors.svelte.js';
-	import { goalColorForIntention, lightenHSL, wallClockInZone } from '#src/lib/utils/index.js';
-	import { computeMissCount } from '#src/lib/utils/notDones.js';
+	import { notDones } from '#lib/stores/notDones.svelte.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { goalColorForIntention, lightenHSL, wallClockInZone } from '#lib/utils/index.js';
+	import { computeMissCount } from '#lib/utils/notDones.js';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';

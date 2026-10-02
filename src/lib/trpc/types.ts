@@ -1,5 +1,5 @@
 import type { Selectable } from 'kysely';
-import type { OutcomeVerdicts, Priorities } from '#src/lib/types/data.js';
+import type { OutcomeVerdicts, Priorities } from '#lib/types/data.js';
 import type { z } from 'zod';
 import type { GoalLogSchema } from './routes/goal_logs';
 import type { GoalSchema } from './routes/goals';

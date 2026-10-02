@@ -1,8 +1,8 @@
 import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
 import { TRPCError } from '@trpc/server';
-import { getDb } from '#src/lib/db/db.js';
-import { linkIntentionToOutcome } from '#src/lib/db/queries.js';
+import { getDb } from '#lib/db/db.js';
+import { linkIntentionToOutcome } from '#lib/db/queries.js';
 import { sql } from 'kysely';
 import { z } from 'zod';
 import { INTENTION_STATUSES, VERDICTS } from '../enums';

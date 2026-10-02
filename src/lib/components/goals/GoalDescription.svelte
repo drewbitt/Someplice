@@ -2,7 +2,7 @@
 	import Archive from 'virtual:icons/lucide/archive';
 	import ArchiveRestore from 'virtual:icons/lucide/archive-restore';
 	import Trash from 'virtual:icons/lucide/trash-2';
-	import { readableTextColor } from '#src/lib/utils/index.js';
+	import { readableTextColor } from '#lib/utils/index.js';
 
 	let {
 		currentlyEditing,

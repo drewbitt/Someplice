@@ -1,7 +1,7 @@
-import { trpcLoad } from '#src/lib/trpc/middleware/trpc-load.js';
-import { configuredZoneNow } from '#src/lib/db/queries.js';
-import { goalsForJourneyDay } from '#src/lib/utils/index.js';
-import type { Goal } from '#src/lib/trpc/types.js';
+import { trpcLoad } from '#lib/trpc/middleware/trpc-load.js';
+import { configuredZoneNow } from '#lib/db/queries.js';
+import { goalsForJourneyDay } from '#lib/utils/index.js';
+import type { Goal } from '#lib/trpc/types.js';
 import type { ServerLoadEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 

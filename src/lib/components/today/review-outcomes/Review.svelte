@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { trpc } from '#src/lib/trpc/client.js';
+	import { trpc } from '#lib/trpc/client.js';
 	import type {
 		Goal,
 		Intention,
@@ -7,15 +7,15 @@
 		Outcome,
 		Priority,
 		VerdictValue
-	} from '#src/lib/trpc/types.js';
+	} from '#lib/trpc/types.js';
 	import theme from '#lib/stores/theme.js';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../../shared/PriorityModal.svelte';
-	import { wallClockInZone } from '#src/lib/utils/index.js';
-	import { appTimeZone } from '#src/lib/stores/timezone.svelte.js';
-	import { statusFromReviewCheckbox } from '#src/lib/utils/notDones.js';
+	import { wallClockInZone } from '#lib/utils/index.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { invalidateAll, beforeNavigate } from '$app/navigation';
-	import { todayPageErrorStore } from '#src/lib/stores/errors.svelte.js';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {

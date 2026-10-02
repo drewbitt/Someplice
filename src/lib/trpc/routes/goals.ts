@@ -1,13 +1,13 @@
 import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
-import { getDb } from '#src/lib/db/db.js';
+import { getDb } from '#lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
 import type { Transaction } from 'kysely';
-import type { DB } from '#src/lib/types/data.js';
+import type { DB } from '#lib/types/data.js';
 import type { Goal } from '../types';
-import { configuredZoneNow, deleteOrphanedOutcomes } from '#src/lib/db/queries.js';
-import { adjustToUTCStartAndEndOfDay } from '#src/lib/utils/index.js';
+import { configuredZoneNow, deleteOrphanedOutcomes } from '#lib/db/queries.js';
+import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { TRPCError } from '@trpc/server';
 
 const MAX_GOALS = 9;

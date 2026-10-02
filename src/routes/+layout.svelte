@@ -4,7 +4,7 @@
 	import theme from '#lib/stores/theme.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '#src/lib/trpc/client.js';
+	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
 
