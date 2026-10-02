@@ -16,10 +16,18 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @utility goal-text {
-	color: var(--goal-color);
+	color: oklch(from var(--goal-color) min(l, 0.62) c h);
 
 	@variant dark {
 		color: oklch(from var(--goal-color) max(l, 0.7) c h);
+	}
+}
+
+@utility goal-border {
+	border-color: oklch(from var(--goal-color) min(l, 0.62) c h);
+
+	@variant dark {
+		border-color: oklch(from var(--goal-color) max(l, 0.7) c h);
 	}
 }
 
