@@ -23,14 +23,6 @@
 	}
 }
 
-@utility goal-border {
-	border-color: oklch(from var(--goal-color) min(l, 0.62) c h);
-
-	@variant dark {
-		border-color: oklch(from var(--goal-color) max(l, 0.7) c h);
-	}
-}
-
 @layer base {
 	html {
 		touch-action: manipulation;

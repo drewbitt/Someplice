@@ -4,7 +4,6 @@ import {
 	dateKeyInZone,
 	dayOfWeekFromDate,
 	dayOfWeekInZone,
-	ensureMinContrast,
 	goalColorForIntention,
 	goalOrderNumberForId,
 	goalsForJourneyDay,
@@ -78,13 +77,6 @@ describe('utils', () => {
 		expect(readableTextColor('hsl(153.615 33.569% 48.904%)')).toBe('hsl(0, 0%, 12%)');
 		expect(readableTextColor('#1d232a')).toBe('hsl(0, 0%, 97%)');
 		expect(readableTextColor('not a color')).toBe('hsl(0, 0%, 12%)');
-	});
-
-	it('ensureMinContrast rescues unreadable pairs and leaves readable ones alone', () => {
-		const pale = 'hsl(212.602 72.053% 80.416%)';
-		expect(ensureMinContrast(pale, lightenHSL(pale, 0.65), 2)).not.toBe(pale);
-		const dark = 'hsl(211.619 61.056% 19.112%)';
-		expect(ensureMinContrast(dark, lightenHSL(dark, 0.65), 2)).toBe(dark);
 	});
 
 	it('goalColorForIntention falls back to black', () => {

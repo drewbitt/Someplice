@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Goal, Intention, Priority, VerdictValue } from '$src/lib/trpc/types';
-	import { ensureMinContrast, lightenHSL, readableTextColor } from '$src/lib/utils';
+	import { lightenHSL, readableTextColor } from '$src/lib/utils';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
 	import Undo2 from 'virtual:icons/lucide/undo-2';
@@ -104,15 +104,10 @@
 >
 	<div class="goal-review-item-content flex w-4/5 min-w-min flex-col">
 		{#if showTitle}
-			{@const lighterColor = lighterGoalColor(goal.color)}
 			<div id="goal-review-item-info">
 				<span class="flex">
 					<span
-						style="background-color: {lighterColor}; color: {ensureMinContrast(
-							goal.color,
-							lighterColor,
-							2
-						)}"
+						style="background-color: {lighterGoalColor(goal.color)}; color: {goal.color}"
 						class="px-1.5 font-mono text-2xl leading-none font-bold"
 					>
 						{goal.orderNumber}
@@ -127,8 +122,8 @@
 			</div>
 		{/if}
 		<div
-			class="goal-border grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
-			style="--goal-color: {goal.color}"
+			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
+			style="border-color: {goal.color}; --goal-color: {goal.color}"
 		>
 			<div class="goal-text flex justify-end font-semibold">
 				{#if priority}
@@ -214,7 +209,7 @@
 					<span
 						class={`w-fit px-1.5 font-mono text-lg leading-none font-bold ${barClass}`}
 						style={verdict.verdict === 'enough'
-							? `background-color: ${lightenHSL(goal.color, 0.2)}; color: ${ensureMinContrast(goal.color, lightenHSL(goal.color, 0.2), 2)}`
+							? `background-color: ${lightenHSL(goal.color, 0.2)}; color: ${goal.color}`
 							: ''}
 					>
 						{barText}
