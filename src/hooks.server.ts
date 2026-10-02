@@ -1,12 +1,12 @@
-import { building } from '$app/environment';
-import { createContext } from '$lib/trpc/context';
-import { router } from '$lib/trpc/router';
-import type { Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { building } from '$app/env';
+import { createContext } from '#lib/trpc/context.js';
+import { router } from '#lib/trpc/router.js';
 import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
-import { checkMissingOutcomes, createCronJobs } from './lib/db/cron';
-import { getDb } from './lib/db/db';
-import { runMigrations } from './lib/db/migrate-to-latest';
-import { trpcLogger } from './lib/utils/logger';
+import { checkMissingOutcomes, createCronJobs } from '#lib/db/cron.js';
+import { getDb } from '#lib/db/db.js';
+import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import { trpcLogger } from '#lib/utils/logger.js';
 
 const trpcEndpoint = '/api/trpc';
 

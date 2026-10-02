@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Goal } from '$src/lib/trpc/types';
+	import type { Goal } from '#lib/trpc/types.js';
 
 	let {
 		goal,

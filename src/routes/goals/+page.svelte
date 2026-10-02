@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
-	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { GoalLog } from '$src/lib/trpc/types';
+	import GoalBoxComponent from '#lib/components/goals/GoalBox.svelte';
+	import NewGoalBoxComponent from '#lib/components/goals/NewGoalBox.svelte';
+	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { trpc } from '#lib/trpc/client.js';
+	import type { GoalLog } from '#lib/trpc/types.js';
 	import { dndzone } from 'svelte-dnd-action';
 	import { untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';

@@ -1,13 +1,13 @@
 <script lang="ts">
-	import JourneyDayBox from '$src/lib/components/journey/JourneyDayBox.svelte';
-	import GoalBadges from '$src/lib/components/today/GoalBadges.svelte';
+	import JourneyDayBox from '#lib/components/journey/JourneyDayBox.svelte';
+	import GoalBadges from '#lib/components/today/GoalBadges.svelte';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
-	import EmptyDayBoxWrapper from '$src/lib/components/journey/EmptyDayBoxWrapper.svelte';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '$src/lib/trpc/types';
-	import { goalsForJourneyDay } from '$src/lib/utils';
-	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import EmptyDayBoxWrapper from '#lib/components/journey/EmptyDayBoxWrapper.svelte';
+	import { trpc } from '#lib/trpc/client.js';
+	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '#lib/trpc/types.js';
+	import { goalsForJourneyDay } from '#lib/utils/index.js';
+	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { onMount } from 'svelte';
 	import { SvelteDate } from 'svelte/reactivity';
 

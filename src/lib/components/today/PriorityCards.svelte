@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Goal, Priority } from '$src/lib/trpc/types';
-	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import type { Goal, Priority } from '#lib/trpc/types.js';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import PriorityModal from '../shared/PriorityModal.svelte';
 
 	let {

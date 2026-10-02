@@ -1,7 +1,7 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { createTRPCClient, httpBatchLink } from '@trpc/client';
-import type { Router } from '$lib/trpc/router';
-import { transformer } from '$lib/trpc/transformer';
+import type { Router } from '#lib/trpc/router.js';
+import { transformer } from '#lib/trpc/transformer.js';
 
 let browserClient: ReturnType<typeof createTRPCClient<Router>>;
 

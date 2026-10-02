@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
+	import { trpc } from '#lib/trpc/client.js';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GenericModal from '../shared/GenericModal.svelte';
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
-	import type { Priority } from '$src/lib/trpc/types';
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { readableTextColor } from '$src/lib/utils';
+	import type { Priority } from '#lib/trpc/types.js';
+	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { readableTextColor } from '#lib/utils/index.js';
 
 	let {
 		goal = $bindable(),
