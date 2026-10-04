@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { wcagContrast } from 'culori/fn';
 import {
 	adjustToUTCStartAndEndOfDay,
 	dateKeyInZone,
@@ -10,11 +9,9 @@ import {
 	goalsForJourneyDay,
 	lightenHSL,
 	previousDateKey,
-	readableTextColor,
 	wallClockInZone
 } from './index.ts';
 import type { Goal, Intention } from '../trpc/types';
-import { colors } from '../components/goals/colors';
 
 const goal = (over: Partial<Goal>): Goal =>
 	({
@@ -28,54 +25,6 @@ const goal = (over: Partial<Goal>): Goal =>
 	}) as Goal;
 
 describe('utils', () => {
-	it.each([
-		'navy',
-		' Navy ',
-		'#008',
-		'#008f',
-		'#000080ff',
-		'rgb(0 0 128)',
-		'rgba(0, 0, 128, 1)',
-		'hsl(240deg 100% 25%)',
-		'hsla(240, 100%, 25%, 1)',
-		'hwb(240 0% 50%)',
-		'lab(10% 0 0)',
-		'lch(10% 0 0)',
-		'oklab(0.2 0 0)',
-		'oklch(0.2 0 0)',
-		'color(srgb 0 0 0.5)',
-		'color(display-p3 0 0 0.5)'
-	])('uses light text on dark CSS color %s', (color) => {
-		expect(readableTextColor(color)).toBe('white');
-	});
-
-	it.each([
-		'ivory',
-		'#fff',
-		'#ffff',
-		'#ffffffff',
-		'rgb(100% 100% 100% / 1)',
-		'hsl(-0.5turn 100% 80%)',
-		'lab(90% 0 0)',
-		'oklch(0.9 0 0)',
-		'hsl(212.602 72.053% 80.416%)'
-	])('uses dark text on light CSS color %s', (color) => {
-		expect(readableTextColor(color)).toBe('black');
-	});
-
-	it.each(['', 'invalid', 'var(--goal-color)', 'currentColor'])(
-		'falls back to dark text for unresolved color %s',
-		(color) => {
-			expect(readableTextColor(color)).toBe('black');
-		}
-	);
-
-	it('keeps every opaque palette fill readable', () => {
-		for (const color of colors) {
-			expect(wcagContrast(color, readableTextColor(color))).toBeGreaterThanOrEqual(4.5);
-		}
-	});
-
 	it("wallClockInZone gives the instant's wall time in the zone as fake-Z UTC fields", () => {
 		const instant = new Date('2024-06-03T20:30:00.000Z');
 		// UTC+14: the wall clock is June 4 10:30 there

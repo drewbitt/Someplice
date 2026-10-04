@@ -1,5 +1,3 @@
-import 'culori/css';
-import { parse, wcagContrast } from 'culori/fn';
 import type { Goal, Intention } from '../trpc/types';
 
 export const adjustToUTCStartAndEndOfDay = (start: Date, end: Date) => {
@@ -101,14 +99,7 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 	return -1;
 };
 
-// Pick the higher-contrast foreground for a solid goal-color fill.
-export const readableTextColor = (color: string): string => {
-	const background = parse(color.trim().toLowerCase());
-	const dark = 'black';
-	const light = 'white';
-	if (!background) return dark;
-	return wcagContrast(background, dark) >= wcagContrast(background, light) ? dark : light;
-};
+export const readableTextColor = (color: string): string => `contrast-color(${color})`;
 
 // A journey day needs active goals plus inactive goals that have intentions that
 // day (e.g. a goal archived the same day), otherwise they render as "-1)".
