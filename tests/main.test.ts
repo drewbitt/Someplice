@@ -10,6 +10,7 @@
  */
 
 import { expect, test } from '@playwright/test';
+import { DatabaseSync } from 'node:sqlite';
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
@@ -62,4 +63,59 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 
 	await page.reload();
 	await expect(page.locator('.goal__editor__textarea')).toHaveValue('1) write tests');
+});
+
+test('Today loads missed intentions in the stored timezone on a fresh browser visit', async ({
+	browser
+}) => {
+	const db = new DatabaseSync(process.env.DATABASE_PATH ?? './data/db.sqlite');
+	try {
+		db.prepare(
+			"INSERT INTO settings(key, value) VALUES('timezone', 'UTC') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
+		).run();
+	} finally {
+		db.close();
+	}
+
+	const now = new Date();
+	const browserZone = now.getUTCHours() >= 10 ? 'Pacific/Kiritimati' : 'Etc/GMT+12';
+	const yesterday = new Date(now);
+	yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+
+	const context = await browser.newContext({ timezoneId: browserZone });
+	try {
+		const page = await context.newPage();
+		await page.goto('/goals');
+		await page.getByRole('button', { name: 'New Goal' }).click();
+		await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
+
+		const recentIntentions = page.waitForResponse((response) =>
+			response.url().includes('/api/trpc/intentions.list?')
+		);
+		await page.goto('/today');
+		const response = await recentIntentions;
+		const input = new URL(response.url()).searchParams.get('input');
+		expect(input).toContain(yesterday.toISOString().slice(0, 10));
+		expect(input).not.toContain(now.toISOString().slice(0, 10));
+
+		await page.locator('.goal__editor__textarea').fill('1) timezone refresh persists');
+		await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
+		const intention = page.getByRole('listitem', {
+			name: '1) timezone refresh persists',
+			exact: true
+		});
+		await expect(intention).toBeVisible();
+
+		const reloadedIntentions = page.waitForResponse((response) =>
+			response.url().includes('/api/trpc/intentions.list?')
+		);
+		await page.reload();
+		const reloadedResponse = await reloadedIntentions;
+		expect(new URL(reloadedResponse.url()).searchParams.get('input')).not.toContain(
+			now.toISOString().slice(0, 10)
+		);
+		await expect(intention).toBeVisible();
+	} finally {
+		await context.close();
+	}
 });

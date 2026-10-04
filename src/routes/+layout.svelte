@@ -12,7 +12,7 @@
 
 	// One zone for every day boundary, server and client: the layout load
 	// resolves the stored setting and first visits persist the browser's zone.
-	$effect(() => {
+	$effect.pre(() => {
 		if (data.timeZone) appTimeZone.set(data.timeZone);
 	});
 	onMount(() => {
