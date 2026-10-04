@@ -3,7 +3,7 @@
 	import '../app.css';
 	import theme from '#lib/stores/theme.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
@@ -24,7 +24,7 @@
 				appTimeZone.set(zone);
 				// A fresh install's first load fetched its data under the UTC
 				// fallback — re-run the loads so the detected zone applies.
-				if (zone !== data.timeZone) await invalidateAll();
+				if (zone !== data.timeZone) await refreshAll();
 			})
 			.catch(() => {
 				// auto-detect is best-effort; the stored/env zone still applies

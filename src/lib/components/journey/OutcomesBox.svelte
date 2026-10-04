@@ -11,7 +11,7 @@
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
 	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
-	import { invalidateAll, beforeNavigate } from '$app/navigation';
+	import { refreshAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -27,7 +27,7 @@
 
 		// Day date as ISO midnight; used when the day has no intentions to take it from.
 		// Called after a write so extras-supplied days can be re-fetched;
-		// invalidateAll alone only refreshes server-loaded data.
+		// refreshAll alone only refreshes server-loaded data.
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
@@ -175,7 +175,7 @@
 			}
 		} finally {
 			if (saved) {
-				await invalidateAll();
+				await refreshAll();
 				await onDayChanged?.();
 			}
 		}
@@ -209,7 +209,7 @@
 	}
 
 	// The ✕ toggle used to write immediately — a stray click rewrote a past day
-	// and the resulting invalidateAll discarded pending checkbox/verdict edits.
+	// and the resulting refreshAll discarded pending checkbox/verdict edits.
 	// It now stages a pending status change that saveReview writes with the rest.
 	const handleNotTodayToggled = (detail: { intention: Intention }) => {
 		const { intention } = detail;

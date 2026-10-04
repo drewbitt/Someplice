@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import ActionsTextInput from '#lib/components/today/ActionsTextInput.svelte';
 	import ActionsDisplay from '#lib/components/today/ActionsDisplay.svelte';
 	import GoalBadges from '#lib/components/today/GoalBadges.svelte';
@@ -109,7 +109,7 @@
 	const applySaveResult = async (result: unknown[] | undefined, hideTextArea: boolean) => {
 		if (result && result.length > 0) {
 			if (hideTextArea) handleHideAdditionalIntentionsTextArea();
-			await invalidateAll();
+			await refreshAll();
 			intentions = data.intentions;
 			intentionsFromServer = data.intentions;
 		} else {
@@ -122,7 +122,7 @@
 		if (payload.length === 0) {
 			// Nothing this tab changed — a no-op save is a success, not an error.
 			handleHideAdditionalIntentionsTextArea();
-			await invalidateAll();
+			await refreshAll();
 			intentions = data.intentions;
 			intentionsFromServer = data.intentions;
 			return;
@@ -137,7 +137,7 @@
 		const payload = dirtyIntentions();
 		if (payload.length === 0) {
 			handleHideAdditionalIntentionsTextArea();
-			await invalidateAll();
+			await refreshAll();
 			intentions = data.intentions;
 			intentionsFromServer = data.intentions;
 			return;

@@ -8,9 +8,6 @@ trustPolicyExclude:
 trustPolicyIgnoreAfter: 525600
 shellEmulator: true
 autoDedupe: true
-minimumReleaseAgeExclude:
-  - '@sveltejs/adapter-node@6.0.0'
-  - '@sveltejs/kit@3.0.0'
 # Upstream hasn't declared SvelteKit 3 support yet; verified working (build + e2e).
 peerDependencyRules:
   allowedVersions:

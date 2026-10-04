@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import type { Goal, Intention } from '#lib/trpc/types.js';
 	import { trpc } from '#lib/trpc/client.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
@@ -55,7 +55,7 @@
 				await trpc().intentions.delete.mutate(intention.id);
 				opened = false;
 				dialog?.close();
-				await invalidateAll();
+				await refreshAll();
 			} catch (error) {
 				if (error instanceof Error) {
 					todayPageErrorStore.setError(error.message);
@@ -76,7 +76,7 @@
 			});
 			opened = false;
 			dialog?.close();
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);

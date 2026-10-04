@@ -14,7 +14,7 @@
 	import { wallClockInZone } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
-	import { invalidateAll, beforeNavigate } from '$app/navigation';
+	import { refreshAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -180,7 +180,7 @@
 			}
 		} finally {
 			if (saved) {
-				await invalidateAll();
+				await refreshAll();
 			}
 		}
 	};

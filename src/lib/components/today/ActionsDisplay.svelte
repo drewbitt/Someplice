@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { trpc } from '#lib/trpc/client.js';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { notDones } from '#lib/stores/notDones.svelte.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
@@ -155,10 +155,10 @@
 		intentions = items;
 		try {
 			await trpc().intentions.updateIntentions.mutate({ intentions: items });
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			// Resync from the server so the rendered order can't diverge from the DB.
-			await invalidateAll();
+			await refreshAll();
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
 			}

@@ -15,7 +15,7 @@
 
 	// Older pages live in their own state, merged with `data` below. Mutating the
 	// `data` props directly never invalidated the derived day list (page-2+
-	// fetched but never rendered) and got clobbered by invalidateAll anyway.
+	// fetched but never rendered) and got clobbered by refreshAll anyway.
 	let extraOutcomes = $state<Outcome[]>([]);
 	let extraVerdicts = $state<OutcomeVerdict[]>([]);
 	let extraIntentionsByDate = $state<Record<string, Intention[]>>({});
@@ -250,7 +250,7 @@
 		}
 	}
 
-	// Days that only exist in extras aren't refreshed by invalidateAll, so after
+	// Days that only exist in extras aren't refreshed by refreshAll, so after
 	// an in-page write (saveReview, not_today) re-fetch that day and reconcile.
 	async function refreshDay(dateKey: string) {
 		try {

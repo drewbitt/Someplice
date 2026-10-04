@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import { colors } from './colors';
 	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
@@ -21,7 +21,7 @@
 				description: null
 			});
 			if (addResult) {
-				await invalidateAll();
+				await refreshAll();
 				addedGoal = true;
 			}
 		} catch (error: unknown) {
