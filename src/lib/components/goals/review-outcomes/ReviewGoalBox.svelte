@@ -123,9 +123,9 @@
 		{/if}
 		<div
 			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
-			style="border-color: {goal.color}; --goal-color: {goal.color}"
+			style="border-color: {goal.color}"
 		>
-			<div class="goal-text flex justify-end font-semibold">
+			<div class="flex justify-end font-semibold" style="color: {goal.color}">
 				{#if priority}
 					<span>
 						{goal.orderNumber} : {priority.text}{#if priority.checkInDate}&nbsp;by {priority.checkInDate}{/if}

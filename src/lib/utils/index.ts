@@ -99,60 +99,27 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 	return -1;
 };
 
-type Rgb = [number, number, number];
-
-// Parses hsl(...) and #rrggbb; returns null for anything else.
-const colorToRgb = (color: string): Rgb | null => {
-	const hsl = color.trim().match(/^hsl\(\s*([\d.]+)[,\s]+([\d.]+)%?[,\s]+([\d.]+)%?\s*\)$/i);
-	if (hsl) {
-		const h = parseFloat(hsl[1]);
-		const s = parseFloat(hsl[2]) / 100;
-		const l = parseFloat(hsl[3]) / 100;
-		const c = (1 - Math.abs(2 * l - 1)) * s;
-		const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-		const m = l - c / 2;
-		const [r, g, b] =
-			h < 60
-				? [c, x, 0]
-				: h < 120
-					? [x, c, 0]
-					: h < 180
-						? [0, c, x]
-						: h < 240
-							? [0, x, c]
-							: h < 300
-								? [x, 0, c]
-								: [c, 0, x];
-		return [r, g, b].map((v) => Math.round((v + m) * 255)) as Rgb;
-	}
-	const hex = color.trim().match(/^#?([0-9a-f]{6})$/i);
-	if (!hex) return null;
-	const v = parseInt(hex[1], 16);
-	return [(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff];
-};
-
-// WCAG 2.x relative luminance and contrast ratio.
-const luminance = ([r, g, b]: Rgb): number => {
-	const linear = (channel: number) => {
-		const c = channel / 255;
-		return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-	};
-	return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
-};
-
-const contrastRatio = (a: Rgb, b: Rgb): number =>
-	(Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
-
 // Theme text over an arbitrary goal color is unreadable whenever the color is
-// close to the theme background; pick whichever of a fixed dark/light
-// foreground has the higher contrast against it. Best-of-two guarantees at
-// least ~4.5:1 for any input color; anything unparseable falls back to dark text.
+// close to the theme background; pick a fixed light/dark foreground instead.
+// Parses hsl(...) and #rrggbb; anything else falls back to dark text.
 export const readableTextColor = (color: string): string => {
-	const rgb = colorToRgb(color);
-	if (!rgb) return 'hsl(0, 0%, 12%)';
-	return contrastRatio([31, 31, 31], rgb) >= contrastRatio([247, 247, 247], rgb)
-		? 'hsl(0, 0%, 12%)'
-		: 'hsl(0, 0%, 97%)';
+	const lightness = colorLightness(color);
+	if (lightness === null) return 'hsl(0, 0%, 12%)';
+	return lightness > 0.55 ? 'hsl(0, 0%, 12%)' : 'hsl(0, 0%, 97%)';
+};
+
+const colorLightness = (color: string): number | null => {
+	const hslMatch = color.trim().match(/^hsl\(\s*([\d.]+)[,\s]+([\d.]+)%?[,\s]+([\d.]+)%?\s*\)$/i);
+	if (hslMatch) return parseFloat(hslMatch[3]) / 100;
+	const hexMatch = color.trim().match(/^#?([0-9a-f]{6})$/i);
+	if (hexMatch) {
+		const value = parseInt(hexMatch[1], 16);
+		const r = (value >> 16) & 0xff;
+		const g = (value >> 8) & 0xff;
+		const b = value & 0xff;
+		return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+	}
+	return null;
 };
 
 // A journey day needs active goals plus inactive goals that have intentions that

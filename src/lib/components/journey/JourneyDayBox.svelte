@@ -59,7 +59,7 @@
 		})()}
 	</h2>
 	{#each milestones as milestone (milestone.priority.id)}
-		<p class="goal-text ml-5 font-semibold" style="--goal-color: {milestone.goal.color}">
+		<p class="ml-5 font-semibold" style="color: {milestone.goal.color}">
 			★ {milestone.goal.orderNumber} completed top priority: {milestone.priority.text}
 		</p>
 	{/each}
