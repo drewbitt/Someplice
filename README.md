@@ -59,10 +59,6 @@
 
 ## Getting Started
 
-### Browser support
-
-Chrome/Edge 147+, Firefox 146+, or Safari/iOS Safari 26+ is required. Goal text uses native CSS `contrast-color()` to stay readable on user-selected colors.
-
 There are two ways to install Someplice: with pnpm or Docker. Choose the method that best suits your needs.
 
 ### Installation
