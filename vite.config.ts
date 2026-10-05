@@ -1,13 +1,21 @@
+import nodeAdapter from '@sveltejs/adapter-node';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import denoAdapter from '@deno/svelte-adapter';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { SvelteKitPWA } from '@vite-pwa/sveltekit';
 import tailwindcss from '@tailwindcss/vite';
 import Icons from 'unplugin-icons/vite';
+import { defineConfig } from 'vitest/config';
 
-/** @type {import('vite').UserConfig} */
-const config = {
+export default defineConfig({
 	plugins: [
 		tailwindcss(),
-		sveltekit(),
+		sveltekit({
+			preprocess: vitePreprocess(),
+			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter(),
+			output: { linkHeaderPreload: true }
+		}),
+
 		SvelteKitPWA({
 			manifest: {
 				name: 'Someplice',
@@ -33,6 +41,4 @@ const config = {
 			NODE_ENV: 'test'
 		}
 	}
-};
-
-export default config;
+});

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageServerData } from '../../../routes/today/$types';
-	import { readableTextColor } from '$src/lib/utils';
+	import { readableTextColor } from '#lib/utils/index.js';
 
 	let { goals }: { goals: PageServerData['goals'] } = $props();
 </script>

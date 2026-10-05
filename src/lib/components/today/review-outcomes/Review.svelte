@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { trpc } from '$src/lib/trpc/client';
+	import { trpc } from '#lib/trpc/client.js';
 	import type {
 		Goal,
 		Intention,
@@ -7,15 +7,15 @@
 		Outcome,
 		Priority,
 		VerdictValue
-	} from '$src/lib/trpc/types';
-	import theme from '$lib/stores/theme';
+	} from '#lib/trpc/types.js';
+	import theme from '#lib/stores/theme.js';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../../shared/PriorityModal.svelte';
-	import { wallClockInZone } from '$src/lib/utils';
-	import { appTimeZone } from '$src/lib/stores/timezone.svelte';
-	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
-	import { invalidateAll, beforeNavigate } from '$app/navigation';
-	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { wallClockInZone } from '#lib/utils/index.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
+	import { refreshAll, beforeNavigate } from '$app/navigation';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
@@ -52,6 +52,7 @@
 	let priorityModalGoal = $state<Goal | null>(null);
 
 	beforeNavigate((navigation) => {
+		if (navigation.shallow) return;
 		if (
 			!newIntentionsToInsert.length &&
 			verdicts.size === 0 &&
@@ -59,6 +60,7 @@
 			statusOverrides.size === 0
 		)
 			return;
+
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -126,10 +128,8 @@
 	});
 
 	const listGoalsOnDate = async (date: Date) => {
-		const goals = await trpc().goals.listGoalsOnDate.query({
-			active: 1,
-			date: date
-		});
+		const goals = await trpc().goals.listGoalsOnDate.query({ active: 1, date });
+
 		return goals;
 	};
 	const listIntentionsOnDate = async (date: Date) => {
@@ -180,7 +180,7 @@
 			}
 		} finally {
 			if (saved) {
-				await invalidateAll();
+				await refreshAll();
 			}
 		}
 	};
@@ -205,8 +205,8 @@
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId: goalId,
-					text: text,
+					goalId,
+					text,
 					date: intentionDate.toISOString(),
 					status: 'done',
 					subIntentionQualifier: null,

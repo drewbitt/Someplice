@@ -1,6 +1,6 @@
-import { building } from '$app/environment';
-import { getConfiguredTimeZone } from '$src/lib/db/queries';
-import { getDb } from '$src/lib/db/db';
+import { building } from '$app/env';
+import { getConfiguredTimeZone } from '#lib/db/queries.js';
+import { getDb } from '#lib/db/db.js';
 import type { LayoutServerLoad } from './$types';
 
 // The installation timezone the client renders day boundaries in — the same

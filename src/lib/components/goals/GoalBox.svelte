@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
+	import { refreshAll } from '$app/navigation';
+	import { trpc } from '#lib/trpc/client.js';
 	import type { PageServerData } from '../../../routes/goals/$types';
 	import GenericModal from '../shared/GenericModal.svelte';
 	import GoalDateDisplay from './GoalDateDisplay.svelte';
 	import GoalDescription from './GoalDescription.svelte';
 	import GoalTitleRow from './GoalTitleRow.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
-	import type { Priority } from '$src/lib/trpc/types';
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { readableTextColor } from '$src/lib/utils';
+	import type { Priority } from '#lib/trpc/types.js';
+	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { readableTextColor } from '#lib/utils/index.js';
 
 	let {
 		goal = $bindable(),
@@ -56,7 +56,7 @@
 			try {
 				const deleteResult = await trpc().goals.delete.mutate(goal.id);
 				if (deleteResult.length > 0) {
-					await invalidateAll();
+					await refreshAll();
 				}
 			} catch (error: unknown) {
 				if (error instanceof Error) {
@@ -75,7 +75,7 @@
 			try {
 				const archiveResult = await trpc().goals.archive.mutate(goal.id);
 				if (archiveResult[0]?.numUpdatedRows !== undefined && archiveResult[0].numUpdatedRows > 0) {
-					await invalidateAll();
+					await refreshAll();
 				}
 			} catch (error: unknown) {
 				if (error instanceof Error) {
@@ -93,7 +93,7 @@
 		if (goal.id) {
 			try {
 				await trpc().goals.restore.mutate(goal.id);
-				await invalidateAll();
+				await refreshAll();
 			} catch (error: unknown) {
 				if (error instanceof Error) {
 					goalPageErrorStore.setError(error.message);

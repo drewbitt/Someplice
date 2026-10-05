@@ -1,9 +1,9 @@
-import { createDb, getDb, setDb } from '$src/lib/db/db';
-import { runMigrations } from '$src/lib/db/migrate-to-latest';
-import type { DB } from '$src/lib/types/data';
+import { createDb, getDb, setDb } from '#lib/db/db.js';
+import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import type { DB } from '#lib/types/data.js';
 import type { Kysely } from 'kysely';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { dateKeyInZone, previousDateKey } from '$src/lib/utils';
+import { dateKeyInZone, previousDateKey } from '#lib/utils/index.js';
 import { checkMissingOutcomes } from './cron';
 
 const TEST_GOAL = {

@@ -1,10 +1,10 @@
 <script>
-	import HeaderContent from '$lib/components/HeaderContent.svelte';
+	import HeaderContent from '#lib/components/HeaderContent.svelte';
 	import '../app.css';
-	import theme from '$lib/stores/theme';
-	import { appTimeZone } from '$lib/stores/timezone.svelte';
-	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
+	import theme from '#lib/stores/theme.js';
+	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+	import { refreshAll } from '$app/navigation';
+	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
 	import { pwaInfo } from 'virtual:pwa-info';
 
@@ -12,7 +12,7 @@
 
 	// One zone for every day boundary, server and client: the layout load
 	// resolves the stored setting and first visits persist the browser's zone.
-	$effect(() => {
+	$effect.pre(() => {
 		if (data.timeZone) appTimeZone.set(data.timeZone);
 	});
 	onMount(() => {
@@ -24,7 +24,7 @@
 				appTimeZone.set(zone);
 				// A fresh install's first load fetched its data under the UTC
 				// fallback — re-run the loads so the detected zone applies.
-				if (zone !== data.timeZone) await invalidateAll();
+				if (zone !== data.timeZone) await refreshAll();
 			})
 			.catch(() => {
 				// auto-detect is best-effort; the stored/env zone still applies

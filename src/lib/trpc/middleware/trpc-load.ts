@@ -6,18 +6,17 @@ import { router, createCallerFactory } from '../router';
 
 const createCaller = createCallerFactory(router);
 
-export async function trpcLoad<
-	Event extends RequestEvent<Record<string, string>, string | null>,
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	Method extends (caller: ReturnType<typeof createCaller>) => Promise<any>
->(event: Event, method: Method): Promise<ReturnType<Method>> {
+export async function trpcLoad<Result>(
+	event: RequestEvent,
+	method: (caller: ReturnType<typeof createCaller>) => Promise<Result>
+): Promise<Result> {
 	try {
 		const caller = createCaller(await createContext(event));
 		return await method(caller);
 	} catch (e) {
 		if (e instanceof TRPCError) {
 			const httpCode = getHTTPStatusCodeFromError(e);
-			error(httpCode, e.message);
+			error(httpCode, httpCode >= 500 ? 'Internal server error' : e.message);
 		}
 		error(500, 'Unknown error');
 	}

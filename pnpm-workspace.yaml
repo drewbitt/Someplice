@@ -8,3 +8,9 @@ trustPolicyExclude:
 trustPolicyIgnoreAfter: 525600
 shellEmulator: true
 autoDedupe: true
+# Upstream hasn't declared SvelteKit 3 support yet; verified working (build + e2e).
+peerDependencyRules:
+  allowedVersions:
+    '@vite-pwa/sveltekit>@sveltejs/kit': '3'
+    '@deno/svelte-adapter>@sveltejs/kit': '3'
+    'runed>@sveltejs/kit': '3'

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Priority } from '$src/lib/trpc/types';
-	import { appLogger } from '$src/lib/utils/logger';
+	import { refreshAll } from '$app/navigation';
+	import { trpc } from '#lib/trpc/client.js';
+	import type { Goal, Priority } from '#lib/trpc/types.js';
+	import { appLogger } from '#lib/utils/logger.js';
 
 	let {
 		showModal = $bindable(),
@@ -60,7 +60,7 @@
 				});
 			}
 			showModal = false;
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}
@@ -71,7 +71,7 @@
 		try {
 			await trpc().priorities.clear.mutate({ goalId: goal.id });
 			showModal = false;
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}
@@ -85,7 +85,7 @@
 				reflection: reflection || null
 			});
 			showModal = false;
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}

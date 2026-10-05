@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
+	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import X from 'virtual:icons/lucide/x';
 
 	let { children } = $props();

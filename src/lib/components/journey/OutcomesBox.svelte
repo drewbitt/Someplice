@@ -7,13 +7,13 @@
 		OutcomeVerdict,
 		Priority,
 		VerdictValue
-	} from '$src/lib/trpc/types';
+	} from '#lib/trpc/types.js';
 	import ReviewGoalBox from '../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../shared/PriorityModal.svelte';
-	import { journeyPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { invalidateAll, beforeNavigate } from '$app/navigation';
-	import { trpc } from '$src/lib/trpc/client';
-	import { statusFromReviewCheckbox } from '$src/lib/utils/notDones';
+	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { refreshAll, beforeNavigate } from '$app/navigation';
+	import { trpc } from '#lib/trpc/client.js';
+	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
@@ -24,16 +24,17 @@
 		priorities = [],
 		date: dateProp,
 		onDayChanged
+
+		// Day date as ISO midnight; used when the day has no intentions to take it from.
+		// Called after a write so extras-supplied days can be re-fetched;
+		// refreshAll alone only refreshes server-loaded data.
 	}: {
 		goals: Goal[];
 		intentions: Intention[];
 		outcomes: Outcome[];
 		verdicts?: OutcomeVerdict[];
 		priorities?: Priority[];
-		// Day date as ISO midnight; used when the day has no intentions to take it from.
 		date?: string;
-		// Called after a write so extras-supplied days can be re-fetched;
-		// invalidateAll alone only refreshes server-loaded data.
 		onDayChanged?: () => void | Promise<void>;
 	} = $props();
 
@@ -80,6 +81,7 @@
 	};
 
 	beforeNavigate((navigation) => {
+		if (navigation.shallow) return;
 		if (
 			!newIntentionsToInsert.length &&
 			verdictEdits.size === 0 &&
@@ -87,6 +89,7 @@
 			statusOverrides.size === 0
 		)
 			return;
+
 		if (navigation.willUnload) {
 			navigation.cancel();
 		} else if (!confirm('Discard unsaved outcome text?')) {
@@ -172,7 +175,7 @@
 			}
 		} finally {
 			if (saved) {
-				await invalidateAll();
+				await refreshAll();
 				await onDayChanged?.();
 			}
 		}
@@ -191,9 +194,9 @@
 		for (const text of texts) {
 			if (text) {
 				newIntentionsToInsert.push({
-					goalId: goalId,
-					text: text,
-					date: date,
+					goalId,
+					text,
+					date,
 					status: 'done',
 					subIntentionQualifier: null,
 					orderNumber: 0
@@ -206,7 +209,7 @@
 	}
 
 	// The ✕ toggle used to write immediately — a stray click rewrote a past day
-	// and the resulting invalidateAll discarded pending checkbox/verdict edits.
+	// and the resulting refreshAll discarded pending checkbox/verdict edits.
 	// It now stages a pending status change that saveReview writes with the rest.
 	const handleNotTodayToggled = (detail: { intention: Intention }) => {
 		const { intention } = detail;

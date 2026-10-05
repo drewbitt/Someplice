@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Goal, Intention, Priority, VerdictValue } from '$src/lib/trpc/types';
-	import { lightenHSL, readableTextColor } from '$src/lib/utils';
+	import type { Goal, Intention, Priority, VerdictValue } from '#lib/trpc/types.js';
+	import { lightenHSL, readableTextColor } from '#lib/utils/index.js';
 	import CalendarX from 'virtual:icons/lucide/calendar-x';
 	import Plus from 'virtual:icons/lucide/plus';
 	import Undo2 from 'virtual:icons/lucide/undo-2';

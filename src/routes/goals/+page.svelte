@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import GoalBoxComponent from '$src/lib/components/goals/GoalBox.svelte';
-	import NewGoalBoxComponent from '$src/lib/components/goals/NewGoalBox.svelte';
-	import { goalPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { GoalLog } from '$src/lib/trpc/types';
+	import { refreshAll } from '$app/navigation';
+	import GoalBoxComponent from '#lib/components/goals/GoalBox.svelte';
+	import NewGoalBoxComponent from '#lib/components/goals/NewGoalBox.svelte';
+	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { trpc } from '#lib/trpc/client.js';
+	import type { GoalLog } from '#lib/trpc/types.js';
 	import { dndzone } from 'svelte-dnd-action';
 	import { untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -25,7 +25,7 @@
 		}
 		// Mid-edit: merge by id instead of replacing. A wholesale resync would
 		// discard unsaved text/color edits, but skipping it entirely leaves the
-		// editor stale after Add/Archive/Delete (which invalidateAll themselves).
+		// editor stale after Add/Archive/Delete (which refreshAll themselves).
 		// Keep local editable fields; adopt server adds, removals, and order.
 		// untrack the local reads: the effect assigns goals/inactiveGoals, so
 		// tracking them would retrigger the effect on its own writes.
@@ -66,17 +66,14 @@
 
 	async function handleEditButtonClick() {
 		if (editButtonActive) {
-			goals = goals.map((goal) => {
-				return { ...goal, color: goal.color };
-			});
-
 			try {
 				await trpc().goals.updateGoals.mutate({ goals });
-				await invalidateAll();
+				await refreshAll();
 			} catch (error) {
-				if (error instanceof Error) {
-					goalPageErrorStore.setError(error.message);
-				}
+				goalPageErrorStore.setError(
+					error instanceof Error ? error.message : 'Failed to save goals'
+				);
+				return;
 			}
 		} else {
 			backupGoals = goals.map((goal) => {
@@ -113,7 +110,7 @@
 
 		try {
 			await trpc().goals.updateGoals.mutate({ goals: items });
-			await invalidateAll();
+			await refreshAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				goalPageErrorStore.setError(error.message);

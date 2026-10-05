@@ -3,7 +3,9 @@ import js from '@eslint/js';
 import tsEslint from 'typescript-eslint';
 import eslintPluginSvelte from 'eslint-plugin-svelte';
 import eslintConfigPrettier from 'eslint-config-prettier';
-import svelteConfig from '../svelte.config.js';
+import { loadConfig } from '@sveltejs/load-config';
+
+const svelteConfig = (await loadConfig('./', { traverse: false }))?.config;
 
 export default [
 	js.configs.recommended,

@@ -1,9 +1,8 @@
-import { configuredZoneNow } from '$src/lib/db/queries';
-import type { ServerLoadEvent } from '@sveltejs/kit';
+import { configuredZoneNow } from '#lib/db/queries.js';
 import type { PageServerLoad } from './$types';
-import { trpcLoad } from '$src/lib/trpc/middleware/trpc-load';
+import { trpcLoad } from '#lib/trpc/middleware/trpc-load.js';
 
-export const load: PageServerLoad = async (event: ServerLoadEvent) => {
+export const load = (async (event) => {
 	const now = await configuredZoneNow();
 	const [goals, intentions, intentionsOnLatestDate, priorities, inactiveGoals] = await Promise.all([
 		trpcLoad(event, (t) => t.goals.list(1)),
@@ -16,4 +15,4 @@ export const load: PageServerLoad = async (event: ServerLoadEvent) => {
 		trpcLoad(event, (t) => t.goals.listGoalsSortedByDate(0))
 	]);
 	return { goals, intentions, intentionsOnLatestDate, priorities, inactiveGoals };
-};
+}) satisfies PageServerLoad;

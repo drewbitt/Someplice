@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { todayPageErrorStore } from '$src/lib/stores/errors.svelte';
-	import { trpc } from '$src/lib/trpc/client';
-	import type { Goal, Intention } from '$src/lib/trpc/types';
-	import { goalColorForIntention, goalOrderNumberForId } from '$src/lib/utils';
+	import { refreshAll } from '$app/navigation';
+	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
+	import { trpc } from '#lib/trpc/client.js';
+	import type { Goal, Intention } from '#lib/trpc/types.js';
+	import { goalColorForIntention, goalOrderNumberForId } from '#lib/utils/index.js';
 
 	let {
 		goals,
@@ -25,7 +25,7 @@
 			try {
 				await trpc().intentions.appendText.mutate({ id: intention.id, text });
 				closeAppendModal();
-				await invalidateAll();
+				await refreshAll();
 			} catch (error) {
 				if (error instanceof Error) {
 					todayPageErrorStore.setError(error.message);

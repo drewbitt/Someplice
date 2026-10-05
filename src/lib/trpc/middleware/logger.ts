@@ -1,5 +1,5 @@
-import { t } from '$lib/trpc/t';
-import { trpcLogger } from '$src/lib/utils/logger';
+import { t } from '#lib/trpc/t.js';
+import { trpcLogger } from '#lib/utils/logger.js';
 
 export const logger = t.middleware(async ({ path, type, next }) => {
 	const start = Date.now();
