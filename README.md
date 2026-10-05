@@ -122,7 +122,11 @@ pnpm test:e2e        # builds/previews with a disposable database; no dev server
 pnpm build
 ```
 
-Browser tests use `*.browser.test.ts`; API/database/helper tests stay in the Node project. Playwright uses a fresh run-owned database and resets scenario fixtures, leaving development data untouched.
+Browser tests use feature-owned `*.browser.test.ts` files for isolated Svelte behavior with mocked navigation/tRPC; API/database/helper tests stay in the Node project. Playwright covers the built app's real HTTP/database, reload, timezone, and service-worker behavior with a fresh run-owned database, leaving development data untouched.
+
+Both browser runners retain failure traces under `test-results/` in separate `vitest` and `playwright` directories; CI uploads them for seven days. Open a trace with `pnpm exec playwright show-trace path/to/trace.zip`.
+
+The native service worker caches only build/static assets, not pages, SvelteKit data, or API responses. This is not offline data support. Worker updates wait for old tabs to close rather than forcing activation or discarding drafts.
 
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. `pnpm run db:codegen` regenerates `src/lib/types/data.d.ts` from the migrations (no database file needed); a unit test fails if it is stale.
 

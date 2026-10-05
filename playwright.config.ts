@@ -11,6 +11,7 @@ process.env.SOMEPLICE_TIMEZONE = 'UTC';
 
 export default defineConfig({
 	testDir: 'tests',
+	outputDir: 'test-results/playwright',
 	metadata: { databaseDirectory },
 	globalTeardown: './tests/global-teardown.ts',
 	// One disposable database per run; each scenario resets its fixtures.

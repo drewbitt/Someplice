@@ -35,22 +35,6 @@ test('Today page shows text when no goals are set', async ({ page }) => {
 	).toBeVisible();
 });
 
-test('GoalBox contains New goal button', async ({ page }) => {
-	await page.goto('/goals');
-	await expect(page.getByRole('button', { name: 'New Goal' })).toBeVisible();
-});
-
-test('Pressing New Goal button adds a new goal', async ({ page }) => {
-	await page.goto('/goals');
-	await page.getByRole('button', { name: 'New Goal' }).click();
-	const goalsListContainer = page.locator('#goals-list-container');
-	// The New Goal box sits outside the dnd list, so the container holds just
-	// the created goal box.
-	await expect(goalsListContainer.locator(':scope > *')).toHaveCount(1);
-	// Adding a goal enters edit mode, so the title is rendered as an input
-	await expect(goalsListContainer.locator('.goal-box-title-editable input')).toHaveValue('Goal 1');
-});
-
 test('theme toggle persists dark mode across reload', async ({ page }) => {
 	await page.goto('/');
 	await page.getByRole('button', { name: 'Toggle theme' }).click();
@@ -303,12 +287,15 @@ test('failed additional intention saves retry the corrected draft without rewrit
 	}
 });
 
-test('native service worker caches assets without caching Today or API responses', async ({
-	page
+test('controlled worker serves assets offline but never dynamic pages, data or APIs', async ({
+	page,
+	context
 }) => {
 	await page.goto('/today');
+	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+	await page.reload();
+	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
 	const cached = await page.evaluate(async () => {
-		await navigator.serviceWorker.ready;
 		const names = (await caches.keys()).filter((name) => name.startsWith('someplice-'));
 		const entries = await Promise.all(
 			names.map(async (name) =>
@@ -321,4 +308,93 @@ test('native service worker caches assets without caching Today or API responses
 	expect(cached.some((path) => path.startsWith('/_app/immutable/'))).toBe(true);
 	expect(cached).not.toContain('/today');
 	expect(cached.some((path) => path.startsWith('/api/trpc'))).toBe(false);
+	const script = cached.find((path) => path.startsWith('/_app/immutable/') && path.endsWith('.js'));
+	expect(script).toBeDefined();
+	const dynamicPaths = ['/today', '/today/__data.json', '/api/trpc/settings.getTimeZone'];
+	const statuses = await page.evaluate(
+		async (paths) =>
+			Promise.all(paths.map(async (path) => (await fetch(path, { cache: 'no-store' })).status)),
+		dynamicPaths
+	);
+	expect(statuses).toEqual([200, 200, 200]);
+	const readAsset = () =>
+		page.evaluate(async (path) => (await fetch(path, { cache: 'no-store' })).text(), script!);
+	const onlineAsset = await readAsset();
+	expect(onlineAsset.length).toBeGreaterThan(0);
+	await context.setOffline(true);
+	try {
+		expect(await readAsset()).toBe(onlineAsset);
+		const reachable = await page.evaluate(
+			async (paths) =>
+				Promise.all(
+					paths.map(async (path) => {
+						try {
+							await fetch(path, { cache: 'no-store' });
+							return true;
+						} catch {
+							return false;
+						}
+					})
+				),
+			dynamicPaths
+		);
+		expect(reachable).toEqual([false, false, false]);
+		const offlinePage = await context.newPage();
+		await expect(offlinePage.goto('/today')).rejects.toThrow(
+			/ERR_INTERNET_DISCONNECTED|ERR_FAILED/
+		);
+		await offlinePage.close();
+	} finally {
+		await context.setOffline(false);
+	}
+});
+
+test('worker updates wait for old clients and remove only obsolete app caches', async ({
+	page,
+	context
+}) => {
+	await page.goto('/today');
+	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+	await page.reload();
+	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	const currentScript = await page.evaluate(() => navigator.serviceWorker.controller!.scriptURL);
+	const currentCaches = await page.evaluate(async () =>
+		(await caches.keys()).filter((name) => name.startsWith('someplice-'))
+	);
+	const nextScript = `${currentScript}?e2e-update`;
+	const workerCreated = context.waitForEvent('serviceworker', {
+		predicate: (worker) => worker.url() === nextScript
+	});
+	await page.evaluate(async (url) => {
+		await (
+			await caches.open('someplice-obsolete-version')
+		).put('/obsolete.js', new Response('old'));
+		await (await caches.open('unrelated-app')).put('/unrelated.js', new Response('keep'));
+		// A distinct script URL exercises an update with the production worker, without a second build.
+		await navigator.serviceWorker.register(url);
+	}, nextScript);
+	const nextWorker = await workerCreated;
+	await expect
+		.poll(() =>
+			page.evaluate(
+				async () => (await navigator.serviceWorker.getRegistration())?.waiting?.scriptURL
+			)
+		)
+		.toBe(nextScript);
+	expect(await page.evaluate(() => navigator.serviceWorker.controller!.scriptURL)).toBe(
+		currentScript
+	);
+	expect(await page.evaluate(() => caches.keys())).toContain('someplice-obsolete-version');
+	await page.close();
+	await expect
+		.poll(() => nextWorker.evaluate(() => caches.keys()))
+		.not.toContain('someplice-obsolete-version');
+	const remaining = await nextWorker.evaluate(() => caches.keys());
+	expect(remaining).toContain('unrelated-app');
+	expect(remaining.filter((name) => name.startsWith('someplice-'))).toEqual(currentCaches);
+	const nextPage = await context.newPage();
+	await nextPage.goto('/manifest.webmanifest');
+	await expect
+		.poll(() => nextPage.evaluate(() => navigator.serviceWorker.controller?.scriptURL))
+		.toBe(nextScript);
 });

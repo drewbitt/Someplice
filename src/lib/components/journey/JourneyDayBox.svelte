@@ -11,7 +11,8 @@
 		verdicts = [],
 		priorities = [],
 		completedPriorities = [],
-		onDayChanged
+		onDayChanged,
+		onPrioritiesChanged
 	}: {
 		goals: Goal[];
 		date?: string;
@@ -23,6 +24,7 @@
 		// Called after an in-box write (saveReview, not_today) so the page can
 		// re-fetch days that live in client-side extras state.
 		onDayChanged?: () => void | Promise<void>;
+		onPrioritiesChanged: (priorities: Priority[]) => void;
 	} = $props();
 
 	let date = $derived(dateProp ?? intentions[intentions.length - 1]?.date);
@@ -76,6 +78,7 @@
 				{priorities}
 				date={dateISO}
 				{onDayChanged}
+				{onPrioritiesChanged}
 			/>
 		</div>
 	{/if}

@@ -18,6 +18,7 @@
 	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data }: { data: PageServerData } = $props();
+	let activePriorities = $derived(data.priorities);
 
 	let extraWindow = $state<JourneyWindow>({
 		outcomes: [],
@@ -220,7 +221,8 @@
 					intentions={intentionsByDate[date] ?? []}
 					{outcomes}
 					{verdicts}
-					priorities={data.priorities}
+					priorities={activePriorities}
+					onPrioritiesChanged={(priorities) => (activePriorities = priorities)}
 					{completedPriorities}
 					onDayChanged={() => refreshDay(date)}
 				/>

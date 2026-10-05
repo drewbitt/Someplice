@@ -22,7 +22,8 @@
 		verdicts = [],
 		priorities = [],
 		date: dateProp,
-		onDayChanged
+		onDayChanged,
+		onPrioritiesChanged
 
 		// Day date as ISO midnight; used when the day has no intentions to take it from.
 		// Called after a write so extras-supplied days can be re-fetched;
@@ -35,13 +36,13 @@
 		priorities?: Priority[];
 		date?: string;
 		onDayChanged?: () => void | Promise<void>;
+		onPrioritiesChanged: (priorities: Priority[]) => void;
 	} = $props();
 
 	let showSaveButton = $state(false);
 	let saveRevision = $state(0);
 	let saving = $state(false);
 	let showPriorityModal = $state(false);
-	let priorityOverrides = $state<Priority[] | null>(null);
 	let priorityModalGoal = $state<Goal | null>(null);
 
 	let date = $derived(intentions[intentions.length - 1]?.date ?? dateProp ?? '');
@@ -228,7 +229,7 @@
 				showTitle={false}
 				verdict={verdictForGoal(goal.id)}
 				verdictAsBar={!showSaveButton}
-				priority={(priorityOverrides ?? priorities).find((priority) => priority.goalId === goal.id)}
+				priority={priorities.find((priority) => priority.goalId === goal.id)}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
 				onCheckboxClicked={handleCheckboxClicked}
@@ -252,7 +253,7 @@
 		bind:showModal={showPriorityModal}
 		goal={priorityModalGoal}
 		onSaved={async () => {
-			priorityOverrides = await trpc().priorities.list.query({ activeOnly: true });
+			onPrioritiesChanged(await trpc().priorities.list.query({ activeOnly: true }));
 		}}
 		onError={(message) => journeyPageErrorStore.setError(message)}
 	/>
