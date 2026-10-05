@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { Goal } from '#lib/trpc/types.js';
-import { mergeWindows, omitWindowDays, type DayWindow } from './windows.js';
+import {
+	journeyDates,
+	loadJourneyGoals,
+	mergeWindows,
+	omitWindowDays,
+	type JourneyWindow
+} from './windows.js';
 
 const day = '2026-10-03';
 const olderDay = '2026-09-01';
@@ -13,7 +19,7 @@ const goal: Goal = {
 	color: 'navy'
 };
 
-function dayWindow(date = day, id = 1): DayWindow {
+function dayWindow(date = day, id = 1): JourneyWindow {
 	return {
 		intentionsByDate: {
 			[date]: [
@@ -69,7 +75,7 @@ describe('Journey window reconciliation', () => {
 
 	it('removes deleted rows, verdicts, and snapshots even when the refreshed day is empty', () => {
 		const base = mergeWindows(dayWindow(), dayWindow(olderDay, 2));
-		const empty: DayWindow = {
+		const empty: JourneyWindow = {
 			intentionsByDate: { [day]: [] },
 			goalsByDate: { [day]: [] },
 			outcomes: [],
@@ -84,6 +90,7 @@ describe('Journey window reconciliation', () => {
 		expect(result.completedPriorities).toEqual(dayWindow(olderDay, 2).completedPriorities);
 		expect(result.intentionsByDate[day]).toEqual([]);
 		expect(result.goalsByDate[day]).toEqual([]);
+		expect(journeyDates(result)).toEqual([olderDay]);
 	});
 
 	it('preserves paginated days when a new server load replaces the current window', () => {
@@ -115,5 +122,39 @@ describe('Journey window reconciliation', () => {
 		expect(result.verdicts).toEqual([]);
 		expect(result.completedPriorities).toHaveLength(1);
 		expect(result.completedPriorities[0].reflection).toBe('Finished');
+	});
+
+	it('clears a deleted day using only its intention marker', () => {
+		const empty: JourneyWindow = {
+			intentionsByDate: { [day]: [] },
+			goalsByDate: {},
+			outcomes: [],
+			verdicts: [],
+			completedPriorities: []
+		};
+		const result = mergeWindows(dayWindow(), empty);
+
+		expect(result.goalsByDate).toEqual({});
+		expect(result.outcomes).toEqual([]);
+		expect(result.verdicts).toEqual([]);
+		expect(result.completedPriorities).toEqual([]);
+		expect(journeyDates(result)).toEqual([]);
+	});
+
+	it('loads historical goals referenced by intentions, verdicts and milestones on their own day', async () => {
+		const rows = mergeWindows(dayWindow(), dayWindow(olderDay, 2));
+		rows.intentionsByDate[day][0].goalId = 2;
+		rows.intentionsByDate[olderDay] = [];
+		rows.verdicts[1].goalId = 3;
+		rows.completedPriorities[1].goalId = 4;
+		rows.intentionsByDate['2026-08-01'] = [];
+		const goals = await loadJourneyGoals(rows, async () => [
+			[goal],
+			[2, 3, 4, 5].map((id) => ({ ...goal, id, orderNumber: id, active: 0 }))
+		]);
+
+		expect(goals[day].map((goal) => goal.id)).toEqual([1, 2]);
+		expect(goals[olderDay].map((goal) => goal.id)).toEqual([1, 3, 4]);
+		expect(goals['2026-08-01']).toBeUndefined();
 	});
 });

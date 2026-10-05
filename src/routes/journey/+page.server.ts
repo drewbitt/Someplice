@@ -1,7 +1,6 @@
 import { trpcLoad } from '#lib/trpc/middleware/trpc-load.js';
 import { configuredZoneNow } from '#lib/db/queries.js';
-import { goalsForJourneyDay } from '#lib/utils/index.js';
-import type { Goal } from '#lib/trpc/types.js';
+import { loadJourneyGoals } from '#lib/components/journey/windows.js';
 import type { PageServerLoad } from './$types';
 
 export const load = (async (event) => {
@@ -24,48 +23,13 @@ export const load = (async (event) => {
 			outcomeIds: outcomes.map((outcome) => outcome.id).filter((id): id is number => id !== null)
 		})
 	);
-	const outcomeDateById = new Map(
-		outcomes
-			.filter((outcome): outcome is typeof outcome & { id: number } => outcome.id !== null)
-			.map((outcome) => [outcome.id, outcome.date])
-	);
-
-	// Keys are YYYY-MM-DD; goals shown for a day must be the goals as they were on
-	// that date, not today's active set. Inactive goals that still have intentions
-	// that day (e.g. archived the same day) are merged in.
-	const goalsByDate = Object.fromEntries(
-		await Promise.all(
-			[
-				...new Set([
-					...Object.keys(intentionsByDate),
-					...outcomes.map((outcome) => outcome.date),
-					...completedPriorities
-						.map((priority) => priority.completedAt?.slice(0, 10))
-						.filter((date): date is string => Boolean(date))
-				])
-			].map(async (date) => {
-				const [activeGoals, inactiveGoals] = await Promise.all([
-					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date: new Date(date) })),
-					trpcLoad(event, (t) => t.goals.listGoalsOnDate({ active: 0, date: new Date(date) }))
-				]);
-				return [
-					date,
-					goalsForJourneyDay(
-						activeGoals,
-						inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-						intentionsByDate[date] ?? [],
-						[
-							...verdicts
-								.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-								.map((verdict) => verdict.goalId),
-							...completedPriorities
-								.filter((priority) => priority.completedAt?.slice(0, 10) === date)
-								.map((priority) => priority.goalId)
-						]
-					)
-				];
-			})
-		)
+	const goalsByDate = await loadJourneyGoals(
+		{ intentionsByDate, outcomes, verdicts, completedPriorities },
+		(date) =>
+			Promise.all([
+				trpcLoad(event, (t) => t.goals.listGoalsOnDate({ date })),
+				trpcLoad(event, (t) => t.goals.listGoalsOnDate({ active: 0, date }))
+			])
 	);
 
 	return {

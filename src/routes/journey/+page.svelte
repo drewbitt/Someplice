@@ -5,21 +5,21 @@
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '#lib/components/journey/EmptyDayBoxWrapper.svelte';
 	import { trpc } from '#lib/trpc/client.js';
-	import type { Goal, Outcome } from '#lib/trpc/types.js';
 	import {
+		journeyDates,
+		loadJourneyGoals,
 		mergeWindows,
 		omitWindowDays,
 		windowDates,
-		type DayWindow
+		type JourneyWindow
 	} from '#lib/components/journey/windows.js';
-	import { goalsForJourneyDay } from '#lib/utils/index.js';
 	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { onMount, untrack } from 'svelte';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data }: { data: PageServerData } = $props();
 
-	let extraWindow = $state<DayWindow>({
+	let extraWindow = $state<JourneyWindow>({
 		outcomes: [],
 		verdicts: [],
 		intentionsByDate: {},
@@ -33,10 +33,9 @@
 	$effect(() => {
 		const serverWindow = data;
 		untrack(() => {
-			const serverDates = new Set([
-				...windowDates(serverWindow),
-				...windowDates(extraWindow).filter((date) => date >= serverWindow.oldestLoadedDate)
-			]);
+			const serverDates = new Set(
+				windowDates(extraWindow).filter((date) => date >= serverWindow.oldestLoadedDate)
+			);
 			extraWindow = omitWindowDays(extraWindow, serverDates);
 		});
 	});
@@ -44,17 +43,7 @@
 	let noGoals = $derived(data.goals.length === 0);
 	// Outcome rows belong to the day set too: a reviewed day whose intentions
 	// were later deleted must still render.
-	let dates = $derived(
-		[
-			...new Set([
-				...Object.keys(intentionsByDate),
-				...outcomes.map((outcome) => outcome.date),
-				...completedPriorities
-					.map((priority) => priority.completedAt?.slice(0, 10))
-					.filter((date): date is string => Boolean(date))
-			])
-		].sort((a, b) => b.localeCompare(a))
-	);
+	let dates = $derived(journeyDates(journey).sort((a, b) => b.localeCompare(a)));
 	let noJourneyDays = $derived(dates.length === 0);
 
 	let oldestLoadedDate = $state<string>();
@@ -81,7 +70,7 @@
 		return () => observer.disconnect();
 	});
 
-	async function fetchWindow(windowStart: Date, windowEnd: Date): Promise<DayWindow> {
+	async function fetchWindow(windowStart: Date, windowEnd: Date): Promise<JourneyWindow> {
 		const [windowIntentionsByDate, windowOutcomes, windowCompletedPriorities] = await Promise.all([
 			trpc().intentions.listByDate.query({ startDate: windowStart, endDate: windowEnd }),
 			trpc().outcomes.list.query({
@@ -97,53 +86,23 @@
 			outcomeIds: windowOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
 		});
 
-		const outcomeDateById = new Map(
-			windowOutcomes
-				.filter((outcome): outcome is Outcome & { id: number } => outcome.id !== null)
-				.map((outcome) => [outcome.id, outcome.date])
-		);
-		const windowDays = [
-			...new Set([
-				...Object.keys(windowIntentionsByDate),
-				...windowOutcomes.map((outcome) => outcome.date),
-				...windowCompletedPriorities
-					.map((priority) => priority.completedAt?.slice(0, 10))
-					.filter((date): date is string => Boolean(date))
-			])
-		];
-		const windowGoalsByDate: Record<string, Goal[]> = {};
-		await Promise.all(
-			windowDays.map(async (date) => {
-				const [activeGoals, inactiveGoals] = await Promise.all([
-					trpc().goals.listGoalsOnDate.query({ date: new Date(date) }),
-					trpc().goals.listGoalsOnDate.query({ active: 0, date: new Date(date) })
-				]);
-				windowGoalsByDate[date] = goalsForJourneyDay(
-					activeGoals,
-					inactiveGoals.map((goal) => ({ ...goal, active: 0 }) as Goal),
-					windowIntentionsByDate[date] ?? [],
-					[
-						...windowVerdicts
-							.filter((verdict) => outcomeDateById.get(verdict.outcomeId) === date)
-							.map((verdict) => verdict.goalId),
-						...windowCompletedPriorities
-							.filter((priority) => priority.completedAt?.slice(0, 10) === date)
-							.map((priority) => priority.goalId)
-					]
-				);
-			})
-		);
-
-		return {
+		const rows = {
 			intentionsByDate: windowIntentionsByDate,
-			goalsByDate: windowGoalsByDate,
 			outcomes: windowOutcomes,
 			verdicts: windowVerdicts,
 			completedPriorities: windowCompletedPriorities
 		};
+		const goalsByDate = await loadJourneyGoals(rows, (date) =>
+			Promise.all([
+				trpc().goals.listGoalsOnDate.query({ date }),
+				trpc().goals.listGoalsOnDate.query({ active: 0, date })
+			])
+		);
+
+		return { ...rows, goalsByDate };
 	}
 
-	function mergeWindow(window: DayWindow) {
+	function mergeWindow(window: JourneyWindow) {
 		extraWindow = mergeWindows(extraWindow, window);
 	}
 
@@ -227,7 +186,6 @@
 			);
 
 			window.intentionsByDate[dateKey] ??= [];
-			window.goalsByDate[dateKey] ??= [];
 			mergeWindow(window);
 		} catch (error) {
 			journeyPageErrorStore.setError(
