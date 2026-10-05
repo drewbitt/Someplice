@@ -5,28 +5,41 @@
 	import type { PageServerData } from './$types';
 	import EmptyDayBoxWrapper from '#lib/components/journey/EmptyDayBoxWrapper.svelte';
 	import { trpc } from '#lib/trpc/client.js';
-	import type { Goal, Intention, Outcome, OutcomeVerdict, Priority } from '#lib/trpc/types.js';
+	import type { Goal, Outcome } from '#lib/trpc/types.js';
+	import {
+		mergeWindows,
+		omitWindowDays,
+		windowDates,
+		type DayWindow
+	} from '#lib/components/journey/windows.js';
 	import { goalsForJourneyDay } from '#lib/utils/index.js';
 	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data }: { data: PageServerData } = $props();
 
-	// Older pages live in their own state, merged with `data` below. Mutating the
-	// `data` props directly never invalidated the derived day list (page-2+
-	// fetched but never rendered) and got clobbered by refreshAll anyway.
-	let extraOutcomes = $state<Outcome[]>([]);
-	let extraVerdicts = $state<OutcomeVerdict[]>([]);
-	let extraIntentionsByDate = $state<Record<string, Intention[]>>({});
-	let extraGoalsByDate = $state<Record<string, Goal[]>>({});
-	let extraCompletedPriorities = $state<Priority[]>([]);
+	let extraWindow = $state<DayWindow>({
+		outcomes: [],
+		verdicts: [],
+		intentionsByDate: {},
+		goalsByDate: {},
+		completedPriorities: []
+	});
+	let journey = $derived(mergeWindows(data, extraWindow));
+	let { outcomes, verdicts, intentionsByDate, goalsByDate, completedPriorities } =
+		$derived(journey);
 
-	let outcomes = $derived([...data.outcomes, ...extraOutcomes]);
-	let verdicts = $derived([...data.verdicts, ...extraVerdicts]);
-	let intentionsByDate = $derived({ ...extraIntentionsByDate, ...data.intentionsByDate });
-	let goalsByDate = $derived({ ...extraGoalsByDate, ...data.goalsByDate });
-	let completedPriorities = $derived([...data.completedPriorities, ...extraCompletedPriorities]);
+	$effect(() => {
+		const serverWindow = data;
+		untrack(() => {
+			const serverDates = new Set([
+				...windowDates(serverWindow),
+				...windowDates(extraWindow).filter((date) => date >= serverWindow.oldestLoadedDate)
+			]);
+			extraWindow = omitWindowDays(extraWindow, serverDates);
+		});
+	});
 
 	let noGoals = $derived(data.goals.length === 0);
 	// Outcome rows belong to the day set too: a reviewed day whose intentions
@@ -67,17 +80,6 @@
 		}
 		return () => observer.disconnect();
 	});
-
-	// A window's data spans several tables, so everything is fetched into local
-	// staging first and committed to the extra* state in one shot — a mid-fetch
-	// failure otherwise leaves partial merges that a retry duplicates.
-	interface DayWindow {
-		intentionsByDate: Record<string, Intention[]>;
-		goalsByDate: Record<string, Goal[]>;
-		outcomes: Outcome[];
-		verdicts: OutcomeVerdict[];
-		completedPriorities: Priority[];
-	}
 
 	async function fetchWindow(windowStart: Date, windowEnd: Date): Promise<DayWindow> {
 		const [windowIntentionsByDate, windowOutcomes, windowCompletedPriorities] = await Promise.all([
@@ -142,40 +144,7 @@
 	}
 
 	function mergeWindow(window: DayWindow) {
-		const knownOutcomeIds = new Set(outcomes.map((outcome) => outcome.id));
-		extraOutcomes = [
-			...extraOutcomes,
-			...window.outcomes.filter((outcome) => !knownOutcomeIds.has(outcome.id))
-		];
-
-		const knownVerdictKeys = new Set(
-			verdicts.map((verdict) => `${verdict.outcomeId}:${verdict.goalId}`)
-		);
-		extraVerdicts = [
-			...extraVerdicts,
-			...window.verdicts.filter(
-				(verdict) => !knownVerdictKeys.has(`${verdict.outcomeId}:${verdict.goalId}`)
-			)
-		];
-
-		const knownPriorityIds = new Set(completedPriorities.map((priority) => priority.id));
-		extraCompletedPriorities = [
-			...extraCompletedPriorities,
-			...window.completedPriorities.filter((priority) => !knownPriorityIds.has(priority.id))
-		];
-
-		for (const [date, dayIntentions] of Object.entries(window.intentionsByDate)) {
-			const knownIntentionIds = new Set(
-				(extraIntentionsByDate[date] ?? []).map((intention) => intention.id)
-			);
-			extraIntentionsByDate[date] = [
-				...(extraIntentionsByDate[date] ?? []),
-				...dayIntentions.filter((intention) => !knownIntentionIds.has(intention.id))
-			];
-		}
-		for (const [date, goalsForDate] of Object.entries(window.goalsByDate)) {
-			extraGoalsByDate[date] = goalsForDate;
-		}
+		extraWindow = mergeWindows(extraWindow, window);
 	}
 
 	// Pages are anchored on a date cursor rather than a row offset: offsets drift
@@ -250,8 +219,6 @@
 		}
 	}
 
-	// Days that only exist in extras aren't refreshed by refreshAll, so after
-	// an in-page write (saveReview, not_today) re-fetch that day and reconcile.
 	async function refreshDay(dateKey: string) {
 		try {
 			const window = await fetchWindow(
@@ -259,29 +226,9 @@
 				new Date(`${dateKey}T23:59:59.999Z`)
 			);
 
-			const dayOutcomeIds = new Set(
-				[...data.outcomes, ...extraOutcomes]
-					.filter((outcome) => outcome.date === dateKey)
-					.map((outcome) => outcome.id)
-			);
-			extraOutcomes = [
-				...extraOutcomes.filter((outcome) => outcome.date !== dateKey),
-				...window.outcomes
-			];
-			extraVerdicts = [
-				...extraVerdicts.filter((verdict) => !dayOutcomeIds.has(verdict.outcomeId)),
-				...window.verdicts
-			];
-			extraCompletedPriorities = [
-				...extraCompletedPriorities.filter(
-					(priority) => priority.completedAt?.slice(0, 10) !== dateKey
-				),
-				...window.completedPriorities
-			];
-			extraIntentionsByDate[dateKey] = window.intentionsByDate[dateKey] ?? [];
-			if (window.goalsByDate[dateKey]) {
-				extraGoalsByDate[dateKey] = window.goalsByDate[dateKey];
-			}
+			window.intentionsByDate[dateKey] ??= [];
+			window.goalsByDate[dateKey] ??= [];
+			mergeWindow(window);
 		} catch (error) {
 			journeyPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Failed to refresh the day'

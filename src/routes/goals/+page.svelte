@@ -66,17 +66,14 @@
 
 	async function handleEditButtonClick() {
 		if (editButtonActive) {
-			goals = goals.map((goal) => {
-				return { ...goal, color: goal.color };
-			});
-
 			try {
 				await trpc().goals.updateGoals.mutate({ goals });
 				await refreshAll();
 			} catch (error) {
-				if (error instanceof Error) {
-					goalPageErrorStore.setError(error.message);
-				}
+				goalPageErrorStore.setError(
+					error instanceof Error ? error.message : 'Failed to save goals'
+				);
+				return;
 			}
 		} else {
 			backupGoals = goals.map((goal) => {

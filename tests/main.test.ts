@@ -119,3 +119,115 @@ test('Today loads missed intentions in the stored timezone on a fresh browser vi
 		await context.close();
 	}
 });
+
+test('failed goal saves preserve the draft for retry or cancellation', async ({ page }) => {
+	await page.goto('/goals');
+	await page.getByRole('button', { name: 'New Goal', exact: true }).click();
+	const title = page.locator('.goal-box-title-editable input').last();
+	const description = page.locator('.goal-box-description-editable textarea').last();
+	const originalTitle = await title.inputValue();
+	await title.fill('Draft preserved after failure');
+	await description.fill('Unsaved description');
+
+	await page.route('**/api/trpc/goals.updateGoals*', (route) => route.abort('failed'));
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page.locator('.alert-error')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+	await expect(title).toHaveValue('Draft preserved after failure');
+	await expect(description).toHaveValue('Unsaved description');
+
+	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect(page.locator('.goal-box-title').last()).toHaveText(originalTitle);
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
+	await title.fill('Retry persisted');
+	await description.fill('Retry description');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(title).toHaveValue('Retry persisted');
+	await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
+
+	await page.unroute('**/api/trpc/goals.updateGoals*');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+	await expect(page.locator('.goal-box-title').last()).toHaveText('Retry persisted');
+	await page.reload();
+	await expect(page.locator('.goal-box-title').last()).toHaveText('Retry persisted');
+	await expect(page.locator('.goal-box-description').last()).toHaveText('Retry description');
+});
+
+test('Journey refreshes server and paginated days without duplicating milestones', async ({
+	page
+}) => {
+	const day = new Date().toISOString().slice(0, 10);
+	const dates = Array.from({ length: 17 }, (_, index) => {
+		const date = new Date(`${day}T12:00:00.000Z`);
+		date.setUTCDate(date.getUTCDate() - index);
+		return date.toISOString().slice(0, 10);
+	});
+	const olderDay = dates[dates.length - 1];
+	const db = new DatabaseSync(process.env.DATABASE_PATH ?? './data/db.sqlite');
+	try {
+		const goal = db
+			.prepare('SELECT id FROM goals WHERE active = 1 ORDER BY orderNumber LIMIT 1')
+			.get();
+		if (!goal || typeof goal.id !== 'number') throw new Error('Expected an active goal');
+		db.prepare("UPDATE goal_logs SET date = ? WHERE goalId = ? AND type = 'start'").run(
+			`${olderDay}T00:00:00.000Z`,
+			goal.id
+		);
+		const insertOutcome = db.prepare('INSERT OR IGNORE INTO outcomes(date, reviewed) VALUES(?, 1)');
+		for (const date of dates) insertOutcome.run(date);
+		for (const [date, text] of [
+			[day, 'Server milestone'],
+			[olderDay, 'Paginated milestone']
+		]) {
+			db.prepare(
+				'INSERT INTO priorities(goalId, text, createdAt, completedAt) VALUES(?, ?, ?, ?)'
+			).run(goal.id, text, `${date}T00:00:00.000Z`, `${date}T12:00:00.000Z`);
+		}
+	} finally {
+		db.close();
+	}
+
+	const errors: string[] = [];
+	page.on('pageerror', (error) => errors.push(error.message));
+	await page.goto('/journey');
+	await expect(
+		page.getByText('★ 1 completed top priority: Server milestone', { exact: true })
+	).toHaveCount(1);
+	await page.locator('.pagination-trigger').scrollIntoViewIfNeeded();
+	await expect(page.locator(`#journey-outcomes-box-${dates[15]}`)).toBeVisible();
+	await page.locator('.pagination-trigger').scrollIntoViewIfNeeded();
+	await expect(page.locator(`#journey-outcomes-box-${olderDay}`)).toBeVisible();
+
+	for (const [date, text] of [
+		[day, 'Server milestone'],
+		[olderDay, 'Paginated milestone']
+	]) {
+		const box = page.locator(`#journey-outcomes-box-${date}`);
+		const review = box.getByRole('listitem', { name: 'Review Goal Box' }).first();
+		for (const verdict of ['yes', 'no']) {
+			if (verdict === 'no') {
+				await review
+					.getByRole('button', { name: 'Add another outcome not already listed' })
+					.click();
+			}
+			await review.getByRole('button', { name: verdict, exact: true }).click();
+			const reconciled = page.waitForResponse((response) =>
+				response.url().includes('/api/trpc/goals.listGoalsOnDate')
+			);
+			await box.getByRole('button', { name: 'Save', exact: true }).click();
+			await reconciled;
+			await expect(box.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+			await expect(
+				page.getByText(`★ 1 completed top priority: ${text}`, { exact: true })
+			).toHaveCount(1);
+			await expect(page.locator(`#journey-outcomes-box-${olderDay}`)).toBeVisible();
+			expect(errors).toEqual([]);
+		}
+	}
+	await page.reload();
+	await expect(
+		page.getByText('★ 1 completed top priority: Server milestone', { exact: true })
+	).toHaveCount(1);
+	expect(errors).toEqual([]);
+});
