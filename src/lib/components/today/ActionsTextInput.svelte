@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { wallClockInZone } from '#lib/utils/index.js';
+	import { wallClockInZone, goalOrderNumberForId } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
 	import NotDonesPanel from './NotDonesPanel.svelte';
@@ -22,31 +22,21 @@
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
 
-	let intentionsString = $state('');
-	let intentionsStringInitialized = $state(false);
+	let intentionsString = $state(
+		untrack(
+			() =>
+				todaysIntentions.current ??
+				intentions
+					.map(
+						(intention) =>
+							`${goalOrderNumberForId(intention.goalId, goals)}${intention.subIntentionQualifier ?? ''}) ${intention.text}`
+					)
+					.join('\n')
+		)
+	);
 
-	onMount(() => {
-		if (todaysIntentions.current !== null) {
-			// a draft exists — including an intentionally cleared one
-			intentionsString = todaysIntentions.current;
-		} else {
-			intentionsString = intentions
-				.map((intention: Intention) => {
-					return `${intention.goalId}${intention.subIntentionQualifier || ''}) ${
-						intention.text
-					}`.trim();
-				})
-				.join('\n');
-		}
-		intentionsStringInitialized = true;
-	});
-
-	// Persist the draft to the store — including a cleared value, so wiping the
-	// editor does not resurrect old intentions on the next remount.
 	$effect(() => {
-		if (intentionsStringInitialized) {
-			todaysIntentions.current = intentionsString;
-		}
+		todaysIntentions.current = intentionsString;
 	});
 
 	$effect(() => {

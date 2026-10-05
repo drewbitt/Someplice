@@ -13,3 +13,4 @@ playwright-report
 Dockerfile
 .dockerignore
 .deno-deploy
+.vitest

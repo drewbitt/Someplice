@@ -8,13 +8,15 @@
 		showModal = $bindable(),
 		goal,
 		priority = null,
-		onError
+		onError,
+		onSaved
 	}: {
 		showModal: boolean;
 		goal: Pick<Goal, 'id' | 'orderNumber' | 'title' | 'color'>;
 		/** When set, the modal edits this priority instead of creating a new one. */
 		priority?: Priority | null;
 		onError?: (message: string) => void;
+		onSaved?: () => void | Promise<void>;
 	} = $props();
 
 	let dialog: HTMLDialogElement;
@@ -60,7 +62,8 @@
 				});
 			}
 			showModal = false;
-			await refreshAll();
+			if (onSaved) await onSaved();
+			else await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}
@@ -71,7 +74,8 @@
 		try {
 			await trpc().priorities.clear.mutate({ goalId: goal.id });
 			showModal = false;
-			await refreshAll();
+			if (onSaved) await onSaved();
+			else await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}
@@ -85,7 +89,8 @@
 				reflection: reflection || null
 			});
 			showModal = false;
-			await refreshAll();
+			if (onSaved) await onSaved();
+			else await refreshAll();
 		} catch (error) {
 			reportError(error);
 		}

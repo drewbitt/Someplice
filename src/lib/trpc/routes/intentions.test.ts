@@ -42,6 +42,57 @@ describe('intentions', () => {
 		await db.destroy();
 	});
 
+	it('reorders without rewriting independently changed text and status', async () => {
+		await caller.intentions.updateIntentions({
+			intentions: [TEST_INTENTION, { ...TEST_INTENTION, id: 2, orderNumber: 2 }]
+		});
+		await caller.intentions.edit({
+			...TEST_INTENTION,
+			id: 1,
+			text: 'Changed in another tab',
+			status: 'not_today'
+		});
+		await caller.intentions.reorder([
+			{ id: 1, orderNumber: 2 },
+			{ id: 2, orderNumber: 1 }
+		]);
+		expect(
+			await db.selectFrom('intentions').selectAll().where('id', '=', 1).executeTakeFirst()
+		).toMatchObject({ text: 'Changed in another tab', status: 'not_today', orderNumber: 2 });
+	});
+
+	it('rejects duplicate, incomplete, cross-day and invalid reorder requests atomically', async () => {
+		await caller.intentions.updateIntentions({
+			intentions: [
+				TEST_INTENTION,
+				{ ...TEST_INTENTION, id: 2, orderNumber: 2 },
+				{ ...TEST_INTENTION, id: 3, date: '2023-07-02T00:00:00.000Z' }
+			]
+		});
+		const before = await db.selectFrom('intentions').selectAll().orderBy('id').execute();
+		for (const request of [
+			[
+				{ id: 1, orderNumber: 1 },
+				{ id: 1, orderNumber: 2 }
+			],
+			[{ id: 1, orderNumber: 1 }],
+			[
+				{ id: 1, orderNumber: 1 },
+				{ id: 3, orderNumber: 2 }
+			],
+			[
+				{ id: 1, orderNumber: 1 },
+				{ id: 2, orderNumber: 1 }
+			],
+			[{ id: 999, orderNumber: 1 }]
+		]) {
+			await expect(caller.intentions.reorder(request)).rejects.toMatchObject({
+				code: 'BAD_REQUEST'
+			});
+			expect(await db.selectFrom('intentions').selectAll().orderBy('id').execute()).toEqual(before);
+		}
+	});
+
 	it('list', async () => {
 		const added = await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
 		expect(added).toBeDefined();

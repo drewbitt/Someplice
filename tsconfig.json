@@ -3,8 +3,8 @@
 	"compilerOptions": {
 		"sourceMap": true,
 		"strict": true,
-		"types": ["vite-plugin-pwa/info", "vite-plugin-pwa/svelte", "$app/types"]
+		"types": ["$app/types"]
 	},
-	"exclude": [".svelte-kit", "node_modules"],
-	"include": ["src"]
+	"exclude": [".svelte-kit", "node_modules", "src/service-worker"],
+	"include": ["src", "tests", "playwright.config.ts"]
 }

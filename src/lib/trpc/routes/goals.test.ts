@@ -57,6 +57,72 @@ describe('goals', () => {
 		}
 	});
 
+	it('rejects duplicate goal IDs without changing the stored order or history', async () => {
+		const added = await caller.goals.add(TEST_GOAL);
+		const goal = (await caller.goals.list(1))[0];
+		const logs = await db.selectFrom('goal_logs').selectAll().execute();
+		await expect(
+			caller.goals.updateGoals({
+				goals: [
+					{ ...goal, id: added.id!, orderNumber: 1 },
+					{ ...goal, id: added.id!, orderNumber: 2 }
+				]
+			})
+		).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		expect(await caller.goals.list(1)).toEqual([goal]);
+		expect(await db.selectFrom('goal_logs').selectAll().execute()).toEqual(logs);
+	});
+
+	it.each(['2026-11-01T01:55:00.000Z', '2026-11-01T01:05:00.000Z'])(
+		'orders lifecycle events by ID when restored at %s',
+		async (restoredAt) => {
+			const { id } = await caller.goals.add(TEST_GOAL);
+			await db.deleteFrom('goal_logs').where('goalId', '=', id!).execute();
+			await db
+				.insertInto('goal_logs')
+				.values([
+					{ goalId: id!, type: 'start', date: '2026-11-01T00:00:00.000Z', orderNumber: 1 },
+					{ goalId: id!, type: 'end', date: '2026-11-01T01:55:00.000Z', orderNumber: null },
+					{ goalId: id!, type: 'start', date: restoredAt, orderNumber: 2 }
+				])
+				.execute();
+			const date = new Date('2026-11-01T00:00:00.000Z');
+			expect(await caller.goals.listGoalsOnDate({ active: 1, date })).toMatchObject([
+				{ id, orderNumber: 2 }
+			]);
+			expect(await caller.goals.listGoalsOnDate({ active: 0, date })).toEqual([]);
+			await db
+				.insertInto('goal_logs')
+				.values({ goalId: id!, type: 'end', date: restoredAt, orderNumber: null })
+				.execute();
+			await db
+				.updateTable('goals')
+				.set({ active: 0, orderNumber: 0 })
+				.where('id', '=', id!)
+				.execute();
+			expect(await caller.goals.listGoalsOnDate({ active: 1, date })).toEqual([]);
+			expect(await caller.goals.listGoalsOnDate({ active: 0, date })).toMatchObject([
+				{ id, orderNumber: 2 }
+			]);
+			expect(await caller.goals.listGoalsSortedByDate(0)).toMatchObject([{ id, date: restoredAt }]);
+		}
+	);
+
+	it('deleting the only goal of a verdict-only outcome removes the orphan day', async () => {
+		const { id } = await caller.goals.add(TEST_GOAL);
+		const outcome = await db
+			.insertInto('outcomes')
+			.values({ date: '2026-10-01', reviewed: 1 })
+			.returning('id')
+			.executeTakeFirstOrThrow();
+		await db
+			.insertInto('outcome_verdicts')
+			.values({ outcomeId: outcome.id!, goalId: id!, verdict: 'enough', note: null })
+			.execute();
+		await caller.goals.delete(id!);
+		expect(await db.selectFrom('outcomes').selectAll().execute()).toEqual([]);
+	});
+
 	it('list goals when no goals are present', async () => {
 		const result = (await caller.goals.list(1)) as Goal[];
 

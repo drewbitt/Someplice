@@ -11,9 +11,8 @@
 	import theme from '#lib/stores/theme.js';
 	import ReviewGoalBox from '../../goals/review-outcomes/ReviewGoalBox.svelte';
 	import PriorityModal from '../../shared/PriorityModal.svelte';
-	import { wallClockInZone } from '#lib/utils/index.js';
+	import { wallClockInZone, goalsForJourneyDay } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
-	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { refreshAll, beforeNavigate } from '$app/navigation';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { SvelteMap } from 'svelte/reactivity';
@@ -28,17 +27,18 @@
 		intentionsOnLatestDate[0] ? new Date(intentionsOnLatestDate[0].date) : new Date()
 	);
 	let showPageLoadingSpinner = $state(true);
+	let loaded = $state(false);
+	let loadError = $state('');
+	let retry = $state(0);
 	let daysAgo = $state(0);
 	let goalsOnDate = $state<Goal[]>([]);
 	let intentionsOnDate = $state<Intention[]>([]);
 	let prioritiesOnDate = $state<Priority[]>([]);
 	let newIntentionsToInsert = $state<Omit<Intention, 'id'>[]>([]);
 	let maxOrderNumber = $state<number>(0);
-	let hasBeenSaved = $state(false);
+	let saveRevision = $state(0);
+	let saving = $state(false);
 	let verdicts = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
-	// Checkbox toggles are scraped from the DOM at save time and status toggles
-	// are staged locally — both are unsaved edits the navigation guard must see.
-	let checkboxDirty = $state(false);
 	let statusOverrides = new SvelteMap<number, IntentionStatus>();
 	let displayIntentions = $derived(
 		intentionsOnDate.map((intention) =>
@@ -53,28 +53,18 @@
 
 	beforeNavigate((navigation) => {
 		if (navigation.shallow) return;
-		if (
-			!newIntentionsToInsert.length &&
-			verdicts.size === 0 &&
-			!checkboxDirty &&
-			statusOverrides.size === 0
-		)
-			return;
+		if (!newIntentionsToInsert.length && verdicts.size === 0 && statusOverrides.size === 0) return;
 
 		if (navigation.willUnload) {
 			navigation.cancel();
-		} else if (!confirm('Discard unsaved outcome text?')) {
+		} else if (!confirm('Discard unsaved review changes?')) {
 			navigation.cancel();
 		}
 	});
 
 	$effect(() => {
-		if (intentionsOnLatestDate[0]) {
-			intentionDate = new Date(intentionsOnLatestDate[0].date);
-		}
-	});
-	$effect(() => {
 		if (!intentionsOnLatestDate || intentionsOnLatestDate.length === 0) {
+			loaded = false;
 			showPageLoadingSpinner = false;
 			goalsOnDate = [];
 			intentionsOnDate = [];
@@ -82,6 +72,9 @@
 			return;
 		}
 
+		void retry;
+		loaded = false;
+		loadError = '';
 		const targetDate = new Date(intentionDate);
 		const currentDate = wallClockInZone(appTimeZone.current);
 		// difference in calendar days (UTC), not elapsed 24h periods
@@ -96,17 +89,22 @@
 
 		(async () => {
 			try {
-				const [goalsResult, intentionsResult, prioritiesResult] = await Promise.all([
-					listGoalsOnDate(targetDate),
-					listIntentionsOnDate(targetDate),
-					trpc().priorities.list.query({ activeOnly: true })
-				]);
+				const [goalsResult, inactiveResult, intentionsResult, prioritiesResult] = await Promise.all(
+					[
+						listGoalsOnDate(targetDate),
+						trpc().goals.listGoalsOnDate.query({ active: 0, date: targetDate }),
+						listIntentionsOnDate(targetDate),
+						trpc().priorities.list.query({ activeOnly: true })
+					]
+				);
 				if (cancelled) return;
-				goalsOnDate = goalsResult;
+				goalsOnDate = goalsForJourneyDay(goalsResult, inactiveResult, intentionsResult);
+				loaded = true;
 				intentionsOnDate = intentionsResult;
 				prioritiesOnDate = prioritiesResult;
 			} catch (error) {
 				if (cancelled) return;
+				loadError = 'Could not load this review. Please retry.';
 				if (error instanceof Error) {
 					todayPageErrorStore.setError(error.message);
 				}
@@ -140,23 +138,21 @@
 		return intentions;
 	};
 
+	const handleCheckboxClicked = ({ intentionId }: { intentionId: number | null }) => {
+		const intention = displayIntentions.find((row) => row.id === intentionId);
+		if (intentionId === null || !intention) return;
+		statusOverrides.set(intentionId, intention.status === 'done' ? 'pending' : 'done');
+	};
+
 	const handleSaveReview = async () => {
-		const statuses = Array.from(
-			document.querySelectorAll<HTMLInputElement>(
-				'.goal-review-item-content input[type="checkbox"]'
-			)
-		).map((checkbox) => {
-			const intentionId = Number(checkbox.value);
-			const intention = displayIntentions.find((intention) => intention.id === intentionId);
-			return { intentionId, status: statusFromReviewCheckbox(intention, checkbox.checked) };
-		});
+		if (saving || !loaded) return;
+		saving = true;
+		const statuses = [...statusOverrides].map(([intentionId, status]) => ({ intentionId, status }));
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
 			date: intentionDate.toISOString().split('T')[0],
 			reviewed: 1
 		};
-
-		let saved = false;
 
 		try {
 			await trpc().outcomes.saveReview.mutate({
@@ -167,21 +163,18 @@
 					verdict.verdict === null ? [] : [{ goalId, verdict: verdict.verdict, note: verdict.note }]
 				)
 			});
-			saved = true;
-			hasBeenSaved = true;
+			saveRevision += 1;
 			setHasOutstandingOutcome(false);
 			newIntentionsToInsert = [];
 			verdicts.clear();
 			statusOverrides.clear();
-			checkboxDirty = false;
+			await refreshAll();
 		} catch (error) {
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
 			}
 		} finally {
-			if (saved) {
-				await refreshAll();
-			}
+			saving = false;
 		}
 	};
 
@@ -250,7 +243,8 @@
 	let darkMode = $derived(theme.current === 'dark');
 </script>
 
-<div
+<fieldset
+	disabled={saving}
 	class="flex flex-col items-center p-4"
 	class:shadow-sm={darkMode}
 	class:shadow-black={darkMode}
@@ -276,18 +270,23 @@
 				<span class="loading loading-spinner loading-lg motion-reduce:[animation-duration:2s]"
 				></span>
 			</div>
-		{:else}
+		{:else if loadError}
+			<div role="alert" class="alert alert-error">
+				<span>{loadError}</span>
+				<button class="btn" onclick={() => (retry += 1)}>Retry</button>
+			</div>
+		{:else if loaded}
 			<div role="list" id="goal-outcome-list-container" class="grid place-items-center gap-6">
 				{#each goalsOnDate as goal (goal.id)}
 					<ReviewGoalBox
 						{goal}
-						{hasBeenSaved}
+						{saveRevision}
 						showTitle={true}
 						intentions={displayIntentions}
 						verdict={verdicts.get(goal.id ?? -1) ?? null}
 						priority={prioritiesOnDate.find((priority) => priority.goalId === goal.id)}
 						onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
-						onCheckboxClicked={() => (checkboxDirty = true)}
+						onCheckboxClicked={handleCheckboxClicked}
 						onVerdictChanged={handleVerdictChanged}
 						onNotTodayToggled={handleNotTodayToggled}
 						onNewPriority={handleNewPriority}
@@ -298,15 +297,18 @@
 	</section>
 	<div class="mr-6 flex w-full max-w-screen-2xl flex-col items-center md:mr-6 2xl:mr-0">
 		<div class="flex w-4/5 max-w-full min-w-min justify-end gap-2">
-			<button class="btn" onclick={handleSaveReview}>Save</button>
+			<button class="btn" disabled={saving || !loaded} onclick={handleSaveReview}>Save</button>
 		</div>
 	</div>
-</div>
+</fieldset>
 
 {#if priorityModalGoal}
 	<PriorityModal
 		bind:showModal={showPriorityModal}
 		goal={priorityModalGoal}
+		onSaved={async () => {
+			prioritiesOnDate = await trpc().priorities.list.query({ activeOnly: true });
+		}}
 		onError={(message) => todayPageErrorStore.setError(message)}
 	/>
 {/if}

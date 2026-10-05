@@ -20,8 +20,12 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
 		.addColumn('goalId', 'integer', (col) => col.notNull())
 		.addColumn('orderNumber', 'integer', (col) => col.notNull().check(sql`"orderNumber" >= 0`))
-		// 0 (false) or 1 (true)
-		.addColumn('completed', 'integer', (col) => col.notNull().check(sql`"completed" IN (0, 1)`))
+		.addColumn('status', 'text', (col) =>
+			col
+				.notNull()
+				.defaultTo('pending')
+				.check(sql`"status" IN ('pending', 'done', 'not_today')`)
+		)
 		.addColumn('text', 'text', (col) => col.notNull())
 		// lowercase letters like a, ab, abc - the sub intention of a goal e.g. 2a), 2b), 2abc)
 		.addColumn('subIntentionQualifier', 'text', (col) =>
@@ -83,6 +87,60 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 		.modifyEnd(sql`strict`)
 		.execute();
 
+	await db.schema
+		.createTable('outcome_verdicts')
+		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+		.addColumn('outcomeId', 'integer', (col) =>
+			col.notNull().references('outcomes.id').onDelete('cascade')
+		)
+		.addColumn('goalId', 'integer', (col) =>
+			col.notNull().references('goals.id').onDelete('cascade')
+		)
+		.addColumn('verdict', 'text', (col) =>
+			col.notNull().check(sql`"verdict" IN ('enough', 'not_enough', 'day_off')`)
+		)
+		.addColumn('note', 'text')
+		.modifyEnd(sql`strict`)
+		.execute();
+
+	await db.schema
+		.createTable('priorities')
+		.addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+		.addColumn('goalId', 'integer', (col) =>
+			col.notNull().references('goals.id').onDelete('cascade')
+		)
+		.addColumn('text', 'text', (col) => col.notNull())
+		.addColumn('description', 'text')
+		.addColumn('checkInDate', 'text', (col) =>
+			col.check(
+				sql`"checkInDate" IS NULL OR COALESCE("checkInDate" = strftime('%Y-%m-%d', "checkInDate"), 0)`
+			)
+		)
+		.addColumn('createdAt', 'text', (col) =>
+			col
+				.notNull()
+				.check(sql`COALESCE("createdAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "createdAt"), 0)`)
+		)
+		.addColumn('completedAt', 'text', (col) =>
+			col.check(
+				sql`"completedAt" IS NULL OR COALESCE("completedAt" = strftime('%Y-%m-%dT%H:%M:%fZ', "completedAt"), 0)`
+			)
+		)
+		.addColumn('reflection', 'text')
+		.modifyEnd(sql`strict`)
+		.execute();
+
+	await db.schema
+		.createTable('settings')
+		.addColumn('key', 'text', (col) => col.primaryKey())
+		.addColumn('value', 'text', (col) => col.notNull())
+		.modifyEnd(sql`strict`)
+		.execute();
+
+	await sql`CREATE UNIQUE INDEX uq_outcome_verdicts_outcomeId_goalId
+		ON outcome_verdicts (outcomeId, goalId)`.execute(db);
+	await sql`CREATE UNIQUE INDEX uq_priorities_active_goalId
+		ON priorities (goalId) WHERE completedAt IS NULL`.execute(db);
 	await db.schema.createIndex('idx_intentions_goalId').on('intentions').column('goalId').execute();
 	await db.schema.createIndex('idx_intentions_date').on('intentions').column('date').execute();
 	await db.schema
@@ -110,6 +168,9 @@ export async function up(db: Kysely<unknown>): Promise<void> {
 }
 
 export async function down(db: Kysely<unknown>): Promise<void> {
+	await db.schema.dropTable('settings').execute();
+	await db.schema.dropTable('priorities').execute();
+	await db.schema.dropTable('outcome_verdicts').execute();
 	await db.schema.dropIndex('uq_intentions_date_orderNumber').execute();
 	await db.schema.dropIndex('uq_goals_active_orderNumber').execute();
 	await db.schema.dropIndex('idx_outcomes_intentions_intentionId').execute();

@@ -10,7 +10,7 @@
 		goal,
 		intentions,
 		showTitle,
-		hasBeenSaved,
+		saveRevision,
 		verdict = null,
 		verdictAsBar = false,
 		priority,
@@ -24,7 +24,7 @@
 		goal: Goal;
 		intentions: Intention[];
 		showTitle: boolean;
-		hasBeenSaved: boolean;
+		saveRevision: number;
 		verdict?: { verdict: VerdictValue | null; note: string | null } | null;
 		verdictAsBar?: boolean;
 		priority?: Priority | null;
@@ -43,9 +43,8 @@
 	let newOutcomeTexts = $state<string[]>([]);
 
 	$effect(() => {
-		if (hasBeenSaved) {
-			newOutcomeTexts = [];
-		}
+		void saveRevision;
+		newOutcomeTexts = [];
 	});
 
 	const lighterGoalColor = (color: string) => {
@@ -125,7 +124,7 @@
 			class="grid max-w-full gap-2.5 border-2 p-1.5 px-3 py-2.5"
 			style="border-color: {goal.color}"
 		>
-			<div class="flex justify-end font-semibold" style="color: {goal.color}">
+			<div class="goal-text flex justify-end font-semibold" style="--goal-color: {goal.color}">
 				{#if priority}
 					<span>
 						{goal.orderNumber} : {priority.text}{#if priority.checkInDate}&nbsp;by {priority.checkInDate}{/if}

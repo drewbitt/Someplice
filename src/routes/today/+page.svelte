@@ -29,12 +29,13 @@
 	// svelte-ignore state_referenced_locally
 	let intentionsFromServer = $state(data.intentions);
 	let hasOutstandingOutcome = $state(false);
-	let showPageLoadingSpinner = $state(false);
+	let saving = $state(false);
 
 	$effect(() => {
 		intentions = data.intentions;
 		intentionsOnLatestDate = data.intentionsOnLatestDate;
 		intentionsFromServer = data.intentions;
+		hasOutstandingOutcome = data.hasOutstandingOutcome;
 	});
 
 	onMount(() => {
@@ -52,144 +53,38 @@
 			}, 5000);
 		}
 	});
-	$effect(() => {
-		if (!noIntentions || hasOutstandingOutcome || noGoals) {
-			showPageLoadingSpinner = false;
-			return;
-		}
-
-		let cancelled = false;
-		showPageLoadingSpinner = true;
-
-		(async () => {
-			try {
-				const result = await isOldOutcomeOutstanding();
-				if (cancelled) return;
-
-				if (result) {
-					hasOutstandingOutcome = true;
-				} else {
-					showPageLoadingSpinner = false;
-				}
-			} catch {
-				if (!cancelled) {
-					showPageLoadingSpinner = false;
-				}
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	});
 
 	const setHasOutstandingOutcome = (value: boolean) => {
 		hasOutstandingOutcome = value;
 	};
 
-	// updateIntentions upserts every field of every row sent. Sending the whole
-	// array lets a stale tab silently rewrite another tab's checkbox/not-today
-	// edits — so only rows this tab changed (against the last server snapshot)
-	// and brand-new rows go in the payload.
-	const dirtyIntentions = () => {
-		const serverById = new Map(intentionsFromServer.map((i) => [i.id, i]));
-		return intentions.filter((i) => {
-			if (i.id === null) return true;
-			const previous = serverById.get(i.id);
-			return (
-				!previous ||
-				previous.status !== i.status ||
-				previous.text !== i.text ||
-				previous.subIntentionQualifier !== i.subIntentionQualifier ||
-				previous.orderNumber !== i.orderNumber
-			);
-		});
-	};
-
-	const applySaveResult = async (result: unknown[] | undefined, hideTextArea: boolean) => {
-		if (result && result.length > 0) {
-			if (hideTextArea) handleHideAdditionalIntentionsTextArea();
-			await refreshAll();
-			intentions = data.intentions;
-			intentionsFromServer = data.intentions;
-		} else {
-			showDBErrorNotification = true;
-		}
-	};
-
-	const addIntentions = async () => {
-		const payload = dirtyIntentions();
-		if (payload.length === 0) {
-			// Nothing this tab changed — a no-op save is a success, not an error.
-			handleHideAdditionalIntentionsTextArea();
-			await refreshAll();
-			intentions = data.intentions;
-			intentionsFromServer = data.intentions;
-			return;
-		}
-		await applySaveResult(
-			await trpc().intentions.updateIntentions.mutate({ intentions: payload }),
-			true
-		);
-	};
-
-	const updateIntentions = async () => {
-		const payload = dirtyIntentions();
-		if (payload.length === 0) {
-			handleHideAdditionalIntentionsTextArea();
-			await refreshAll();
-			intentions = data.intentions;
-			intentionsFromServer = data.intentions;
-			return;
-		}
-		await applySaveResult(
-			await trpc().intentions.updateIntentions.mutate({ intentions: payload }),
-			true
-		);
-	};
-
-	const isOldOutcomeOutstanding = async () => {
-		if (intentionsOnLatestDate && intentionsOnLatestDate.length > 0) {
-			const latestIntentionDate = new Date(intentionsOnLatestDate[0].date);
-			const outcomes = await listOutcomesOnDate(latestIntentionDate);
-			if (outcomes.length === 0 || !outcomes[0].reviewed) {
-				return true;
-			}
-			return false;
-		}
-		return false;
-	};
-
-	const listOutcomesOnDate = async (date: Date) => {
-		const outcomes = await trpc().outcomes.list.query({
-			startDate: date,
-			endDate: date
-		});
-		return outcomes;
-	};
-
 	const handleSaveIntentions = async () => {
 		showValidIntentionsNotification = !validIntentions;
-		if (!validIntentions) {
-			return;
+		if (!validIntentions || saving) return;
+		// Keep drafts separate until the write succeeds, so retries use the current editor.
+		const payload = noIntentions ? intentions : additionalIntentions;
+		saving = true;
+		try {
+			if (payload.length > 0) {
+				await trpc().intentions.updateIntentions.mutate({ intentions: payload });
+			}
+			todaysIntentions.current = null;
+			handleHideAdditionalIntentionsTextArea();
+			await refreshAll();
+		} catch (error) {
+			appLogger.error('Error saving intentions', error);
+			showDBErrorNotification = true;
+		} finally {
+			saving = false;
 		}
-
-		const orderNumbers = intentions.map((intention) => intention.orderNumber);
-		const additionalIntentionsWithoutDuplicates = additionalIntentions.filter(
-			(intention) => !orderNumbers.includes(intention.orderNumber)
-		);
-		intentions = [...intentions, ...additionalIntentionsWithoutDuplicates];
-
-		noIntentions ? await addIntentions() : await updateIntentions();
-		todaysIntentions.current = null;
 	};
 
 	const handleUpdateSingleIntention = async (intention: Intentions) => {
 		if (intention.id === null) return;
 		try {
-			const updatedIntention = await trpc().intentions.edit.mutate({
-				...intention,
-				id: intention.id
+			const updatedIntention = await trpc().intentions.setStatus.mutate({
+				ids: [intention.id],
+				status: intention.status
 			});
 			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
 				showDBErrorNotification = true;
@@ -216,65 +111,32 @@
 	<title>Someplice - Today's Intentions</title>
 </svelte:head>
 
-{#if showPageLoadingSpinner}
-	<div class="flex justify-center">
-		<span class="loading loading-spinner loading-lg motion-reduce:[animation-duration:2s]"></span>
-	</div>
-{:else}
-	<div class="flex flex-col gap-4">
-		<GoalBadges goals={data.goals} />
-		{#if !noGoals && !hasOutstandingOutcome}
-			<PriorityCards goals={data.goals} priorities={data.priorities} />
-		{/if}
-		{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
-			<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
-		{/if}
-		{#if noGoals}
-			<div role="alert" class="alert alert-error border-error">
-				<CircleX class="size-6 shrink-0 stroke-current" />
-				<span>You have no goals. Please add some goals first.</span>
+<div class="flex flex-col gap-4">
+	<GoalBadges goals={data.goals} />
+	{#if !noGoals && !hasOutstandingOutcome}
+		<PriorityCards goals={data.goals} priorities={data.priorities} />
+	{/if}
+	{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
+		<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
+	{/if}
+	{#if hasOutstandingOutcome}
+		<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
+	{:else if noGoals && noIntentions}
+		<div role="alert" class="alert alert-error border-error">
+			<CircleX class="size-6 shrink-0 stroke-current" />
+			<span>You have no goals. Please add some goals first.</span>
+		</div>
+	{:else if intentionsFromServer.length > 0}
+		<ActionsDisplay
+			bind:intentions
+			{handleUpdateSingleIntention}
+			goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
+		/>
+		{#if showAdditionalIntentionsTextArea}
+			<div class="flex items-center">
+				<button class="btn mr-2" onclick={handleHideAdditionalIntentionsTextArea}>Hide</button>
+				<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
 			</div>
-		{:else if hasOutstandingOutcome}
-			<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
-		{:else if intentionsFromServer.length > 0}
-			<ActionsDisplay
-				bind:intentions
-				{handleUpdateSingleIntention}
-				goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
-			/>
-			{#if showAdditionalIntentionsTextArea}
-				<div class="flex items-center">
-					<button class="btn mr-2" onclick={handleHideAdditionalIntentionsTextArea}>Hide</button>
-					<h3 class="text-lg font-bold">What else are you doing towards your goals today?</h3>
-				</div>
-				{#if showValidIntentionsNotification}
-					<div role="alert" class="alert alert-error border-error">
-						<CircleX class="size-6 shrink-0 stroke-current" />
-						<span
-							>Please check that your intentions are formatted correctly and have valid goal
-							numbers.</span
-						>
-					</div>
-				{/if}
-				<ActionsTextInput
-					goals={data.goals}
-					bind:intentions={additionalIntentions}
-					bind:valid={validIntentions}
-					existingIntentions={intentionsFromServer}
-				/>
-				<div>
-					<button class="btn" onclick={handleSaveIntentions}>
-						Set {dayOfWeekInZone(appTimeZone.current)} intentions
-					</button>
-				</div>
-			{:else}
-				<div>
-					<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
-						Add more {dayOfWeekInZone(appTimeZone.current)} intentions
-					</button>
-				</div>
-			{/if}
-		{:else}
 			{#if showValidIntentionsNotification}
 				<div role="alert" class="alert alert-error border-error">
 					<CircleX class="size-6 shrink-0 stroke-current" />
@@ -283,21 +145,47 @@
 					>
 				</div>
 			{/if}
-			<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
-
+			<ActionsTextInput
+				goals={data.goals}
+				bind:intentions={additionalIntentions}
+				bind:valid={validIntentions}
+				existingIntentions={intentionsFromServer}
+			/>
 			<div>
-				<button class="btn" onclick={handleSaveIntentions}>
+				<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
 					Set {dayOfWeekInZone(appTimeZone.current)} intentions
 				</button>
 			</div>
-		{/if}
-
-		{#if showDBErrorNotification}
-			<div class="toast">
-				<div class="alert alert-error">
-					<span>Error saving intentions</span>
-				</div>
+		{:else}
+			<div>
+				<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
+					Add more {dayOfWeekInZone(appTimeZone.current)} intentions
+				</button>
 			</div>
 		{/if}
-	</div>
-{/if}
+	{:else}
+		{#if showValidIntentionsNotification}
+			<div role="alert" class="alert alert-error border-error">
+				<CircleX class="size-6 shrink-0 stroke-current" />
+				<span
+					>Please check that your intentions are formatted correctly and have valid goal numbers.</span
+				>
+			</div>
+		{/if}
+		<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
+
+		<div>
+			<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
+				Set {dayOfWeekInZone(appTimeZone.current)} intentions
+			</button>
+		</div>
+	{/if}
+
+	{#if showDBErrorNotification}
+		<div class="toast">
+			<div class="alert alert-error">
+				<span>Error saving intentions</span>
+			</div>
+		</div>
+	{/if}
+</div>

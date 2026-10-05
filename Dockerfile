@@ -33,7 +33,7 @@ USER node
 
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:'+(process.env.PORT||3000)+'/today').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-# The app runs pending migrations itself on startup
+# The first dynamic request initializes the database and cron
 CMD ["node", "build/index.js"]

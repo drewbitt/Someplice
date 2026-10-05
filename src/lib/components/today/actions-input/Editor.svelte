@@ -23,9 +23,10 @@
 
 	// The highlight pre doesn't scroll on its own — mirror the textarea's
 	// scrollTop or the overlay text drifts out of view past ~7 lines.
-	function handleScroll() {
-		const pre = input.previousElementSibling as HTMLElement | null;
-		if (pre) pre.scrollTop = input.scrollTop;
+	function handleScroll(event: Event) {
+		const textarea = event.currentTarget as HTMLTextAreaElement;
+		const pre = textarea.previousElementSibling as HTMLElement | null;
+		if (pre) pre.scrollTop = textarea.scrollTop;
 	}
 
 	function handleInput(event: Event) {
@@ -52,6 +53,7 @@
 	<pre class="goal__editor__pre" aria-hidden="true"></pre>
 	<textarea
 		class="goal__editor__textarea rounded-field border-base-content caret-base-content border transition duration-200 ease-in-out"
+		aria-label="Daily intentions"
 		spellcheck="false"
 		bind:this={input}
 		bind:value
