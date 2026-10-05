@@ -314,6 +314,75 @@ export const intentions = t.router({
 	 * @param input.intentions - The intentions to update.
 	 * @returns The rows parameter will always be defined, but empty since we're not returning anything.
 	 */
+	reorder: procedure
+		.use(logger)
+		.input(
+			z
+				.array(
+					z.object({ id: z.number().int().positive(), orderNumber: z.number().int().positive() })
+				)
+				.min(1)
+		)
+		.mutation(async ({ input }) => {
+			if (
+				new Set(input.map((row) => row.id)).size !== input.length ||
+				![...input]
+					.sort((a, b) => a.orderNumber - b.orderNumber)
+					.every((row, index) => row.orderNumber === index + 1)
+			) {
+				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid intention order.' });
+			}
+			await getDb()
+				.transaction()
+				.execute(async (trx) => {
+					const rows = await trx
+						.selectFrom('intentions')
+						.select(['id', 'date'])
+						.where(
+							'id',
+							'in',
+							input.map((row) => row.id)
+						)
+						.execute();
+					const date = rows[0]?.date.slice(0, 10);
+					if (rows.length !== input.length || rows.some((row) => row.date.slice(0, 10) !== date)) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'Reorder one complete day at a time.'
+						});
+					}
+					const dayRows = await trx
+						.selectFrom('intentions')
+						.select('id')
+						.where(sql`DATE(date)`, '=', date!)
+						.execute();
+					if (dayRows.length !== rows.length) {
+						throw new TRPCError({
+							code: 'BAD_REQUEST',
+							message: 'The intention list changed. Refresh and try again.'
+						});
+					}
+					await trx
+						.updateTable('intentions')
+						.set({
+							orderNumber: sql`orderNumber + (SELECT COALESCE(MAX(orderNumber), 0) + 1 FROM intentions)`
+						})
+						.where(
+							'id',
+							'in',
+							input.map((row) => row.id)
+						)
+						.execute();
+					for (const row of input) {
+						await trx
+							.updateTable('intentions')
+							.set({ orderNumber: row.orderNumber })
+							.where('id', '=', row.id)
+							.execute();
+					}
+				});
+		}),
+
 	updateIntentions: procedure
 		.use(logger)
 		.input(

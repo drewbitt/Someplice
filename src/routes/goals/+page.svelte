@@ -46,6 +46,7 @@
 
 	let dragDisabled = $state(true);
 	let editButtonActive = $state(false);
+	let saving = $state(false);
 	let editButtonEnabled = $derived(dragDisabled);
 	let dragButtonEnabled = $derived(!editButtonActive);
 
@@ -65,7 +66,9 @@
 	});
 
 	async function handleEditButtonClick() {
+		if (saving) return;
 		if (editButtonActive) {
+			saving = true;
 			try {
 				await trpc().goals.updateGoals.mutate({ goals });
 				await refreshAll();
@@ -74,6 +77,8 @@
 					error instanceof Error ? error.message : 'Failed to save goals'
 				);
 				return;
+			} finally {
+				saving = false;
 			}
 		} else {
 			backupGoals = goals.map((goal) => {
@@ -162,11 +167,14 @@
 			<span class={editButtonActive ? 'badge indicator-item badge-secondary translate-x-1/4' : ''}
 			></span>
 			{#if editButtonActive}
-				<button class="btn mx-2" onclick={handleCancelButtonClick}>Cancel</button>
+				<button class="btn mx-2" disabled={saving} onclick={handleCancelButtonClick}>Cancel</button>
 			{/if}
 			<button
 				class="btn mx-2"
-				disabled={!editButtonEnabled || !saveButtonEnabled || noGoals}
+				disabled={saving ||
+					!editButtonEnabled ||
+					!saveButtonEnabled ||
+					(noGoals && inactiveGoals.length === 0)}
 				onclick={handleEditButtonClick}
 			>
 				{editButtonActive ? 'Save' : 'Edit'}

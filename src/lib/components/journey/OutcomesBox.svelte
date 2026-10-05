@@ -13,7 +13,6 @@
 	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { refreshAll, beforeNavigate } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
-	import { statusFromReviewCheckbox } from '#lib/utils/notDones.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let {
@@ -23,7 +22,8 @@
 		verdicts = [],
 		priorities = [],
 		date: dateProp,
-		onDayChanged
+		onDayChanged,
+		onPrioritiesChanged
 
 		// Day date as ISO midnight; used when the day has no intentions to take it from.
 		// Called after a write so extras-supplied days can be re-fetched;
@@ -36,10 +36,12 @@
 		priorities?: Priority[];
 		date?: string;
 		onDayChanged?: () => void | Promise<void>;
+		onPrioritiesChanged: (priorities: Priority[]) => void;
 	} = $props();
 
 	let showSaveButton = $state(false);
-	let hasBeenSaved = $state(false);
+	let saveRevision = $state(0);
+	let saving = $state(false);
 	let showPriorityModal = $state(false);
 	let priorityModalGoal = $state<Goal | null>(null);
 
@@ -63,9 +65,6 @@
 		)
 	);
 	let verdictEdits = new SvelteMap<number, { verdict: VerdictValue | null; note: string | null }>();
-	// Checkbox toggles are scraped from the DOM at save time and not_today
-	// toggles are staged locally — both are unsaved edits the guard must see.
-	let checkboxDirty = $state(false);
 	let statusOverrides = new SvelteMap<number, IntentionStatus>();
 	let displayIntentions = $derived(
 		intentions.map((intention) =>
@@ -82,23 +81,17 @@
 
 	beforeNavigate((navigation) => {
 		if (navigation.shallow) return;
-		if (
-			!newIntentionsToInsert.length &&
-			verdictEdits.size === 0 &&
-			!checkboxDirty &&
-			statusOverrides.size === 0
-		)
+		if (!newIntentionsToInsert.length && verdictEdits.size === 0 && statusOverrides.size === 0)
 			return;
 
 		if (navigation.willUnload) {
 			navigation.cancel();
-		} else if (!confirm('Discard unsaved outcome text?')) {
+		} else if (!confirm('Discard unsaved review changes?')) {
 			navigation.cancel();
 		}
 	});
 
 	const handleReviewGoalBoxChange = () => {
-		checkboxDirty = true;
 		showSaveButton = true;
 	};
 
@@ -125,23 +118,22 @@
 		showPriorityModal = true;
 	};
 
+	const handleCheckboxClicked = ({ intentionId }: { intentionId: number | null }) => {
+		const intention = displayIntentions.find((row) => row.id === intentionId);
+		if (intentionId === null || !intention) return;
+		statusOverrides.set(intentionId, intention.status === 'done' ? 'pending' : 'done');
+		showSaveButton = true;
+	};
+
 	const handleSaveReview = async () => {
-		const statuses = Array.from(
-			document.querySelectorAll<HTMLInputElement>(
-				`#journey-outcomes-box-${dateWithoutTime} .goal-review-item-content input[type="checkbox"]`
-			)
-		).map((checkbox) => {
-			const intentionId = Number(checkbox.value);
-			const intention = displayIntentions.find((intention) => intention.id === intentionId);
-			return { intentionId, status: statusFromReviewCheckbox(intention, checkbox.checked) };
-		});
+		if (saving) return;
+		saving = true;
+		const statuses = [...statusOverrides].map(([intentionId, status]) => ({ intentionId, status }));
 
 		const outcomeToInsert: Omit<Outcome, 'id'> = {
 			date: dateWithoutTime,
 			reviewed: 1
 		};
-
-		let saved = false;
 
 		try {
 			const verdictsToSave = new SvelteMap<
@@ -162,22 +154,19 @@
 					verdict.verdict === null ? [] : [{ goalId, verdict: verdict.verdict, note: verdict.note }]
 				)
 			});
-			saved = true;
-			hasBeenSaved = true;
+			saveRevision += 1;
 			showSaveButton = false;
 			newIntentionsToInsert = [];
 			verdictEdits.clear();
 			statusOverrides.clear();
-			checkboxDirty = false;
+			await refreshAll();
+			await onDayChanged?.();
 		} catch (error) {
 			if (error instanceof Error) {
 				journeyPageErrorStore.setError(error.message);
 			}
 		} finally {
-			if (saved) {
-				await refreshAll();
-				await onDayChanged?.();
-			}
+			saving = false;
 		}
 	};
 
@@ -225,7 +214,8 @@
 	};
 </script>
 
-<div
+<fieldset
+	disabled={saving}
 	class="grid gap-5"
 	id={`journey-outcomes-box-${dateWithoutTime}`}
 	aria-label="List of Outcomes for the day"
@@ -235,14 +225,14 @@
 			<ReviewGoalBox
 				{goal}
 				intentions={displayIntentions}
-				{hasBeenSaved}
+				{saveRevision}
 				showTitle={false}
 				verdict={verdictForGoal(goal.id)}
 				verdictAsBar={!showSaveButton}
 				priority={priorities.find((priority) => priority.goalId === goal.id)}
 				onUpdateNewOutcomeTexts={handleNewOutcomeTextChanged}
 				onPlusNewOutcomeButtonPressed={handleReviewGoalBoxChange}
-				onCheckboxClicked={handleReviewGoalBoxChange}
+				onCheckboxClicked={handleCheckboxClicked}
 				onNotTodayToggled={handleNotTodayToggled}
 				onVerdictChanged={handleVerdictChanged}
 				onNewPriority={handleNewPriority}
@@ -252,16 +242,19 @@
 	{#if showSaveButton}
 		<div class="flex w-full max-w-screen-2xl flex-col items-center">
 			<div class="flex w-4/5 max-w-full min-w-min justify-end">
-				<button class="btn" onclick={handleSaveReview}>Save</button>
+				<button class="btn" disabled={saving} onclick={handleSaveReview}>Save</button>
 			</div>
 		</div>
 	{/if}
-</div>
+</fieldset>
 
 {#if priorityModalGoal}
 	<PriorityModal
 		bind:showModal={showPriorityModal}
 		goal={priorityModalGoal}
+		onSaved={async () => {
+			onPrioritiesChanged(await trpc().priorities.list.query({ activeOnly: true }));
+		}}
 		onError={(message) => journeyPageErrorStore.setError(message)}
 	/>
 {/if}

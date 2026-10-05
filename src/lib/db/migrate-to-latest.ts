@@ -1,30 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import { Kysely } from 'kysely';
-import { FileMigrationProvider, Migrator, type Migration } from 'kysely/migration';
+import { Migrator } from 'kysely/migration';
 import type { DB } from '../types/data';
 import { dbLogger } from '../utils/logger.ts';
 import { getDb } from './db.ts';
+import * as initial from './migrations/001_initial.ts';
 
-// Under Vite the migration modules must be discovered statically so they get
-// bundled; import.meta.env exists only there. The CLI path runs under plain
-// node and falls back to reading the directory. Basename keys keep the
-// migration name ('001_schema') identical across both providers.
-const provider = import.meta.env
-	? {
-			getMigrations: async () =>
-				Object.fromEntries(
-					Object.entries(import.meta.glob<Migration>('./migrations/*.ts', { eager: true })).map(
-						([key, migration]) => [path.basename(key, '.ts'), migration]
-					)
-				)
-		}
-	: new FileMigrationProvider({
-			fs: fs.promises,
-			path,
-			migrationFolder: fileURLToPath(new URL('./migrations', import.meta.url))
-		});
+const provider = { getMigrations: async () => ({ '001_initial': initial }) };
 
 export async function runMigrations(db: Kysely<DB>): Promise<void> {
 	const { error, results } = await new Migrator({ db, provider }).migrateToLatest();
@@ -50,8 +32,9 @@ const isMainModule =
 	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isMainModule) {
 	runMigrations(getDb())
-		.then(() => getDb().destroy())
-		.catch(() => {
+		.catch((error: unknown) => {
+			console.error(error instanceof Error ? error.message : error);
 			process.exitCode = 1;
-		});
+		})
+		.finally(() => getDb().destroy());
 }

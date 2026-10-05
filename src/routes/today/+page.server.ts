@@ -14,5 +14,20 @@ export const load = (async (event) => {
 		// the orderNumber an archived goal had (archive resets it to 0).
 		trpcLoad(event, (t) => t.goals.listGoalsSortedByDate(0))
 	]);
-	return { goals, intentions, intentionsOnLatestDate, priorities, inactiveGoals };
+	let hasOutstandingOutcome = false;
+	if (intentions.length === 0 && intentionsOnLatestDate.length > 0) {
+		const date = new Date(intentionsOnLatestDate[0].date);
+		const outcomes = await trpcLoad(event, (t) =>
+			t.outcomes.list({ startDate: date, endDate: date })
+		);
+		hasOutstandingOutcome = !outcomes[0]?.reviewed;
+	}
+	return {
+		goals,
+		intentions,
+		intentionsOnLatestDate,
+		priorities,
+		inactiveGoals,
+		hasOutstandingOutcome
+	};
 }) satisfies PageServerLoad;

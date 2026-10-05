@@ -75,7 +75,7 @@ cd Someplice
 pnpm install
 ```
 
-3. Database migrations run automatically on startup. `pnpm run db:migrate` is only needed for CI/scripts.
+3. The first dynamic request (for example, `/today`) initializes the database and starts outcome backfill. `pnpm run db:migrate` is only needed for CI/scripts.
 
 4. Start the application
 
@@ -91,7 +91,7 @@ The Docker public image build is WIP. For now, you can build the image locally:
 docker build -t someplice .
 ```
 
-Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database. The container runs any pending migrations automatically on every start.
+Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database. The `/today` health check initializes the database after each start.
 
 ```bash
 docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
@@ -99,7 +99,11 @@ docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
 
 #### Time zone
 
-Day boundaries (today, yesterday, outcomes) use the server's local time zone. Docker defaults to UTC — set `TZ` to your zone, e.g. `docker run -e TZ=America/New_York ...` or `TZ: Your/Zone` in compose.
+Day boundaries use one installation time zone: the stored setting first, then a valid `SOMEPLICE_TIMEZONE`, then UTC. On a fresh installation without an environment override, the first browser visit saves its detected zone. Set `SOMEPLICE_TIMEZONE=America/New_York` (or `docker run -e SOMEPLICE_TIMEZONE=America/New_York ...`) to choose the initial zone explicitly. Server `TZ` does not control application dates.
+
+#### Pre-user database baseline
+
+The schema is a single `001_initial` migration. Databases from earlier development revisions are intentionally not upgraded. To keep old data, back up the database and continue using the earlier revision until an upgrade path is written. For disposable development data, stop the app, back up anything you need, and run `pnpm run db:reset`. This deletes the default `data/db.sqlite` database; never run it on data you want to retain. A custom `DATABASE_PATH` must be reset separately.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -110,11 +114,19 @@ Before opening a PR:
 ```bash
 pnpm check        # svelte-check type checking
 pnpm lint         # prettier + eslint
-pnpm test:unit    # vitest unit tests
-pnpm test:e2e     # playwright e2e tests (requires the dev server)
-pnpm run db:reset # recreate ./data/db.sqlite and migrate it
-pnpm run db:seed  # insert fake data into the database
+pnpm run check:tsgo  # TypeScript native checker
+pnpm test:unit --run # Node Vitest tests
+pnpm exec playwright install chromium
+pnpm test:browser --run # real-Chromium Svelte component tests
+pnpm test:e2e        # builds/previews with a disposable database; no dev server needed
+pnpm build
 ```
+
+Browser tests use feature-owned `*.browser.test.ts` files for isolated Svelte behavior with mocked navigation/tRPC; API/database/helper tests stay in the Node project. Playwright covers the built app's real HTTP/database, reload, timezone, and service-worker behavior with a fresh run-owned database, leaving development data untouched.
+
+Both browser runners retain failure traces under `test-results/` in separate `vitest` and `playwright` directories; CI uploads them for seven days. Open a trace with `pnpm exec playwright show-trace path/to/trace.zip`.
+
+The native service worker caches only build/static assets, not pages, SvelteKit data, or API responses. This is not offline data support. Worker updates wait for old tabs to close rather than forcing activation or discarding drafts.
 
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. `pnpm run db:codegen` regenerates `src/lib/types/data.d.ts` from the migrations (no database file needed); a unit test fails if it is stale.
 

@@ -111,13 +111,13 @@ export const goals = t.router({
 					COALESCE(
 						(SELECT gl2.orderNumber FROM goal_logs gl2
 						 WHERE gl2.goalId = goals.id
-						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
+						 ORDER BY gl2.id DESC LIMIT 1),
 						goals.orderNumber
 					) AS orderNumber,
 					goals.title,
 					goals.description,
 					goals.color,
-					MAX(goal_logs.date) as date
+					(SELECT date FROM goal_logs gl3 WHERE gl3.goalId = goals.id AND gl3.type IN ('start', 'end') ORDER BY gl3.id DESC LIMIT 1) as date
 				FROM
 					goals
 				INNER JOIN
@@ -151,72 +151,24 @@ export const goals = t.router({
 		.query(async ({ input }) => {
 			const { endDate } = adjustToUTCStartAndEndOfDay(input.date, input.date);
 
-			if (input.active === 1) {
-				const activeGoalsWithDate = await sql<Goal>`
-				SELECT
-					goals.id,
-					goals.active,
-					COALESCE(
-						(SELECT gl2.orderNumber FROM goal_logs gl2
-						 WHERE gl2.goalId = goals.id AND gl2.type IN ('start', 'reorder')
-						 AND gl2.date <= ${endDate.toISOString()}
-						 ORDER BY gl2.date DESC, gl2.id DESC LIMIT 1),
-						goals.orderNumber
-					) AS orderNumber,
-					goals.title,
-					goals.description,
-					goals.color,
-					MAX(goal_logs.date) as date
-				FROM
-					goals
-				INNER JOIN
-					goal_logs ON goals.id = goal_logs.goalId
-				WHERE
-					goal_logs.date <= ${endDate.toISOString()}
-				AND
-					goal_logs.type = 'start'
-				AND
-					NOT EXISTS (
-						SELECT 1 
-						FROM goal_logs AS g2 
-						WHERE g2.goalId = goals.id 
-						AND g2.type = 'end' 
-						AND g2.date BETWEEN goal_logs.date AND ${endDate.toISOString()}
-					)
-				GROUP BY
-					goals.id
-				ORDER BY
-					orderNumber ASC
+			const result = await sql<Goal>`
+				SELECT goals.id, goals.active, goals.title, goals.description, goals.color,
+					COALESCE((
+						SELECT orderNumber FROM goal_logs
+						WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
+						AND orderNumber IS NOT NULL ORDER BY id DESC LIMIT 1
+					), goals.orderNumber) AS orderNumber,
+					goal_logs.date
+				FROM goals
+				INNER JOIN goal_logs ON goal_logs.id = (
+					SELECT id FROM goal_logs
+					WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
+					AND type IN ('start', 'end') ORDER BY id DESC LIMIT 1
+				)
+				WHERE goal_logs.type = ${input.active === 1 ? 'start' : 'end'}
+				ORDER BY orderNumber ASC
 			`.execute(getDb());
-
-				return activeGoalsWithDate.rows;
-			} else {
-				// Gets latest goal_log for each goal and ensures it is 'end'
-				const inactiveGoalsOnDate = await sql<Goal>`
-					SELECT
-						goals.id,
-						COALESCE(goal_logs.orderNumber, goals.orderNumber) AS orderNumber,
-						goals.title,
-						goals.description,
-						goals.color
-					FROM
-						goals
-					INNER JOIN
-						goal_logs ON goals.id = goal_logs.goalId
-					WHERE
-						goal_logs.date = (
-							SELECT MAX(date) 
-							FROM goal_logs 
-							WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
-						)
-					AND
-						goal_logs.type = 'end'
-					ORDER BY
-						COALESCE(goal_logs.orderNumber, goals.orderNumber) ASC
-				`.execute(getDb());
-
-				return inactiveGoalsOnDate.rows;
-			}
+			return result.rows;
 		}),
 	/**
 	 * Add a new goal to the database.
@@ -274,6 +226,9 @@ export const goals = t.router({
 
 					const updates = input.goals.filter((goal) => goal.id !== null);
 					const inserts = input.goals.filter((goal) => goal.id === null);
+					if (new Set(updates.map((goal) => goal.id)).size !== updates.length) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Goal IDs must be unique.' });
+					}
 
 					// New goals are always active; reject payloads that would exceed the goal cap
 					if (existingGoals.filter((g) => g.active === 1).length + inserts.length > MAX_GOALS) {
@@ -405,6 +360,15 @@ export const goals = t.router({
 							.where('intentions.goalId', '=', input)
 							.execute()
 					).map((row) => row.outcomeId);
+					associatedOutcomeIds.push(
+						...(
+							await trx
+								.selectFrom('outcome_verdicts')
+								.select('outcomeId')
+								.where('goalId', '=', input)
+								.execute()
+						).map((row) => row.outcomeId)
+					);
 
 					const result = await trx.deleteFrom('goals').where('id', '=', input).execute();
 

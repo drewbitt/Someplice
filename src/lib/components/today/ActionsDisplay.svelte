@@ -8,7 +8,7 @@
 	import { computeMissCount } from '#lib/utils/notDones.js';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
@@ -107,33 +107,30 @@
 		)
 	);
 
+	const pendingUpdates = new SvelteSet<number>();
+	let reordering = $state(false);
+
 	const updateIntention = async (event: Event) => {
-		const target = event.target as HTMLInputElement;
-		const intentionId = target.id.split('-')[1];
-		if (intentionId) {
-			const original = intentions.find((intention) => {
-				return intention.id === parseInt(intentionId);
-			});
-			if (original) {
-				const status: Intention['status'] = target.checked ? 'done' : 'pending';
-				const intention = { ...original, status };
-				const updatedIntention = await handleUpdateSingleIntention(intention);
-				if (
-					updatedIntention?.numUpdatedRows !== undefined &&
-					updatedIntention?.numUpdatedRows > 0
-				) {
-					intentions = intentions.map((intention) => {
-						if (intention.id === parseInt(intentionId)) {
-							intention.status = target.checked ? 'done' : 'pending';
-						}
-						return intention;
-					});
-				} else {
-					// The mutation failed or updated nothing: re-assert the stored
-					// status instead of leaving the DOM checkbox lying.
-					target.checked = original.status === 'done';
-				}
+		const target = event.currentTarget as HTMLInputElement;
+		const id = Number(target.id.split('-')[1]);
+		const original = intentions.find((row) => row.id === id);
+		if (!original || pendingUpdates.has(id)) return;
+		const status = target.checked ? 'done' : 'pending';
+		pendingUpdates.add(id);
+		try {
+			const result = await handleUpdateSingleIntention({ ...original, status });
+			if (result?.numUpdatedRows && result.numUpdatedRows > 0) {
+				intentions = intentions.map((row) => (row.id === id ? { ...row, status } : row));
+			} else {
+				target.checked = original.status === 'done';
 			}
+		} catch (error) {
+			target.checked = original.status === 'done';
+			todayPageErrorStore.setError(
+				error instanceof Error ? error.message : 'Could not update intention.'
+			);
+		} finally {
+			pendingUpdates.delete(id);
 		}
 	};
 
@@ -152,9 +149,13 @@
 		const items: Intention[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
 		});
+		if (reordering) return;
 		intentions = items;
+		reordering = true;
 		try {
-			await trpc().intentions.updateIntentions.mutate({ intentions: items });
+			await trpc().intentions.reorder.mutate(
+				items.map(({ id, orderNumber }) => ({ id: id!, orderNumber }))
+			);
 			await refreshAll();
 		} catch (error) {
 			// Resync from the server so the rendered order can't diverge from the DB.
@@ -162,6 +163,8 @@
 			if (error instanceof Error) {
 				todayPageErrorStore.setError(error.message);
 			}
+		} finally {
+			reordering = false;
 		}
 	};
 
@@ -207,7 +210,7 @@
 		<section
 			role="list"
 			class="overflow-hidden"
-			use:dndzone={{ items: intentions }}
+			use:dndzone={{ items: intentions, dragDisabled: reordering }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
@@ -275,6 +278,7 @@
 						class={index === firstIncompleteIntentionIndex
 							? 'checkbox-md ml-0.5'
 							: 'checkbox-sm ml-0.5'}
+						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
 						checked={intention.status === 'done'}
 						onchange={updateIntention}
 					/>

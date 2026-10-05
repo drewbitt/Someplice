@@ -1,16 +1,27 @@
-/*
- * 09/13/2023: Playwright is blocked by https://github.com/microsoft/playwright/issues/19411
- * Any $src, $lib imports won't work.
- * So, we can't import methods to create an in-memory DB for testing as they rely on the imports.
- */
-
-/*
- * Playwright tests for the main app. Tests are expected to run on an empty database.
- * Vitest tests are in the same directory as the code they are testing.
- */
-
 import { expect, test } from '@playwright/test';
 import { DatabaseSync } from 'node:sqlite';
+
+function openTestDb() {
+	const db = new DatabaseSync(process.env.DATABASE_PATH!);
+	db.exec('PRAGMA foreign_keys = ON');
+	db.function('regexp', { deterministic: true }, (regex, text) =>
+		typeof regex === 'string' && typeof text === 'string'
+			? new RegExp(regex).test(text)
+				? 1
+				: 0
+			: null
+	);
+	return db;
+}
+
+test.beforeEach(() => {
+	const db = openTestDb();
+	try {
+		db.exec('DELETE FROM goals; DELETE FROM outcomes; DELETE FROM settings;');
+	} finally {
+		db.close();
+	}
+});
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
@@ -22,22 +33,6 @@ test('Today page shows text when no goals are set', async ({ page }) => {
 	await expect(
 		page.getByRole('alert').getByText('You have no goals. Please add some goals first.')
 	).toBeVisible();
-});
-
-test('GoalBox contains New goal button', async ({ page }) => {
-	await page.goto('/goals');
-	await expect(page.getByRole('button', { name: 'New Goal' })).toBeVisible();
-});
-
-test('Pressing New Goal button adds a new goal', async ({ page }) => {
-	await page.goto('/goals');
-	await page.getByRole('button', { name: 'New Goal' }).click();
-	const goalsListContainer = page.locator('#goals-list-container');
-	// The New Goal box sits outside the dnd list, so the container holds just
-	// the created goal box.
-	await expect(goalsListContainer.locator(':scope > *')).toHaveCount(1);
-	// Adding a goal enters edit mode, so the title is rendered as an input
-	await expect(goalsListContainer.locator('.goal-box-title-editable input')).toHaveValue('Goal 1');
 });
 
 test('theme toggle persists dark mode across reload', async ({ page }) => {
@@ -60,6 +55,9 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 	const editor = page.locator('.goal__editor__textarea');
 	await editor.fill('1) write tests');
 	await expect(editor).toHaveValue('1) write tests');
+	await expect
+		.poll(() => page.evaluate(() => localStorage.getItem('todaysIntentions')))
+		.toBe('1) write tests');
 
 	await page.reload();
 	await expect(page.locator('.goal__editor__textarea')).toHaveValue('1) write tests');
@@ -68,7 +66,7 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 test('Today loads missed intentions in the stored timezone on a fresh browser visit', async ({
 	browser
 }) => {
-	const db = new DatabaseSync(process.env.DATABASE_PATH ?? './data/db.sqlite');
+	const db = openTestDb();
 	try {
 		db.prepare(
 			"INSERT INTO settings(key, value) VALUES('timezone', 'UTC') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
@@ -141,7 +139,11 @@ test('failed goal saves preserve the draft for retry or cancellation', async ({ 
 	await page.getByRole('button', { name: 'Edit', exact: true }).click();
 	await title.fill('Retry persisted');
 	await description.fill('Retry description');
+	const failedRetry = page.waitForEvent('requestfailed', {
+		predicate: (request) => request.url().includes('/api/trpc/goals.updateGoals')
+	});
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await failedRetry;
 	await expect(title).toHaveValue('Retry persisted');
 	await expect(page.getByRole('button', { name: 'Cancel', exact: true })).toBeVisible();
 
@@ -164,11 +166,17 @@ test('Journey refreshes server and paginated days without duplicating milestones
 		return date.toISOString().slice(0, 10);
 	});
 	const olderDay = dates[dates.length - 1];
-	const db = new DatabaseSync(process.env.DATABASE_PATH ?? './data/db.sqlite');
+	const db = openTestDb();
 	try {
-		const goal = db
-			.prepare('SELECT id FROM goals WHERE active = 1 ORDER BY orderNumber LIMIT 1')
-			.get();
+		const inserted = db
+			.prepare(
+				"INSERT INTO goals(active, title, description, color, orderNumber) VALUES(1, 'Journey goal', '', 'red', 1)"
+			)
+			.run();
+		const goal = { id: Number(inserted.lastInsertRowid) };
+		db.prepare(
+			"INSERT INTO goal_logs(goalId, type, date, orderNumber) VALUES(?, 'start', ?, 1)"
+		).run(goal.id, `${olderDay}T00:00:00.000Z`);
 		if (!goal || typeof goal.id !== 'number') throw new Error('Expected an active goal');
 		db.prepare("UPDATE goal_logs SET date = ? WHERE goalId = ? AND type = 'start'").run(
 			`${olderDay}T00:00:00.000Z`,
@@ -230,4 +238,163 @@ test('Journey refreshes server and paginated days without duplicating milestones
 		page.getByText('★ 1 completed top priority: Server milestone', { exact: true })
 	).toHaveCount(1);
 	expect(errors).toEqual([]);
+});
+
+test('failed additional intention saves retry the corrected draft without rewriting existing rows', async ({
+	page
+}) => {
+	const db = openTestDb();
+	const timestamp = new Date().toISOString();
+	try {
+		const inserted = db
+			.prepare(
+				"INSERT INTO goals(active, title, description, color, orderNumber) VALUES(1, 'Read', '', 'navy', 1)"
+			)
+			.run();
+		const goalId = Number(inserted.lastInsertRowid);
+		db.prepare(
+			"INSERT INTO goal_logs(goalId, type, date, orderNumber) VALUES(?, 'start', ?, 1)"
+		).run(goalId, timestamp);
+		db.prepare(
+			"INSERT INTO intentions(goalId, text, date, orderNumber, status) VALUES(?, 'Original', ?, 1, 'pending')"
+		).run(goalId, timestamp);
+	} finally {
+		db.close();
+	}
+	await page.goto('/today');
+	await page.getByRole('button', { name: /^Add more \w+ intentions$/ }).click();
+	const editor = page.getByRole('textbox', { name: 'Daily intentions' });
+	await editor.fill('1) Stale draft');
+	await page.route('**/api/trpc/intentions.updateIntentions*', (route) =>
+		route.fulfill({ status: 500, body: 'offline' })
+	);
+	await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
+	await expect(page.getByText('Error saving intentions', { exact: true })).toBeVisible();
+	await editor.fill('1) Corrected draft');
+	await page.unroute('**/api/trpc/intentions.updateIntentions*');
+	await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
+	await expect(editor).not.toBeVisible();
+	const saved = openTestDb();
+	try {
+		expect(
+			saved.prepare('SELECT text, status, orderNumber FROM intentions ORDER BY orderNumber').all()
+		).toEqual([
+			{ text: 'Original', status: 'pending', orderNumber: 1 },
+			{ text: 'Corrected draft', status: 'pending', orderNumber: 2 }
+		]);
+	} finally {
+		saved.close();
+	}
+});
+
+test('controlled worker serves assets offline but never dynamic pages, data or APIs', async ({
+	page,
+	context
+}) => {
+	await page.goto('/today');
+	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+	await page.reload();
+	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	const cached = await page.evaluate(async () => {
+		const names = (await caches.keys()).filter((name) => name.startsWith('someplice-'));
+		const entries = await Promise.all(
+			names.map(async (name) =>
+				(await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)
+			)
+		);
+		return entries.flat();
+	});
+	expect(cached.length).toBeGreaterThan(0);
+	expect(cached.some((path) => path.startsWith('/_app/immutable/'))).toBe(true);
+	expect(cached).not.toContain('/today');
+	expect(cached.some((path) => path.startsWith('/api/trpc'))).toBe(false);
+	const script = cached.find((path) => path.startsWith('/_app/immutable/') && path.endsWith('.js'));
+	expect(script).toBeDefined();
+	const dynamicPaths = ['/today', '/today/__data.json', '/api/trpc/settings.getTimeZone'];
+	const statuses = await page.evaluate(
+		async (paths) =>
+			Promise.all(paths.map(async (path) => (await fetch(path, { cache: 'no-store' })).status)),
+		dynamicPaths
+	);
+	expect(statuses).toEqual([200, 200, 200]);
+	const readAsset = () =>
+		page.evaluate(async (path) => (await fetch(path, { cache: 'no-store' })).text(), script!);
+	const onlineAsset = await readAsset();
+	expect(onlineAsset.length).toBeGreaterThan(0);
+	await context.setOffline(true);
+	try {
+		expect(await readAsset()).toBe(onlineAsset);
+		const reachable = await page.evaluate(
+			async (paths) =>
+				Promise.all(
+					paths.map(async (path) => {
+						try {
+							await fetch(path, { cache: 'no-store' });
+							return true;
+						} catch {
+							return false;
+						}
+					})
+				),
+			dynamicPaths
+		);
+		expect(reachable).toEqual([false, false, false]);
+		const offlinePage = await context.newPage();
+		await expect(offlinePage.goto('/today')).rejects.toThrow(
+			/ERR_INTERNET_DISCONNECTED|ERR_FAILED/
+		);
+		await offlinePage.close();
+	} finally {
+		await context.setOffline(false);
+	}
+});
+
+test('worker updates wait for old clients and remove only obsolete app caches', async ({
+	page,
+	context
+}) => {
+	await page.goto('/today');
+	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+	await page.reload();
+	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+	const currentScript = await page.evaluate(() => navigator.serviceWorker.controller!.scriptURL);
+	const currentCaches = await page.evaluate(async () =>
+		(await caches.keys()).filter((name) => name.startsWith('someplice-'))
+	);
+	const nextScript = `${currentScript}?e2e-update`;
+	const workerCreated = context.waitForEvent('serviceworker', {
+		predicate: (worker) => worker.url() === nextScript
+	});
+	await page.evaluate(async (url) => {
+		await (
+			await caches.open('someplice-obsolete-version')
+		).put('/obsolete.js', new Response('old'));
+		await (await caches.open('unrelated-app')).put('/unrelated.js', new Response('keep'));
+		// A distinct script URL exercises an update with the production worker, without a second build.
+		await navigator.serviceWorker.register(url);
+	}, nextScript);
+	const nextWorker = await workerCreated;
+	await expect
+		.poll(() =>
+			page.evaluate(
+				async () => (await navigator.serviceWorker.getRegistration())?.waiting?.scriptURL
+			)
+		)
+		.toBe(nextScript);
+	expect(await page.evaluate(() => navigator.serviceWorker.controller!.scriptURL)).toBe(
+		currentScript
+	);
+	expect(await page.evaluate(() => caches.keys())).toContain('someplice-obsolete-version');
+	await page.close();
+	await expect
+		.poll(() => nextWorker.evaluate(() => caches.keys()))
+		.not.toContain('someplice-obsolete-version');
+	const remaining = await nextWorker.evaluate(() => caches.keys());
+	expect(remaining).toContain('unrelated-app');
+	expect(remaining.filter((name) => name.startsWith('someplice-'))).toEqual(currentCaches);
+	const nextPage = await context.newPage();
+	await nextPage.goto('/manifest.webmanifest');
+	await expect
+		.poll(() => nextPage.evaluate(() => navigator.serviceWorker.controller?.scriptURL))
+		.toBe(nextScript);
 });

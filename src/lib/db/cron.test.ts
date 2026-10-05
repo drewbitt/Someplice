@@ -2,9 +2,11 @@ import { createDb, getDb, setDb } from '#lib/db/db.js';
 import { runMigrations } from '#lib/db/migrate-to-latest.js';
 import type { DB } from '#lib/types/data.js';
 import type { Kysely } from 'kysely';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { EventEmitter } from 'node:events';
+import { scheduledJobs } from 'croner';
 import { dateKeyInZone, previousDateKey } from '#lib/utils/index.js';
-import { checkMissingOutcomes } from './cron';
+import { createCronJobs, stopCronJobs, checkMissingOutcomes } from './cron';
 
 const TEST_GOAL = {
 	active: 1,
@@ -51,6 +53,34 @@ describe('checkMissingOutcomes', () => {
 		setDb(createDb(':memory:'));
 		db = getDb();
 		await runMigrations(db);
+	});
+
+	afterEach(async () => {
+		vi.restoreAllMocks();
+		stopCronJobs();
+		await db.destroy();
+	});
+
+	it('reads surviving intentions inside the transaction after a concurrent deletion', async () => {
+		const goalId = await insertGoal(db);
+		const id = await insertIntention(db, goalId, '2023-07-01T00:00:00.000Z', 1);
+		const transaction = db.transaction();
+		const execute = transaction.execute.bind(transaction);
+		vi.spyOn(transaction, 'execute').mockImplementationOnce(async (callback) => {
+			await db.deleteFrom('intentions').where('id', '=', id).execute();
+			return execute(callback);
+		});
+		vi.spyOn(db, 'transaction').mockReturnValueOnce(transaction);
+		await checkMissingOutcomes();
+		expect(await db.selectFrom('outcomes').selectAll().execute()).toEqual([]);
+	});
+
+	it('stops its scheduled job on SvelteKit shutdown', () => {
+		createCronJobs();
+		const job = scheduledJobs.find((job) => job.name === 'outcomeCron')!;
+		expect(job.isStopped()).toBe(false);
+		EventEmitter.prototype.emit.call(process, 'sveltekit:shutdown');
+		expect(job.isStopped()).toBe(true);
 	});
 
 	it('creates an outcome and links for days that only have intentions', async () => {

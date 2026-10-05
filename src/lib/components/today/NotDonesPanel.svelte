@@ -22,6 +22,11 @@
 	let hidden = $state(false);
 	let confirmGroup = $state<NotDoneGroup | null>(null);
 	let strategy = $state('');
+	let dialog = $state<HTMLDialogElement>();
+
+	$effect(() => {
+		if (confirmGroup && dialog && !dialog.open) dialog.showModal();
+	});
 
 	onMount(() => {
 		notDones.refresh().catch((error) => {
@@ -90,6 +95,7 @@
 	// Cancel must do nothing: previously it marked the group not_today, the
 	// opposite of what the button says.
 	const handleCancel = () => {
+		dialog?.close();
 		confirmGroup = null;
 		strategy = '';
 	};
@@ -97,6 +103,7 @@
 	const handleKeep = () => {
 		if (!confirmGroup) return;
 		importGroup(confirmGroup, strategy.trim());
+		dialog?.close();
 		confirmGroup = null;
 		strategy = '';
 	};
@@ -143,7 +150,7 @@
 
 {#if confirmGroup}
 	{@const group = confirmGroup}
-	<dialog class="modal modal-open">
+	<dialog bind:this={dialog} class="modal" oncancel={handleCancel} onclose={handleCancel}>
 		<div class="modal-box">
 			{#if group.missCount === 2}
 				<h3 class="text-lg font-bold">
@@ -179,6 +186,6 @@
 				>
 			</div>
 		</div>
-		<button class="modal-backdrop" onclick={() => (confirmGroup = null)}>close</button>
+		<button class="modal-backdrop" onclick={handleCancel}>close</button>
 	</dialog>
 {/if}

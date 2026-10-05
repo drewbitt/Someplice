@@ -6,7 +6,6 @@
 	import { refreshAll } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
-	import { pwaInfo } from 'virtual:pwa-info';
 
 	let { children, data } = $props();
 
@@ -31,8 +30,6 @@
 			});
 	});
 
-	let webManifestLink = $derived(pwaInfo ? pwaInfo.webManifest.linkTag : '');
-
 	$effect(() => {
 		if (typeof document !== 'undefined') {
 			document.documentElement.setAttribute('data-theme', theme.current);
@@ -51,8 +48,7 @@
 </script>
 
 <svelte:head>
-	<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-	{@html webManifestLink}
+	<link rel="manifest" href="/manifest.webmanifest" />
 </svelte:head>
 
 <a

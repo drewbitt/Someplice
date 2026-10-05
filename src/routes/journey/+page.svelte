@@ -18,6 +18,7 @@
 	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data }: { data: PageServerData } = $props();
+	let activePriorities = $derived(data.priorities);
 
 	let extraWindow = $state<JourneyWindow>({
 		outcomes: [],
@@ -40,7 +41,6 @@
 		});
 	});
 
-	let noGoals = $derived(data.goals.length === 0);
 	// Outcome rows belong to the day set too: a reviewed day whose intentions
 	// were later deleted must still render.
 	let dates = $derived(journeyDates(journey).sort((a, b) => b.localeCompare(a)));
@@ -206,7 +206,7 @@
 	</div>
 </div>
 
-{#if noGoals || noJourneyDays}
+{#if noJourneyDays}
 	<div role="alert" class="alert alert-error border-error">
 		<CircleX class="size-6 shrink-0 stroke-current" />
 		<span>Begin your Journey by adding goals and intentions.</span>
@@ -221,7 +221,8 @@
 					intentions={intentionsByDate[date] ?? []}
 					{outcomes}
 					{verdicts}
-					priorities={data.priorities}
+					priorities={activePriorities}
+					onPrioritiesChanged={(priorities) => (activePriorities = priorities)}
 					{completedPriorities}
 					onDayChanged={() => refreshDay(date)}
 				/>
