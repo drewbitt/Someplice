@@ -42,10 +42,10 @@
 		"@playwright/test": "^1.63.0",
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/kit": "^3.0.0",
-		"@sveltejs/load-config": "^0.2.2",
+		"@sveltejs/load-config": "^0.2.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^24.19.0",
+		"@types/node": "^24.19.1",
 		"@typescript/native": "npm:typescript@^7.0.2",
 		"@vitest/browser-playwright": "5.0.3",
 		"daisyui": "^5.7.47",
@@ -80,7 +80,7 @@
 			"onFail": "download"
 		}
 	},
-	"packageManager": "pnpm@12.6.0",
+	"packageManager": "pnpm@12.8.2",
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
