@@ -85,17 +85,62 @@ pnpm run dev
 
 #### Option 2: Docker
 
-The Docker public image build is WIP. For now, you can build the image locally:
+Images are published to `ghcr.io/drewbitt/someplice` for `linux/amd64` and `linux/arm64`
+when the [publishing workflow](.github/workflows/publish.yml) is explicitly run or a
+GitHub release is published. The first image must be published and its package
+visibility set to public before anonymous pulls work; see [Publishing and releases](docs/releasing.md).
+
+`latest` tracks stable releases; `edge` is an explicitly published build of `master`.
+Use an exact release tag or digest for repeatable deployments. To build locally instead:
 
 ```bash
 docker build -t someplice .
 ```
 
-Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database. The `/today` health check initializes the database after each start.
+Use a named volume to retain the database when the container is replaced. The
+`/today` health check initializes the database after each start. The server has
+**no authentication**: the loopback binding below deliberately keeps it off the
+public network. Use a trusted private network or an authenticated HTTPS access
+layer for remote access; do not expose this port directly to the internet.
 
 ```bash
-docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
+docker volume create someplice-data
+docker run -d --name someplice --restart unless-stopped \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --stop-timeout 35 \
+  --mount type=volume,source=someplice-data,target=/app/data \
+  -e SOMEPLICE_TIMEZONE=America/New_York \
+  -p 127.0.0.1:3000:3000 ghcr.io/drewbitt/someplice:latest
 ```
+
+Replace the image with `someplice:latest` if you built locally. Choose your own
+time zone. For a host bind mount instead, its directory must be writable by UID/GID
+`1000:1000` (the image's `node` user); Docker volume permissions do not repair an
+existing root-owned bind mount. Mount the whole data directory, not just
+`db.sqlite`, so SQLite can create its WAL and SHM files. `DATABASE_PATH` defaults
+to `/app/data/db.sqlite`; keep overrides inside a writable persistent mount.
+
+Run one container per database on local storage. Multiple replicas would also
+duplicate the in-process cron job; this is not a clustered deployment. Docker's
+health status does not automatically restart an unhealthy process.
+
+#### Backups and upgrades
+
+Stop the app before copying the whole data directory (including any SQLite WAL
+and SHM files). For example, for the named volume above:
+
+```bash
+mkdir -p backups
+docker stop someplice
+docker cp someplice:/app/data/. "backups/someplice-$(date -u +%Y%m%dT%H%M%SZ)"
+docker start someplice
+```
+
+Store backups separately and test a restore into a **new** volume. Never copy only
+the live `db.sqlite` file while writes are occurring. Before replacing a container,
+back up its data and record its image digest; rollback may require restoring the
+matching backup, not merely running an older image. See the pre-user schema warning
+below before using a database from an older revision.
 
 #### Time zone
 

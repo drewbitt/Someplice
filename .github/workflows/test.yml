@@ -1,12 +1,16 @@
 name: Run Tests
 
 on:
+  workflow_call:
   pull_request:
     branches:
       - master
   push:
     branches:
       - master
+
+permissions:
+  contents: read
 
 jobs:
   test-workflow:
@@ -48,7 +52,15 @@ jobs:
         run: pnpm run db:seed
 
   docker:
-    runs-on: ubuntu-26.04
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-26.04
+          - platform: linux/arm64
+            runner: ubuntu-26.04-arm
 
     steps:
       - name: Checkout
@@ -63,14 +75,14 @@ jobs:
           context: .
           load: true
           tags: someplice:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,scope=${{ matrix.platform }},mode=max
 
       - name: Boot container and smoke test
-        run: |
-          docker run -d --name app -p 3000:3000 someplice:ci
-          timeout 90 sh -c 'until curl -fsS http://localhost:3000/today >/dev/null; do sleep 2; done'
-          docker logs --tail 30 app
+        env:
+          DOCKER_PLATFORM: ${{ matrix.platform }}
+        run: bash tests/docker-smoke.sh someplice:ci
 
   e2e:
     runs-on: ubuntu-26.04
