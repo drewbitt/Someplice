@@ -27,7 +27,7 @@ Select the publishing run when prompted. Manual runs accept only `master` and pu
 
 1. Set the `version` in `package.json` to the intended SemVer (without `+` build metadata)
    and merge the change into `master` after CI passes.
-2. Review release notes, including the [deployment and database limitations](../README.md#docker).
+2. Review release notes, including the [deployment and database limitations](../README.md#option-2-docker).
 3. Create a draft, then publish it after review. For version `0.2.0`:
 
    ```bash
