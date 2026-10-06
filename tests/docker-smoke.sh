@@ -4,6 +4,8 @@ set -euo pipefail
 image=${1:-someplice:ci}
 name="someplice-smoke-${GITHUB_RUN_ID:-local}-$$"
 volume="${name}-data"
+restore_volume="${name}-restore"
+backup=$(mktemp)
 platform=${DOCKER_PLATFORM:-linux/amd64}
 
 cleanup() {
@@ -13,16 +15,18 @@ cleanup() {
     docker inspect "$name" || true
   fi
   docker rm -f "$name" >/dev/null 2>&1 || true
-  docker volume rm "$volume" >/dev/null 2>&1 || true
+  docker volume rm "$volume" "$restore_volume" >/dev/null 2>&1 || true
+  rm -f "$backup"
   exit "$status"
 }
 trap cleanup EXIT
 
 docker volume create "$volume" >/dev/null
 start() {
+  local data_volume=${1:-$volume}
   docker run -d --name "$name" --platform "$platform" \
     --read-only --cap-drop ALL --security-opt no-new-privileges \
-    --mount "type=volume,source=$volume,target=/app/data" \
+    --mount "type=volume,source=$data_volume,target=/app/data" \
     -e SOMEPLICE_TIMEZONE=UTC -p 127.0.0.1::3000 "$image" >/dev/null
   port=$(docker port "$name" 3000/tcp | cut -d: -f2)
   url="http://127.0.0.1:$port"
@@ -36,6 +40,19 @@ start() {
   return 1
 }
 
+assert_persistence() {
+  curl --fail --silent --show-error "$url/api/trpc/goals.list" | grep -q container-persistence-marker
+  docker exec "$name" node --input-type=module -e '
+    import assert from "node:assert/strict";
+    import { DatabaseSync } from "node:sqlite";
+    const db = new DatabaseSync(process.env.DATABASE_PATH);
+    db.function("regexp", { deterministic: true }, (pattern, value) =>
+      typeof pattern === "string" && typeof value === "string" && new RegExp(pattern).test(value) ? 1 : 0);
+    assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
+    db.close();
+  '
+}
+
 start
 test "$(docker exec "$name" id -u)" = 1000
 for page in today goals journey; do
@@ -44,6 +61,10 @@ done
 docker exec "$name" node --input-type=module -e '
   import assert from "node:assert/strict";
   import { DatabaseSync } from "node:sqlite";
+  const date = new Date("2026-01-01T00:00:00Z");
+  for (const [timeZone, expected] of [["UTC", "00:00"], ["America/New_York", "19:00"], ["Asia/Kathmandu", "05:45"], ["Pacific/Chatham", "13:45"]]) {
+    assert.equal(new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(date), expected);
+  }
   const db = new DatabaseSync(process.env.DATABASE_PATH);
   db.function("regexp", { deterministic: true }, (pattern, value) =>
     typeof pattern === "string" && typeof value === "string" && new RegExp(pattern).test(value) ? 1 : 0);
@@ -56,16 +77,19 @@ docker exec "$name" node --input-type=module -e '
 curl --fail --silent --show-error "$url/api/trpc/goals.list" | grep -q container-persistence-marker
 docker stop --timeout 35 "$name" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "$name")" = 0
+docker cp "$name:/app/data/." - > "$backup"
 docker rm "$name" >/dev/null
 start
-curl --fail --silent --show-error "$url/api/trpc/goals.list" | grep -q container-persistence-marker
-docker exec "$name" node --input-type=module -e '
-  import assert from "node:assert/strict";
-  import { DatabaseSync } from "node:sqlite";
-  const db = new DatabaseSync(process.env.DATABASE_PATH);
-  db.function("regexp", { deterministic: true }, (pattern, value) =>
-    typeof pattern === "string" && typeof value === "string" && new RegExp(pattern).test(value) ? 1 : 0);
-  assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
-  db.close();
-'
+assert_persistence
+docker stop --timeout 35 "$name" >/dev/null
+test "$(docker inspect --format '{{.State.ExitCode}}' "$name")" = 0
+docker rm "$name" >/dev/null
+
+docker volume create "$restore_volume" >/dev/null
+docker run --rm -i --platform "$platform" \
+  --read-only --cap-drop ALL --security-opt no-new-privileges \
+  --mount "type=volume,source=$restore_volume,target=/app/data" \
+  --entrypoint tar "$image" --no-same-owner -x -C /app/data < "$backup"
+start "$restore_volume"
+assert_persistence
 echo "Container smoke test passed: $platform"

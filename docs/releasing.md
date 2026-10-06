@@ -55,7 +55,8 @@ deployments with `ghcr.io/drewbitt/someplice@sha256:...` when reproducibility ma
 
 ## Before announcing a release
 
-- [ ] CI passes for the release commit, including both container architectures.
-- [ ] Scan the final image and triage fixable high/critical OS and dependency findings.
+- [ ] CI passes for the release commit, including both container architectures and their
+      high/critical package vulnerability gates.
+- [ ] Review scan coverage and remaining security risks; a passing scan is not a security guarantee.
 - [ ] Verify package visibility, anonymous pulls (if public), digest, and attestations.
 - [ ] Test [backup, restore, and rollback](../README.md#data-and-upgrades) on representative data.
