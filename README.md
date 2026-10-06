@@ -90,9 +90,7 @@ Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` (amd64/arm64).
 ```bash
 docker build -t someplice .
 docker run -d --name someplice --restart unless-stopped --stop-timeout 35 \
-  --read-only --cap-drop ALL --security-opt no-new-privileges \
-  --mount type=volume,source=someplice-data,target=/app/data \
-  -p 127.0.0.1:3000:3000 someplice
+  --read-only -v someplice-data:/app/data -p 127.0.0.1:3000:3000 someplice
 ```
 
 Open <http://localhost:3000>. Someplice has no authentication; keep access local or use an authenticated gateway. Use one container per database. Before upgrading, stop the container and back up the entire data volume.
