@@ -85,7 +85,7 @@ pnpm run dev
 
 #### Option 2: Docker
 
-Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` once published (amd64/arm64).
+Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` (amd64/arm64).
 
 ```bash
 docker build -t someplice .
