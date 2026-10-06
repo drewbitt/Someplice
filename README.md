@@ -65,7 +65,7 @@ There are two ways to install Someplice: with pnpm or Docker. Choose the method 
 
 #### Option 1: pnpm
 
-Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24 for `node:sqlite`) if needed.
+Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24.21.0 for `node:sqlite`) if needed.
 
 1. Clone the repository
 2. Install dependencies
@@ -85,17 +85,15 @@ pnpm run dev
 
 #### Option 2: Docker
 
-The Docker public image build is WIP. For now, you can build the image locally:
+Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` (amd64/arm64).
 
 ```bash
 docker build -t someplice .
+docker run -d --name someplice --restart unless-stopped --stop-timeout 35 \
+  --read-only -v someplice-data:/app/data -p 127.0.0.1:3000:3000 someplice
 ```
 
-Then run the container. Replace `/host/dataFolder` with the absolute path to the folder where you want to store the database. The `/today` health check initializes the database after each start.
-
-```bash
-docker run -v /host/dataFolder:/app/data -p 3000:3000 someplice:latest
-```
+Open <http://localhost:3000>. Someplice has no authentication; keep access local or use an authenticated gateway. Use one container per database. Before upgrading, stop the container and back up the entire data volume.
 
 #### Time zone
 
@@ -131,3 +129,7 @@ The native service worker caches only build/static assets, not pages, SvelteKit 
 When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. `pnpm run db:codegen` regenerates `src/lib/types/data.d.ts` from the migrations (no database file needed); a unit test fails if it is stale.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## License
+
+[MIT](LICENSE).
