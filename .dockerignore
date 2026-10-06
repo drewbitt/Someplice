@@ -21,7 +21,6 @@ Dockerfile
 coverage
 *.log
 .vscode
-docs
 tests
 README.md
 lefthook.yml

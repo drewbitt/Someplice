@@ -85,46 +85,21 @@ pnpm run dev
 
 #### Option 2: Docker
 
-Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` once published.
-The [publishing workflow](docs/releasing.md) supports amd64 and arm64.
-
-**No authentication or user isolation:** keep the loopback binding below. Remote access
-needs an authenticated HTTPS gateway or a trusted private network.
+Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` once published (amd64/arm64).
 
 ```bash
 docker build -t someplice .
-docker run -d --name someplice --restart unless-stopped \
+docker run -d --name someplice --restart unless-stopped --stop-timeout 35 \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
-  --stop-timeout 35 \
   --mount type=volume,source=someplice-data,target=/app/data \
   -p 127.0.0.1:3000:3000 someplice
 ```
 
-Open <http://localhost:3000>. The named volume preserves the database across container replacements.
-
-- Use one container per database on local storage, not NFS.
-- For bind mounts, mount the whole `/app/data` directory and make it writable by UID/GID
-  `1000:1000`, including SQLite WAL/SHM files.
-- `DATABASE_PATH` defaults to `/app/data/db.sqlite` in Docker; keep overrides in a persistent
-  writable mount. The `/today` health check can initialize the database; it is not side-effect-free.
+Open <http://localhost:3000>. Someplice has no authentication; keep access local or use an authenticated gateway. Use one container per database. Before upgrading, stop the container and back up the entire data volume.
 
 #### Time zone
 
 Day boundaries use one installation time zone: the stored setting first, then a valid `SOMEPLICE_TIMEZONE`, then UTC. On a fresh installation without an environment override, the first browser visit saves its detected zone. Set `SOMEPLICE_TIMEZONE=America/New_York` (or `docker run -e SOMEPLICE_TIMEZONE=America/New_York ...`) to choose the initial zone explicitly. Server `TZ` does not control application dates.
-
-#### Data and upgrades
-
-Before upgrading, stop the app and back up the entire data directory, not just a live
-`db.sqlite`. For the Docker container above:
-
-```bash
-mkdir -p backups
-docker stop someplice
-docker cp someplice:/app/data/. "backups/someplice-$(date -u +%Y%m%dT%H%M%SZ)"
-docker start someplice
-```
-
-Test restoring into a new volume. Rollback may require the matching backup, not just an older image.
 
 #### Pre-user database baseline
 
