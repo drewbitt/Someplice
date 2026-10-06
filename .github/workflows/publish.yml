@@ -15,8 +15,6 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-26.04
-    outputs:
-      stable: ${{ steps.release.outputs.stable }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -24,7 +22,6 @@ jobs:
           persist-credentials: false
 
       - name: Validate publishing ref
-        id: release
         env:
           EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -32,21 +29,18 @@ jobs:
         run: |
           if [ "$EVENT_NAME" = workflow_dispatch ]; then
             test "$GITHUB_REF" = refs/heads/master
-            echo 'stable=false' >> "$GITHUB_OUTPUT"
           else
             git merge-base --is-ancestor HEAD origin/master
             node --input-type=module <<'JS'
-          import { readFileSync, appendFileSync } from 'node:fs';
+          import { readFileSync } from 'node:fs';
           const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
           const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?$/;
           if (!semver.test(version) || process.env.RELEASE_TAG !== `v${version}`) {
             throw new Error('Release tag must equal v<package.json version> (without build metadata)');
           }
-          const prerelease = version.includes('-');
-          if (prerelease !== (process.env.PRERELEASE === 'true')) {
+          if (version.includes('-') !== (process.env.PRERELEASE === 'true')) {
             throw new Error('Release prerelease flag must match the version');
           }
-          appendFileSync(process.env.GITHUB_OUTPUT, `stable=${!prerelease}\n`);
           JS
           fi
 
@@ -55,7 +49,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   publish:
-    needs: [validate, test]
+    needs: test
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -73,25 +67,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
-      - name: Image name
-        id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
-
       - name: Image metadata
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ${{ steps.image.outputs.name }}
-          flavor: latest=false
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=sha,format=long
-            type=raw,value=edge,enable=${{ github.event_name == 'workflow_dispatch' }}
-            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ needs.validate.outputs.stable == 'true' }}
-            type=raw,value=latest,enable=${{ needs.validate.outputs.stable == 'true' }}
-          labels: |
-            org.opencontainers.image.title=Someplice
-            org.opencontainers.image.licenses=MIT
+            type=edge
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
       - name: Log in to GHCR
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
@@ -115,13 +100,9 @@ jobs:
           cache-from: |
             type=gha,scope=linux/amd64
             type=gha,scope=linux/arm64
-            type=gha,scope=publish
-          cache-to: type=gha,scope=publish,mode=max
 
       - name: Record published digest
         env:
-          IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: |
-          printf '### Published image\n\n`%s@%s`\n\n```text\n%s\n```\n' "$IMAGE" "$DIGEST" "$TAGS" >> "$GITHUB_STEP_SUMMARY"
+        run: printf '`%s`\n\n```text\n%s\n```\n' "$DIGEST" "$TAGS" >> "$GITHUB_STEP_SUMMARY"

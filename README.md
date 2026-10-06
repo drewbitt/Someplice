@@ -85,7 +85,7 @@ pnpm run dev
 
 #### Option 2: Docker
 
-Use Docker Engine 25+ to build locally, or pull `ghcr.io/drewbitt/someplice:<tag>` once published.
+Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` once published.
 The [publishing workflow](docs/releasing.md) supports amd64 and arm64.
 
 **No authentication or user isolation:** keep the loopback binding below. Remote access
