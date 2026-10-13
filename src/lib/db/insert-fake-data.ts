@@ -2,31 +2,14 @@
  * This file is to be used to insert fake data into the database for testing purposes.
  */
 
-import {
-	incrementalDate,
-	incrementalNumber,
-	randBetweenDate,
-	randHsl,
-	randNumber,
-	randText,
-	randTextRange
-} from '@ngneat/falso';
+import { faker } from '@faker-js/faker';
 import { getDb } from './db.ts';
 import { dbLogger } from '../utils/logger.ts';
 
 const db = getDb();
 
 const numberOfGoals = 9;
-const incrementalNumberFactory = incrementalNumber();
-
-// This factory will generate a new date every time it's called
-// The dates will be between 20 days ago and 1 day ago
-// This does not cover all historical dates, but it's good enough for testing
-const incrementalDateFactory = incrementalDate({
-	from: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-	to: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-	step: 24 * 60 * 60 * 1000 // 1 day
-});
+const dayMs = 24 * 60 * 60 * 1000;
 
 const generateSubIntentionQualifier = () => {
 	if (Math.random() < 0.3) {
@@ -36,7 +19,7 @@ const generateSubIntentionQualifier = () => {
 
 	const alphabet = 'abcdefghijklmnopqrstuvwxyz';
 	let result = '';
-	for (let i = 0; i < randNumber({ min: 1, max: 3 }); i++) {
+	for (let i = 0; i < faker.number.int({ min: 1, max: 3 }); i++) {
 		result += alphabet[Math.floor(Math.random() * alphabet.length)];
 	}
 	return result;
@@ -51,19 +34,25 @@ const generateSubIntentionQualifier = () => {
 const customDateMath = (i: number) => {
 	const now = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000);
 	return i < 10
-		? randBetweenDate({
-				from: new Date(now.getTime() - 24 * 60 * 60 * 1000),
-				to: now
-			}).toISOString()
+		? faker.date
+				.between({
+					from: new Date(now.getTime() - dayMs),
+					to: now
+				})
+				.toISOString()
 		: i < 20
-			? randBetweenDate({
-					from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-					to: now
-				}).toISOString()
-			: randBetweenDate({
-					from: new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000),
-					to: now
-				}).toISOString();
+			? faker.date
+					.between({
+						from: new Date(now.getTime() - 7 * dayMs),
+						to: now
+					})
+					.toISOString()
+			: faker.date
+					.between({
+						from: new Date(now.getTime() - 2 * 365 * dayMs),
+						to: now
+					})
+					.toISOString();
 };
 
 async function insertFakeData() {
@@ -72,23 +61,23 @@ async function insertFakeData() {
 
 	// Generate fake goals
 	const goals = Array.from({ length: numberOfGoals }, () => {
-		if (randNumber({ min: 0, max: 1 })) {
+		if (faker.number.int({ min: 0, max: 1 })) {
 			// active goal
 			return {
 				active: 1,
 				orderNumber: activeCount++,
-				title: randText(),
-				description: randText(),
-				color: randHsl()
+				title: faker.lorem.sentence(),
+				description: faker.lorem.sentence(),
+				color: faker.color.hsl({ format: 'css' })
 			};
 		} else {
 			// inactive goal
 			return {
 				active: 0,
 				orderNumber: 0,
-				title: randText(),
-				description: randText(),
-				color: randHsl()
+				title: faker.lorem.sentence(),
+				description: faker.lorem.sentence(),
+				color: faker.color.hsl({ format: 'css' })
 			};
 		}
 	});
@@ -96,27 +85,19 @@ async function insertFakeData() {
 	// Generate fake intentions
 	const intentions = Array.from({ length: 50 }, (_, i) => ({
 		orderNumber: i + 1,
-		status: randNumber({ min: 0, max: 1 }) === 1 ? ('done' as const) : ('pending' as const),
-		text: randTextRange({ min: 10, max: 80 }),
+		status: faker.number.int({ min: 0, max: 1 }) === 1 ? ('done' as const) : ('pending' as const),
+		text: faker.lorem.sentence({ min: 2, max: 10 }),
 		subIntentionQualifier: generateSubIntentionQualifier(),
 		date: customDateMath(i),
-		goalId: randNumber({ min: 1, max: numberOfGoals })
+		goalId: faker.number.int({ min: 1, max: numberOfGoals })
 	}));
 
-	// Generate fake outcomes
-	const outcomes = Array.from({ length: 20 }, () => {
-		const date = incrementalDateFactory();
-		if (!date) {
-			throw new Error('Failed to generate unique date for outcome');
-		}
-
-		return {
-			id: incrementalNumberFactory(),
-			reviewed: randNumber({ min: 0, max: 1 }),
-			// Convert the date to ISO 8601 date string and slice to remove the time
-			date: date.toISOString().slice(0, 10)
-		};
-	});
+	// Generate fake outcomes. Outcome i is dated 20-i days ago (20 days ago down to yesterday).
+	const outcomes = Array.from({ length: 20 }, (_, i) => ({
+		id: i + 1,
+		reviewed: faker.number.int({ min: 0, max: 1 }),
+		date: new Date(Date.now() - (20 - i) * dayMs).toISOString().slice(0, 10)
+	}));
 
 	// Generate fake outcomes_intentions
 	// Do this a bit differently in order to have unique ids but still match existing data
