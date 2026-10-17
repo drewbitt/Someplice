@@ -25,12 +25,12 @@
 		"@trpc/client": "^11.19.0",
 		"@trpc/server": "^11.19.0",
 		"croner": "^10.0.1",
-		"devalue": "^6.0.2",
+		"devalue": "^6.0.3",
 		"kysely": "^0.29.6",
 		"kysely-generic-sqlite": "^2.0.1",
 		"runed": "0.37.1",
 		"tslog": "^5.2.0",
-		"zod": "^4.6.5"
+		"zod": "^4.6.7"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.3",
@@ -38,8 +38,8 @@
 		"@deno/svelte-adapter": "^0.2.2",
 		"@eslint/js": "^10.0.1",
 		"@faker-js/faker": "^10.6.0",
-		"@iconify-json/lucide": "^1.2.142",
-		"@playwright/test": "^1.64.0",
+		"@iconify-json/lucide": "^1.2.144",
+		"@playwright/test": "^1.64.1",
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/kit": "^3.0.1",
 		"@sveltejs/load-config": "^0.2.3",
@@ -47,15 +47,15 @@
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^24.19.2",
 		"@typescript/native": "npm:typescript@^7.0.2",
-		"@vitest/browser-playwright": "5.0.3",
-		"daisyui": "^5.7.47",
+		"@vitest/browser-playwright": "5.0.4",
+		"daisyui": "^5.7.50",
 		"eslint": "^10.12.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.1",
 		"globals": "^17.13.0",
 		"kysely-codegen": "^0.20.0",
-		"lefthook": "^2.2.1",
-		"prettier": "^3.9.9",
+		"lefthook": "^2.2.2",
+		"prettier": "^3.9.10",
 		"prettier-plugin-svelte": "^4.1.1",
 		"prettier-plugin-tailwindcss": "^0.8.1",
 		"svelte": "^5.57.2",
@@ -63,10 +63,10 @@
 		"svelte-dnd-action": "^0.9.80",
 		"tailwindcss": "^4.3.3",
 		"typescript": "npm:@typescript/typescript6@^6.0.2",
-		"typescript-eslint": "8.71.0",
+		"typescript-eslint": "8.71.2",
 		"unplugin-icons": "^24.0.0",
 		"vite": "^8.3.4",
-		"vitest": "^5.0.3",
+		"vitest": "^5.0.4",
 		"vitest-browser-svelte": "^3.1.0"
 	},
 	"type": "module",
@@ -80,7 +80,7 @@
 			"onFail": "download"
 		}
 	},
-	"packageManager": "pnpm@12.11.2",
+	"packageManager": "pnpm@12.13.0",
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
