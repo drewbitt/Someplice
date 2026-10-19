@@ -72,10 +72,24 @@ export const GoalSchema = z.object({
 	id: z.number().nullable(),
 	active: z.number(),
 	orderNumber: z.number(),
-	title: z.string(),
-	description: z.string().nullable(),
+	title: z.string().trim().min(1),
+	description: z.string().trim().nullable(),
 	color: z.string()
 });
+
+// Length limits live outside GoalSchema because updateGoals re-submits every
+// active goal: stored rows that predate the limits must not wedge saves. They
+// are enforced on create and on values that actually changed.
+export const GOAL_TITLE_MAX = 120;
+export const GOAL_DESCRIPTION_MAX = 500;
+const assertGoalLength = (value: string | null | undefined, max: number, label: string) => {
+	if ((value?.length ?? 0) > max) {
+		throw new TRPCError({
+			code: 'BAD_REQUEST',
+			message: label + ' is limited to ' + max + ' characters.'
+		});
+	}
+};
 
 export const goals = t.router({
 	/**
@@ -181,6 +195,8 @@ export const goals = t.router({
 		.use(logger)
 		.input(GoalSchema.omit({ id: true, orderNumber: true }))
 		.mutation(async ({ input }) => {
+			assertGoalLength(input.title, GOAL_TITLE_MAX, 'Title');
+			assertGoalLength(input.description, GOAL_DESCRIPTION_MAX, 'Description');
 			const now = (await configuredZoneNow()).toISOString();
 			return await getDb()
 				.transaction()
@@ -220,7 +236,7 @@ export const goals = t.router({
 				.execute(async (trx) => {
 					const existingGoals = await trx
 						.selectFrom('goals')
-						.select(['id', 'orderNumber', 'active'])
+						.select(['id', 'orderNumber', 'active', 'title', 'description'])
 						.execute();
 					const existingById = new Map(existingGoals.map((g) => [g.id, g]));
 
@@ -295,6 +311,12 @@ export const goals = t.router({
 									.toOperationNode()
 							);
 						}
+						if (goal.title !== existing.title.trim()) {
+							assertGoalLength(goal.title, GOAL_TITLE_MAX, 'Title');
+						}
+						if (goal.description !== (existing.description?.trim() ?? null)) {
+							assertGoalLength(goal.description, GOAL_DESCRIPTION_MAX, 'Description');
+						}
 						results.push(
 							await trx
 								.updateTable('goals')
@@ -311,6 +333,8 @@ export const goals = t.router({
 					}
 
 					for (const goal of inserts) {
+						assertGoalLength(goal.title, GOAL_TITLE_MAX, 'Title');
+						assertGoalLength(goal.description, GOAL_DESCRIPTION_MAX, 'Description');
 						results.push(
 							await insertGoal(
 								trx,

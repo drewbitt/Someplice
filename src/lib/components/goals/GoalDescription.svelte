@@ -31,6 +31,7 @@
 	<div class="goal-box-description-editable w-full">
 		<div class="flex items-center justify-between">
 			<textarea
+				maxlength="500"
 				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
 				placeholder="Describe your goal"
 				bind:value={description}></textarea>
@@ -59,7 +60,9 @@
 {:else if currentlyEditing && isInactiveGoal}
 	<div class="goal-box-description w-full">
 		<div class="flex items-center justify-between">
-			<p style="color: {descriptionColor}">{description ?? ''}</p>
+			<p class="truncate break-words" style="color: {descriptionColor}" title={description ?? ''}>
+				{description ?? ''}
+			</p>
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"
@@ -84,6 +87,6 @@
 	</div>
 {:else}
 	<div class="goal-box-description w-full">
-		<p style="color: {descriptionColor}">{description ?? ''}</p>
+		<p class="truncate break-words" style="color: {descriptionColor}">{description ?? ''}</p>
 	</div>
 {/if}

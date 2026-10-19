@@ -41,6 +41,26 @@ test('outcome drafts reset on every successful save, not just the first', async 
 	}
 });
 
+test('legacy whitespace-only titles can be edited and repaired', async () => {
+	const screen = await render(GoalsPage, {
+		data: {
+			goals: [{ ...goal, title: '   ' }],
+			inactiveGoals: [],
+			goalLogs: [],
+			priorities: []
+		}
+	});
+	await screen.getByRole('button', { name: 'Edit', exact: true }).click();
+	const save = screen.getByRole('button', { name: 'Save', exact: true });
+	await expect.element(save).toBeDisabled();
+	await screen.getByRole('textbox').first().fill('Read');
+	await expect.element(save).toBeEnabled();
+	await save.click();
+	expect(api.updateGoals).toHaveBeenCalledWith({
+		goals: [expect.objectContaining({ title: 'Read' })]
+	});
+});
+
 test('inactive-only goals still expose edit, restore and delete controls', async () => {
 	const archived = { ...goal, active: 0, orderNumber: 0, date: intention.date };
 	const screen = await render(GoalsPage, {
