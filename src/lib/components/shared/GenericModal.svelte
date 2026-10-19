@@ -16,6 +16,7 @@
 	} = $props();
 
 	let dialog: HTMLDialogElement;
+	let returnFocus: HTMLElement | null = null;
 
 	$effect(() => {
 		if (dialog) {
@@ -23,6 +24,7 @@
 				// Re-opening must clear the previous confirm so a failed action
 				// that reopens the modal can't fire without a fresh click.
 				actionConfirmed = false;
+				returnFocus = document.activeElement as HTMLElement | null;
 				dialog.showModal();
 			} else {
 				dialog.close();
@@ -31,7 +33,16 @@
 	});
 </script>
 
-<dialog bind:this={dialog} class="modal" onclose={() => (showModal = false)}>
+<dialog
+	bind:this={dialog}
+	class="modal"
+	onclose={() => {
+		showModal = false;
+		const el = returnFocus;
+		returnFocus = null;
+		if (el?.isConnected) requestAnimationFrame(() => el.focus());
+	}}
+>
 	<div class="modal-box">
 		<h3 class="text-lg font-bold">{title}</h3>
 		<p class="py-4">{message}</p>

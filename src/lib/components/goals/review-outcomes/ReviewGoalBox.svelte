@@ -220,6 +220,7 @@
 							type="button"
 							class="btn btn-xs"
 							class:btn-active={verdict?.verdict === 'enough'}
+							aria-pressed={verdict?.verdict === 'enough'}
 							onclick={() => handleVerdictButton('enough')}
 						>
 							yes
@@ -228,6 +229,7 @@
 							type="button"
 							class="btn btn-xs"
 							class:btn-active={verdict?.verdict === 'not_enough'}
+							aria-pressed={verdict?.verdict === 'not_enough'}
 							onclick={() => handleVerdictButton('not_enough')}
 						>
 							no
@@ -236,6 +238,7 @@
 							type="button"
 							class="btn btn-xs"
 							class:btn-active={verdict?.verdict === 'day_off'}
+							aria-pressed={verdict?.verdict === 'day_off'}
 							onclick={() => handleVerdictButton('day_off')}
 						>
 							day off

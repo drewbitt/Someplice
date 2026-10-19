@@ -36,9 +36,13 @@
 		}
 	});
 
+	const restoreRowFocus = () =>
+		requestAnimationFrame(() => document.getElementById(`intention-text-${intention.id}`)?.focus());
+
 	const closeIntentionsModal = () => {
 		if (!showAppendModal) {
 			opened = false;
+			restoreRowFocus();
 		} else {
 			intentionsModalOpened = false;
 		}
@@ -47,6 +51,7 @@
 	const closeAppendModal = () => {
 		showAppendModal = false;
 		opened = false;
+		restoreRowFocus();
 	};
 
 	const deleteIntention = async () => {

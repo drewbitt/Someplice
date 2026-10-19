@@ -284,6 +284,7 @@
 					/>
 					<span
 						role="button"
+						aria-pressed={intention.status === 'done'}
 						tabindex={0}
 						id="intention-text-{intention.id}"
 						aria-haspopup="dialog"
