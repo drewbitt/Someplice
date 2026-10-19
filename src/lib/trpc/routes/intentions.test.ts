@@ -312,6 +312,13 @@ describe('intentions', () => {
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
 	});
 
+	it('maps unique (date, orderNumber) collisions to a CONFLICT error', async () => {
+		await caller.intentions.updateIntentions({ intentions: [{ ...TEST_INTENTION, id: null }] });
+		await expect(
+			caller.intentions.updateIntentions({ intentions: [{ ...TEST_INTENTION, id: null }] })
+		).rejects.toMatchObject({ code: 'CONFLICT' });
+	});
+
 	it('updateIntentions swaps orderNumbers without tripping the unique index', async () => {
 		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
 		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });

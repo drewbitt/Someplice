@@ -4,7 +4,7 @@ import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import { deleteOrphanedOutcomes } from '#lib/db/queries.js';
+import { deleteOrphanedOutcomes, isUniqueViolation } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { INTENTION_STATUSES as intentionStatuses } from '../enums';
 
@@ -526,6 +526,14 @@ export const intentions = t.router({
 					}
 
 					return results;
+				})
+				.catch((error: unknown) => {
+					throw isUniqueViolation(error)
+						? new TRPCError({
+								code: 'CONFLICT',
+								message: 'The intention list changed. Refresh and try again.'
+							})
+						: error;
 				});
 		}),
 	/**

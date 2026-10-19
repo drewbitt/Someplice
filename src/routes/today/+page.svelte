@@ -26,6 +26,7 @@
 	let showValidIntentionsNotification = $state(false);
 	let showAdditionalIntentionsTextArea = $state(false);
 	let showDBErrorNotification = $state(false);
+	let saveError = $state('Error saving intentions');
 	// svelte-ignore state_referenced_locally
 	let intentionsFromServer = $state(data.intentions);
 	let hasOutstandingOutcome = $state(false);
@@ -73,6 +74,12 @@
 			await refreshAll();
 		} catch (error) {
 			appLogger.error('Error saving intentions', error);
+			if (error instanceof Error && error.message.includes('Refresh and try again')) {
+				saveError = error.message;
+				await refreshAll();
+			} else {
+				saveError = 'Error saving intentions';
+			}
 			showDBErrorNotification = true;
 		} finally {
 			saving = false;
@@ -184,7 +191,7 @@
 	{#if showDBErrorNotification}
 		<div class="toast">
 			<div class="alert alert-error">
-				<span>Error saving intentions</span>
+				<span>{saveError}</span>
 			</div>
 		</div>
 	{/if}

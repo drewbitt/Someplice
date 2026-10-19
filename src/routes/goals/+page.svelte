@@ -76,6 +76,9 @@
 				goalPageErrorStore.setError(
 					error instanceof Error ? error.message : 'Failed to save goals'
 				);
+				if (error instanceof Error && error.message.includes('Refresh and try again')) {
+					await refreshAll();
+				}
 				return;
 			} finally {
 				saving = false;
@@ -119,6 +122,9 @@
 		} catch (error) {
 			if (error instanceof Error) {
 				goalPageErrorStore.setError(error.message);
+				if (error.message.includes('Refresh and try again')) {
+					await refreshAll();
+				}
 			}
 		}
 	};

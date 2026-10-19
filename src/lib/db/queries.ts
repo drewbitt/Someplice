@@ -130,6 +130,12 @@ export const getConfiguredTimeZone = async (db: Kysely<DB> = getDb()): Promise<s
 	return 'UTC';
 };
 
+/** node:sqlite throws plain Errors for constraint violations — detect the unique kind. */
+export const isUniqueViolation = (error: unknown): boolean =>
+	error instanceof Error &&
+	(error.message.includes('UNIQUE constraint failed') ||
+		(error as { errcode?: number }).errcode === 2067);
+
 /** Wall-clock "now" in the configured zone (fake-Z Date convention). */
 export const configuredZoneNow = async (db: Kysely<DB> = getDb()): Promise<Date> =>
 	wallClockInZone(await getConfiguredTimeZone(db));

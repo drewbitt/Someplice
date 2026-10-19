@@ -6,7 +6,7 @@ import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { DB } from '#lib/types/data.js';
 import type { Goal } from '../types';
-import { configuredZoneNow, deleteOrphanedOutcomes } from '#lib/db/queries.js';
+import { configuredZoneNow, deleteOrphanedOutcomes, isUniqueViolation } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { TRPCError } from '@trpc/server';
 
@@ -295,6 +295,14 @@ export const goals = t.router({
 									.toOperationNode()
 							);
 						}
+						// A submitted update id that is archived on the server means this
+						// tab's list is stale — reject instead of resurrecting it.
+						if (existing.active !== 1) {
+							throw new TRPCError({
+								code: 'CONFLICT',
+								message: 'The goal list changed. Refresh and try again.'
+							});
+						}
 						results.push(
 							await trx
 								.updateTable('goals')
@@ -326,6 +334,14 @@ export const goals = t.router({
 					}
 
 					return results;
+				})
+				.catch((error: unknown) => {
+					throw isUniqueViolation(error)
+						? new TRPCError({
+								code: 'CONFLICT',
+								message: 'The goal list changed. Refresh and try again.'
+							})
+						: error;
 				});
 		}),
 	/**
