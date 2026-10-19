@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Kysely, sql } from 'kysely';
+import { Migrator } from 'kysely/migration';
 import { DatabaseSync } from 'node:sqlite';
 import type { DB } from '../types/data';
 import { createNodeSqliteDialect } from './node-sqlite.ts';
@@ -104,6 +105,35 @@ describe('migrations', () => {
 		} finally {
 			await sql`UPDATE kysely_migration SET name = '001_initial'`.execute(db);
 			await db.deleteFrom('goals').execute();
+		}
+	});
+
+	it('a failing migration rolls back and the database stays migratable', async () => {
+		const memSqlite = new DatabaseSync(':memory:');
+		configureSqlite(memSqlite);
+		const memDb = new Kysely<DB>({ dialect: createNodeSqliteDialect(memSqlite) });
+		try {
+			const badProvider = {
+				getMigrations: async () => ({
+					'001_bad': {
+						up: async (migDb: Kysely<unknown>) => {
+							await migDb.schema.createTable('partial').addColumn('id', 'integer').execute();
+							throw new Error('mid-migration failure');
+						}
+					}
+				})
+			};
+			const { error } = await new Migrator({
+				db: memDb as unknown as Kysely<never>,
+				provider: badProvider
+			}).migrateToLatest();
+			expect(String(error)).toContain('mid-migration failure');
+			expect(await listObjects(memDb, 'table')).toEqual([]);
+
+			await runMigrations(memDb);
+			expect((await listObjects(memDb, 'table')).sort()).toEqual(APP_TABLES);
+		} finally {
+			await memDb.destroy();
 		}
 	});
 

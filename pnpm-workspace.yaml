@@ -12,5 +12,4 @@ autoDedupe: true
 peerDependencyRules:
   allowedVersions:
     '@vite-pwa/sveltekit>@sveltejs/kit': '3'
-    '@deno/svelte-adapter>@sveltejs/kit': '3'
     'runed>@sveltejs/kit': '3'

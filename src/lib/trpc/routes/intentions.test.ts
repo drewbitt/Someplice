@@ -1,5 +1,7 @@
 import { createDb, getDb, setDb } from '#lib/db/db.js';
 import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import { getConfiguredTimeZone } from '#lib/db/queries.js';
+import { wallClockInZone } from '#lib/utils/index.js';
 import type { DB } from '#lib/types/data.js';
 import { type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -264,7 +266,7 @@ describe('intentions', () => {
 		expect(added).toBeDefined();
 
 		// Append text to the intention
-		const appendText = ' - edit';
+		const appendText = 'by noon';
 		const appendedIntention = (await caller.intentions.appendText({
 			id: TEST_INTENTION.id as number,
 			text: appendText
@@ -277,8 +279,12 @@ describe('intentions', () => {
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(
-			expect.objectContaining({ ...TEST_INTENTION, text: TEST_INTENTION.text + appendText })
+			expect.objectContaining({ ...TEST_INTENTION, text: TEST_INTENTION.text + ' ' + appendText })
 		);
+
+		await caller.intentions.appendText({ id: TEST_INTENTION.id as number, text: '  ' });
+		const afterEmpty = (await caller.intentions.list(undefined)) as Intention[];
+		expect(afterEmpty[0].text).toBe(TEST_INTENTION.text + ' ' + appendText);
 	});
 
 	it('appendText with invalid id', async () => {
@@ -310,6 +316,16 @@ describe('intentions', () => {
 		expect(listResult).toBeInstanceOf(Array);
 		expect(listResult).toHaveLength(1);
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
+	});
+
+	it('stamps new rows with the configured-zone day, not the submitted date', async () => {
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [{ ...TEST_INTENTION, id: null, date: '2020-01-01T23:59:59.000Z' }]
+		})) as unknown as Intention[];
+		const expectedDay = wallClockInZone(await getConfiguredTimeZone(db))
+			.toISOString()
+			.slice(0, 10);
+		expect(added[0].date.slice(0, 10)).toBe(expectedDay);
 	});
 
 	it('maps unique (date, orderNumber) collisions to a CONFLICT error', async () => {

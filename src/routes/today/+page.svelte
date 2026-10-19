@@ -6,7 +6,7 @@
 	import PriorityCards from '#lib/components/today/PriorityCards.svelte';
 	import Review from '#lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '#lib/trpc/client.js';
-	import { dayOfWeekInZone, goalsForJourneyDay } from '#lib/utils/index.js';
+	import { dateKeyInZone, dayOfWeekInZone, goalsForJourneyDay } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -45,6 +45,29 @@
 		if (todaysIntentions.current && !noGoals && !noIntentions) {
 			showAdditionalIntentionsTextArea = true;
 		}
+
+		let day = data.today;
+		const checkDay = async () => {
+			const current = dateKeyInZone(appTimeZone.current);
+			if (current !== day) {
+				try {
+					await refreshAll();
+					day = current;
+				} catch (error) {
+					appLogger.error('Error refreshing Today', error);
+				}
+			}
+		};
+		const onVisibilityChange = () => {
+			if (document.visibilityState === 'visible') checkDay();
+		};
+		const timer = window.setInterval(checkDay, 60_000);
+		document.addEventListener('visibilitychange', onVisibilityChange);
+		void checkDay();
+		return () => {
+			clearInterval(timer);
+			document.removeEventListener('visibilitychange', onVisibilityChange);
+		};
 	});
 
 	let noGoals = $derived(data.goals.length === 0);

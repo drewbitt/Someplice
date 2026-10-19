@@ -87,7 +87,6 @@ export default [
 			'**/pnpm-lock.yaml',
 			'**/*.cjs',
 			'**/commitlint.config.js',
-			'**/.deno-deploy',
 			'.github',
 			'.vscode',
 			'**/eslint.config.js',

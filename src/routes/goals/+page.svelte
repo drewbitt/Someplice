@@ -43,7 +43,7 @@
 	let noGoals = $derived(goals.length === 0);
 
 	// do not allow Save if goal does not have title
-	let saveButtonEnabled = $derived(goals.every((goal) => goal.title.length > 0));
+	let saveButtonEnabled = $derived(goals.every((goal) => goal.title.trim().length > 0));
 
 	let dragDisabled = $state(true);
 	let editButtonActive = $state(false);
@@ -183,7 +183,7 @@
 				class="btn mx-2"
 				disabled={saving ||
 					!editButtonEnabled ||
-					!saveButtonEnabled ||
+					(editButtonActive && !saveButtonEnabled) ||
 					(noGoals && inactiveGoals.length === 0)}
 				onclick={handleEditButtonClick}
 			>

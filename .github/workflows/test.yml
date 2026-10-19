@@ -77,7 +77,9 @@ jobs:
           tags: someplice:ci
           platforms: ${{ matrix.platform }}
           cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,scope=${{ matrix.platform }},mode=max
+          # Only push runs export: PR exports cost ~1m on the critical path and
+          # can't warm anything the master-run export doesn't already cover.
+          cache-to: ${{ github.event_name == 'push' && format('type=gha,scope={0},mode=max', matrix.platform) || '' }}
 
       - name: Scan image vulnerabilities
         run: |

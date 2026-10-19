@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
 import { UpdateResult } from 'kysely';
@@ -6,11 +6,14 @@ import type { Intention } from '#lib/trpc/types.js';
 import { api, goal, intention } from '../browser-fixtures.js';
 import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
+import IntentionsModal from './IntentionsModal.svelte';
 import Review from './review-outcomes/Review.svelte';
 import { notDones } from '#lib/stores/notDones.svelte.js';
+import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+import TodayPage from '../../../routes/today/+page.svelte';
 import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 import { TRPCClientError } from '@trpc/client';
-import TodayPage from '../../../routes/today/+page.svelte';
+import { dateKeyInZone } from '#lib/utils/index.js';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -24,10 +27,42 @@ beforeEach(() => {
 	todaysIntentions.current = null;
 });
 
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
+
+test.each([
+	['2026-03-08T05:30:00Z', '2026-03-09T04:00:00Z'],
+	['2026-11-01T04:30:00Z', '2026-11-02T05:00:00Z']
+])('Today rechecks the date across DST from %s', async (start, midnight) => {
+	vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+	vi.setSystemTime(new Date(start));
+	appTimeZone.set('America/New_York');
+	await render(TodayPage, {
+		data: {
+			today: start.slice(0, 10),
+			goals: [goal],
+			intentions: [],
+			intentionsOnLatestDate: [],
+			priorities: [],
+			inactiveGoals: [],
+			hasOutstandingOutcome: false
+		}
+	});
+	expect(api.refresh).not.toHaveBeenCalled();
+	vi.setSystemTime(new Date(new Date(midnight).getTime() - 60_000));
+	await vi.advanceTimersByTimeAsync(60_000);
+	expect(api.refresh).toHaveBeenCalledTimes(1);
+	await vi.advanceTimersByTimeAsync(60_000);
+	expect(api.refresh).toHaveBeenCalledTimes(1);
+});
+
 test.each([false, true])(
 	'conflict refresh preserves the tab-local draft (additional=%s)',
 	async (additional) => {
 		const data = {
+			today: dateKeyInZone(appTimeZone.current),
 			goals: [goal],
 			intentions: additional ? [intention] : [],
 			intentionsOnLatestDate: [],
@@ -76,6 +111,32 @@ test.each([false, true])(
 	}
 );
 
+test.each([false, true])(
+	'Today refreshes stale hydration and retries failures (%s)',
+	async (fail) => {
+		vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+		vi.setSystemTime(new Date('2026-10-19T00:00:00Z'));
+		appTimeZone.set('UTC');
+		if (fail) api.refresh.mockRejectedValueOnce(new Error('Offline'));
+		await render(TodayPage, {
+			data: {
+				today: '2026-10-18',
+				goals: [goal],
+				intentions: [],
+				intentionsOnLatestDate: [],
+				priorities: [],
+				inactiveGoals: [],
+				hasOutstandingOutcome: false
+			}
+		});
+		expect(api.refresh).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(api.refresh).toHaveBeenCalledTimes(fail ? 2 : 1);
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(api.refresh).toHaveBeenCalledTimes(fail ? 2 : 1);
+	}
+);
+
 test('NotDones uses a native modal, cancels without mutation, and resets strategy', async () => {
 	const recent = [1, 2, 3].map((id) => ({
 		...intention,
@@ -102,6 +163,25 @@ test('NotDones uses a native modal, cancels without mutation, and resets strateg
 	await screen.getByRole('button', { name: 'Keep', exact: true }).click();
 	expect(onImport).toHaveBeenCalledExactlyOnceWith('1) Read a chapter ⟶ Before breakfast');
 });
+
+test.each(['pending', 'not_today'] as const)(
+	'the %s modal changes status without submitting stale text',
+	async (status) => {
+		const screen = await render(IntentionsModal, {
+			goals: [goal],
+			intention: { ...intention, status },
+			opened: true
+		});
+		await screen
+			.getByRole('button', { name: status === 'not_today' ? 'Mark pending' : 'Not today' })
+			.click();
+		expect(api.setStatus).toHaveBeenCalledExactlyOnceWith({
+			ids: [intention.id],
+			status: status === 'not_today' ? 'pending' : 'not_today'
+		});
+		expect(api.refresh).toHaveBeenCalledOnce();
+	}
+);
 
 test('checkbox changes are single-flight and roll back after failure', async () => {
 	let finish!: (value: UpdateResult | undefined) => void;
