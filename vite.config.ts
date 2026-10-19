@@ -1,6 +1,5 @@
 import nodeAdapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import denoAdapter from '@deno/svelte-adapter';
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
 import Icons from 'unplugin-icons/vite';
@@ -12,7 +11,7 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
-			adapter: process.env.BUILD_ENV === 'deno' ? denoAdapter() : nodeAdapter(),
+			adapter: nodeAdapter(),
 			output: { linkHeaderPreload: true }
 		}),
 
