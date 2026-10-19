@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
 import { UpdateResult } from 'kysely';
@@ -8,6 +8,8 @@ import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
 import Review from './review-outcomes/Review.svelte';
 import { notDones } from '#lib/stores/notDones.svelte.js';
+import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+import TodayPage from '../../../routes/today/+page.svelte';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -19,6 +21,63 @@ vi.mock('#lib/trpc/client.js', () =>
 beforeEach(() => {
 	notDones.recentIntentions = [];
 });
+
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
+
+test.each([
+	['2026-03-08T05:30:00Z', '2026-03-09T04:00:00Z'],
+	['2026-11-01T04:30:00Z', '2026-11-02T05:00:00Z']
+])('Today rechecks the date across DST from %s', async (start, midnight) => {
+	vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+	vi.setSystemTime(new Date(start));
+	appTimeZone.set('America/New_York');
+	await render(TodayPage, {
+		data: {
+			today: start.slice(0, 10),
+			goals: [goal],
+			intentions: [],
+			intentionsOnLatestDate: [],
+			priorities: [],
+			inactiveGoals: [],
+			hasOutstandingOutcome: false
+		}
+	});
+	expect(api.refresh).not.toHaveBeenCalled();
+	vi.setSystemTime(new Date(new Date(midnight).getTime() - 60_000));
+	await vi.advanceTimersByTimeAsync(60_000);
+	expect(api.refresh).toHaveBeenCalledTimes(1);
+	await vi.advanceTimersByTimeAsync(60_000);
+	expect(api.refresh).toHaveBeenCalledTimes(1);
+});
+
+test.each([false, true])(
+	'Today refreshes stale hydration and retries failures (%s)',
+	async (fail) => {
+		vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+		vi.setSystemTime(new Date('2026-10-19T00:00:00Z'));
+		appTimeZone.set('UTC');
+		if (fail) api.refresh.mockRejectedValueOnce(new Error('Offline'));
+		await render(TodayPage, {
+			data: {
+				today: '2026-10-18',
+				goals: [goal],
+				intentions: [],
+				intentionsOnLatestDate: [],
+				priorities: [],
+				inactiveGoals: [],
+				hasOutstandingOutcome: false
+			}
+		});
+		expect(api.refresh).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(api.refresh).toHaveBeenCalledTimes(fail ? 2 : 1);
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(api.refresh).toHaveBeenCalledTimes(fail ? 2 : 1);
+	}
+);
 
 test('NotDones uses a native modal, cancels without mutation, and resets strategy', async () => {
 	const recent = [1, 2, 3].map((id) => ({

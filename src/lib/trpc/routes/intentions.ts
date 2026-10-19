@@ -4,7 +4,7 @@ import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import { deleteOrphanedOutcomes } from '#lib/db/queries.js';
+import { configuredZoneNow, deleteOrphanedOutcomes } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { INTENTION_STATUSES as intentionStatuses } from '../enums';
 
@@ -200,30 +200,36 @@ export const intentions = t.router({
 	 * Retrieve all the intentions for the latest date that intentions exist for.
 	 * @returns The intentions for the latest date, or an empty array if there are no intentions.
 	 */
-	intentionsOnLatestDate: procedure.use(logger).query(async () => {
-		const maxDate = await getDb()
-			.selectFrom('intentions')
-			.select(['id', 'date'])
-			.orderBy('date', 'desc')
-			.executeTakeFirst();
-
-		if (maxDate) {
-			const maxDateObject = new Date(maxDate.date);
-			const { startDate, endDate } = adjustToUTCStartAndEndOfDay(maxDateObject, maxDateObject);
-
-			const result = await getDb()
+	intentionsOnLatestDate: procedure
+		.use(logger)
+		.input(z.object({ before: z.string() }).optional())
+		.query(async ({ input }) => {
+			let maxDateQuery = getDb()
 				.selectFrom('intentions')
-				.selectAll()
-				.where('date', '>=', startDate.toISOString())
-				.where('date', '<=', endDate.toISOString())
-				.orderBy('orderNumber', 'asc')
-				.execute();
+				.select(['id', 'date'])
+				.orderBy('date', 'desc');
+			if (input?.before) {
+				maxDateQuery = maxDateQuery.where('date', '<', input.before);
+			}
+			const maxDate = await maxDateQuery.executeTakeFirst();
 
-			return result;
-		} else {
-			return [];
-		}
-	}),
+			if (maxDate) {
+				const maxDateObject = new Date(maxDate.date);
+				const { startDate, endDate } = adjustToUTCStartAndEndOfDay(maxDateObject, maxDateObject);
+
+				const result = await getDb()
+					.selectFrom('intentions')
+					.selectAll()
+					.where('date', '>=', startDate.toISOString())
+					.where('date', '<=', endDate.toISOString())
+					.orderBy('orderNumber', 'asc')
+					.execute();
+
+				return result;
+			} else {
+				return [];
+			}
+		}),
 	/**
 	 * Edit single intention
 	 * @param {IntentionsSchema} input - The intention to edit
@@ -484,9 +490,15 @@ export const intentions = t.router({
 						}
 					}
 
+					// New rows are stamped with the configured zone's current day at
+					// save time: a draft that survived a day boundary belongs to
+					// today, not the day it was typed on.
+					const newRowDate = input.intentions.some((i) => i.id === null)
+						? (await configuredZoneNow(trx)).toISOString()
+						: null;
 					const results = await trx
 						.insertInto('intentions')
-						.values(input.intentions)
+						.values(input.intentions.map((i) => (i.id === null ? { ...i, date: newRowDate! } : i)))
 						.onConflict((oc) =>
 							oc.column('id').doUpdateSet((eb) => ({
 								goalId: eb.ref('excluded.goalId'),
