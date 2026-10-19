@@ -259,6 +259,18 @@ describe('goals', () => {
 		expect((await caller.goals.list(1))[0].title).toHaveLength(130);
 	});
 
+	it.each(['archive', 'delete'] as const)(
+		'updateGoals rejects updates after another client runs %s',
+		async (action) => {
+			await caller.goals.add({ ...TEST_GOAL });
+			const goal = (await caller.goals.list(1))[0];
+			await caller.goals[action](goal.id!);
+			await expect(
+				caller.goals.updateGoals({ goals: [{ ...goal, title: 'Stale edit' }] })
+			).rejects.toMatchObject({ code: 'CONFLICT' });
+		}
+	);
+
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;

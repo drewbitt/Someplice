@@ -13,6 +13,7 @@
 	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 	import { onMount } from 'svelte';
 	import { appLogger } from '#lib/utils/logger.js';
+	import { TRPCClientError } from '@trpc/client';
 
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
@@ -26,10 +27,12 @@
 	let showValidIntentionsNotification = $state(false);
 	let showAdditionalIntentionsTextArea = $state(false);
 	let showDBErrorNotification = $state(false);
+	let saveError = $state('Error saving intentions');
 	// svelte-ignore state_referenced_locally
 	let intentionsFromServer = $state(data.intentions);
 	let hasOutstandingOutcome = $state(false);
 	let saving = $state(false);
+	let draft = $state(todaysIntentions.current ?? '');
 
 	$effect(() => {
 		intentions = data.intentions;
@@ -94,8 +97,16 @@
 			todaysIntentions.current = null;
 			handleHideAdditionalIntentionsTextArea();
 			await refreshAll();
+			draft = '';
 		} catch (error) {
 			appLogger.error('Error saving intentions', error);
+			if (error instanceof TRPCClientError && error.data?.code === 'CONFLICT') {
+				saveError = error.message;
+				await refreshAll();
+				showAdditionalIntentionsTextArea = true;
+			} else {
+				saveError = 'Error saving intentions';
+			}
 			showDBErrorNotification = true;
 		} finally {
 			saving = false;
@@ -170,6 +181,7 @@
 			{/if}
 			<ActionsTextInput
 				goals={data.goals}
+				bind:intentionsString={draft}
 				bind:intentions={additionalIntentions}
 				bind:valid={validIntentions}
 				existingIntentions={intentionsFromServer}
@@ -195,7 +207,12 @@
 				>
 			</div>
 		{/if}
-		<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
+		<ActionsTextInput
+			goals={data.goals}
+			bind:intentionsString={draft}
+			bind:intentions
+			bind:valid={validIntentions}
+		/>
 
 		<div>
 			<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
@@ -207,7 +224,7 @@
 	{#if showDBErrorNotification}
 		<div class="toast">
 			<div class="alert alert-error">
-				<span>Error saving intentions</span>
+				<span>{saveError}</span>
 			</div>
 		</div>
 	{/if}

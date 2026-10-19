@@ -13,6 +13,7 @@ export const api = {
 	saveReview: vi.fn(),
 	savePriority: vi.fn(),
 	setStatus: vi.fn(),
+	updateIntentions: vi.fn(),
 	refresh: vi.fn()
 };
 export const navigation = { refreshAll: api.refresh, beforeNavigate: vi.fn() };
@@ -26,7 +27,8 @@ export const client = {
 	intentions: {
 		list: { query: api.list },
 		listUniqueDates: { query: api.uniqueDates },
-		setStatus: { mutate: api.setStatus }
+		setStatus: { mutate: api.setStatus },
+		updateIntentions: { mutate: api.updateIntentions }
 	},
 	priorities: { list: { query: api.priorities }, upsert: { mutate: api.savePriority } },
 	outcomes: { saveReview: { mutate: api.saveReview } }

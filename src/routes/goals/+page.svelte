@@ -4,6 +4,7 @@
 	import NewGoalBoxComponent from '#lib/components/goals/NewGoalBox.svelte';
 	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { trpc } from '#lib/trpc/client.js';
+	import { TRPCClientError } from '@trpc/client';
 	import type { GoalLog } from '#lib/trpc/types.js';
 	import { dndzone } from 'svelte-dnd-action';
 	import { untrack } from 'svelte';
@@ -76,6 +77,12 @@
 				goalPageErrorStore.setError(
 					error instanceof Error ? error.message : 'Failed to save goals'
 				);
+				if (error instanceof TRPCClientError && error.data?.code === 'CONFLICT') {
+					// Drop edit mode so stale merged fields can't overwrite the
+					// other tab's changes on retry.
+					editButtonActive = false;
+					await refreshAll();
+				}
 				return;
 			} finally {
 				saving = false;
@@ -119,6 +126,9 @@
 		} catch (error) {
 			if (error instanceof Error) {
 				goalPageErrorStore.setError(error.message);
+				if (error instanceof TRPCClientError && error.data?.code === 'CONFLICT') {
+					await refreshAll();
+				}
 			}
 		}
 	};
