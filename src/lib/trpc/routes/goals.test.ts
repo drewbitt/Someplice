@@ -228,6 +228,24 @@ describe('goals', () => {
 		expect(logEntries[0].type).toEqual('start');
 	});
 
+	it('updateGoals trims titles and rejects blank or over-length fields', async () => {
+		await caller.goals.add({ ...TEST_GOAL });
+		const goal = (await caller.goals.list(1))[0];
+		await caller.goals.updateGoals({
+			goals: [{ ...goal, title: '  Padded title  ' }]
+		});
+		expect((await caller.goals.list(1))[0].title).toBe('Padded title');
+		for (const bad of [
+			{ title: '   ' },
+			{ title: 'x'.repeat(121) },
+			{ description: 'x'.repeat(501) }
+		]) {
+			await expect(
+				caller.goals.updateGoals({ goals: [{ ...goal, ...bad }] })
+			).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+		}
+	});
+
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;

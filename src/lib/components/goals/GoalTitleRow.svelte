@@ -21,6 +21,7 @@
 			<input
 				bind:value={title}
 				autocomplete="off"
+				maxlength="120"
 				class="input w-full max-w-lg bg-transparent px-0 text-3xl"
 				style="color: {readableTextColor(goalColor)}"
 			/>
@@ -32,6 +33,12 @@
 	</div>
 {:else}
 	<div class="goal-box-title w-1/2">
-		<p class="text-3xl" style="color: {readableTextColor(goalColor)}">{title}</p>
+		<p
+			class="line-clamp-2 text-3xl break-words"
+			style="color: {readableTextColor(goalColor)}"
+			{title}
+		>
+			{title}
+		</p>
 	</div>
 {/if}

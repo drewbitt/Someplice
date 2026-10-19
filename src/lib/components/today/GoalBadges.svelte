@@ -8,13 +8,14 @@
 <div class="flex flex-wrap items-center gap-2">
 	{#each goals as goal (goal.id)}
 		<span
-			class="badge border-base-300 border px-4"
+			class="badge border-base-300 max-w-60 border px-4"
 			style="background-color: {goal.color}; color: {readableTextColor(goal.color)}"
+			title={goal.title}
 		>
 			<span class="pr-1 font-mono text-xl">
 				{goal.orderNumber}
 			</span>
-			{goal.title}
+			<span class="truncate">{goal.title}</span>
 		</span>
 	{/each}
 </div>

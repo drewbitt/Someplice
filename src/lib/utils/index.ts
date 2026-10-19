@@ -99,7 +99,27 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 	return -1;
 };
 
-export const readableTextColor = (color: string): string => `contrast-color(${color})`;
+/**
+ * Foreground color that stays readable on `color`. `contrast-color()` in CSS is
+ * still behind flags in stable browsers, so compute the black/white pick here:
+ * hsl() (what the goal palette uses) is converted to relative luminance and
+ * compared against the WCAG black/white crossover.
+ */
+export const readableTextColor = (color: string): string => {
+	const match = color.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)?/i);
+	if (!match) return 'white';
+	const h = Number(match[1]) / 360;
+	const s = Number(match[2]) / 100;
+	const l = Number(match[3]) / 100;
+	const channel = (n: number) => {
+		const k = (n + h * 12) % 12;
+		return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+	};
+	const [r, g, b] = [channel(0), channel(8), channel(4)].map((c) =>
+		c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+	);
+	return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? 'black' : 'white';
+};
 
 // A journey day needs active goals plus inactive goals that have intentions that
 // day (e.g. a goal archived the same day), otherwise they render as "-1)".

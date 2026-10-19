@@ -72,8 +72,8 @@ export const GoalSchema = z.object({
 	id: z.number().nullable(),
 	active: z.number(),
 	orderNumber: z.number(),
-	title: z.string(),
-	description: z.string().nullable(),
+	title: z.string().trim().min(1).max(120),
+	description: z.string().trim().max(500).nullable(),
 	color: z.string()
 });
 
