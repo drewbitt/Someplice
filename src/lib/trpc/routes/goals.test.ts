@@ -246,6 +246,19 @@ describe('goals', () => {
 		}
 	});
 
+	it('updateGoals still saves rows stored before the length limits', async () => {
+		const legacy = { title: 'x'.repeat(130), description: 'd'.repeat(600), color: 'red' };
+		const [{ id }] = await db
+			.insertInto('goals')
+			.values({ ...legacy, active: 1, orderNumber: 1 })
+			.returning('id')
+			.execute();
+		await caller.goals.updateGoals({
+			goals: [{ id, orderNumber: 1, ...legacy }]
+		});
+		expect((await caller.goals.list(1))[0].title).toHaveLength(130);
+	});
+
 	it('updateGoals with multiple goals', async () => {
 		// Add multiple goals
 		const added1 = (await caller.goals.add(TEST_GOAL)) as GoalResult;

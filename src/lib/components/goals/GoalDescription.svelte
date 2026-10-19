@@ -60,7 +60,9 @@
 {:else if currentlyEditing && isInactiveGoal}
 	<div class="goal-box-description w-full">
 		<div class="flex items-center justify-between">
-			<p class="truncate break-words" style="color: {descriptionColor}">{description ?? ''}</p>
+			<p class="truncate break-words" style="color: {descriptionColor}" title={description ?? ''}>
+				{description ?? ''}
+			</p>
 			<div class="flex">
 				<button
 					id="goal-box-archive-button"

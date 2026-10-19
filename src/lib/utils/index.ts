@@ -102,23 +102,43 @@ export const goalOrderNumberForId = (goalId: number, goals: Goal[]) => {
 /**
  * Foreground color that stays readable on `color`. `contrast-color()` in CSS is
  * still behind flags in stable browsers, so compute the black/white pick here:
- * hsl() (what the goal palette uses) is converted to relative luminance and
- * compared against the WCAG black/white crossover.
+ * the fill is resolved to rgb and compared against the WCAG black/white
+ * crossover.
  */
 export const readableTextColor = (color: string): string => {
-	const match = color.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)?/i);
-	if (!match) return 'white';
-	const h = Number(match[1]) / 360;
-	const s = Number(match[2]) / 100;
-	const l = Number(match[3]) / 100;
-	const channel = (n: number) => {
-		const k = (n + h * 12) % 12;
-		return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-	};
-	const [r, g, b] = [channel(0), channel(8), channel(4)].map((c) =>
-		c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-	);
+	const rgb = toRgb(color);
+	if (!rgb) return 'white';
+	const [r, g, b] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
 	return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.179 ? 'black' : 'white';
+};
+
+// hsl() (what the goal palette uses) is parsed directly so this works without a
+// DOM; in the browser a 2d canvas canonicalizes every other CSS color syntax.
+const toRgb = (color: string): [number, number, number] | null => {
+	const match = color.match(/hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%\s*\)?/i);
+	if (match) {
+		const h = Number(match[1]) / 360;
+		const s = Number(match[2]) / 100;
+		const l = Number(match[3]) / 100;
+		const channel = (n: number) => {
+			const k = (n + h * 12) % 12;
+			return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+		};
+		return [channel(0), channel(8), channel(4)];
+	}
+	if (typeof document !== 'undefined') {
+		const ctx = document.createElement('canvas').getContext('2d');
+		if (ctx) {
+			ctx.fillStyle = '#000000';
+			ctx.fillStyle = color;
+			const hex = ctx.fillStyle.match(/^#([0-9a-f]{6})$/i);
+			if (hex) {
+				const n = parseInt(hex[1], 16);
+				return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+			}
+		}
+	}
+	return null;
 };
 
 // A journey day needs active goals plus inactive goals that have intentions that
