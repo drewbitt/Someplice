@@ -77,6 +77,9 @@
 					error instanceof Error ? error.message : 'Failed to save goals'
 				);
 				if (error instanceof Error && error.message.includes('Refresh and try again')) {
+					// Drop edit mode so stale merged fields can't overwrite the
+					// other tab's changes on retry.
+					editButtonActive = false;
 					await refreshAll();
 				}
 				return;

@@ -77,6 +77,9 @@
 			if (error instanceof Error && error.message.includes('Refresh and try again')) {
 				saveError = error.message;
 				await refreshAll();
+				// The refresh may reveal intentions another tab saved; keep the
+				// draft visible so the retry path stays obvious.
+				showAdditionalIntentionsTextArea = true;
 			} else {
 				saveError = 'Error saving intentions';
 			}

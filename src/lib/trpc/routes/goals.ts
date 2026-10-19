@@ -247,6 +247,28 @@ export const goals = t.router({
 						existingGoals.filter((goal) => goal.active === 1).map((goal) => goal.id)
 					);
 					const updateIds = new Set(updates.map((goal) => goal.id));
+
+					// A submitted update id that is missing or archived on the server
+					// means this tab's list is stale — reject before ordering validation,
+					// since an archived earlier goal already shifted server positions.
+					for (const goal of updates) {
+						const existing = existingById.get(goal.id as number);
+						if (!existing) {
+							throw new NoResultError(
+								trx
+									.selectFrom('goals')
+									.selectAll()
+									.where('id', '=', goal.id as number)
+									.toOperationNode()
+							);
+						}
+						if (existing.active !== 1) {
+							throw new TRPCError({
+								code: 'CONFLICT',
+								message: 'The goal list changed. Refresh and try again.'
+							});
+						}
+					}
 					const finalActiveOrderNumbers = [
 						...existingGoals
 							.filter((goal) => goal.active === 1 && !updateIds.has(goal.id))
@@ -285,24 +307,7 @@ export const goals = t.router({
 					const results = [];
 
 					for (const goal of updates) {
-						const existing = existingById.get(goal.id as number);
-						if (!existing) {
-							throw new NoResultError(
-								trx
-									.selectFrom('goals')
-									.selectAll()
-									.where('id', '=', goal.id as number)
-									.toOperationNode()
-							);
-						}
-						// A submitted update id that is archived on the server means this
-						// tab's list is stale — reject instead of resurrecting it.
-						if (existing.active !== 1) {
-							throw new TRPCError({
-								code: 'CONFLICT',
-								message: 'The goal list changed. Refresh and try again.'
-							});
-						}
+						const existing = existingById.get(goal.id as number)!;
 						results.push(
 							await trx
 								.updateTable('goals')
