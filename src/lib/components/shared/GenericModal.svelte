@@ -31,6 +31,12 @@
 			}
 		}
 	});
+
+	const restoreFocus = () => {
+		const el = returnFocus;
+		returnFocus = null;
+		if (el?.isConnected) requestAnimationFrame(() => el.focus());
+	};
 </script>
 
 <dialog
@@ -38,9 +44,7 @@
 	class="modal"
 	onclose={() => {
 		showModal = false;
-		const el = returnFocus;
-		returnFocus = null;
-		if (el?.isConnected) requestAnimationFrame(() => el.focus());
+		restoreFocus();
 	}}
 >
 	<div class="modal-box">
@@ -51,6 +55,7 @@
 				class="btn btn-warning"
 				onclick={() => {
 					showModal = false;
+					restoreFocus();
 				}}
 			>
 				Cancel
@@ -60,6 +65,7 @@
 				onclick={() => {
 					actionConfirmed = true;
 					showModal = false;
+					restoreFocus();
 				}}
 			>
 				{action}
