@@ -6,12 +6,7 @@
 	import PriorityCards from '#lib/components/today/PriorityCards.svelte';
 	import Review from '#lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '#lib/trpc/client.js';
-	import {
-		dateKeyInZone,
-		dayOfWeekInZone,
-		goalsForJourneyDay,
-		wallClockInZone
-	} from '#lib/utils/index.js';
+	import { dateKeyInZone, dayOfWeekInZone, goalsForJourneyDay } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -48,33 +43,21 @@
 			showAdditionalIntentionsTextArea = true;
 		}
 
-		// A tab that outlives the app-zone day must reload: the rendered list and
-		// 'today' label belong to the day the page loaded on. Re-check at the next
-		// zone midnight and whenever the tab regains visibility.
 		let day = dateKeyInZone(appTimeZone.current);
-		let timer = 0;
 		const checkDay = () => {
 			const current = dateKeyInZone(appTimeZone.current);
 			if (current !== day) {
 				day = current;
 				void refreshAll();
 			}
-			const wall = wallClockInZone(appTimeZone.current);
-			const nextMidnight = Date.UTC(
-				wall.getUTCFullYear(),
-				wall.getUTCMonth(),
-				wall.getUTCDate() + 1
-			);
-			clearTimeout(timer);
-			timer = window.setTimeout(checkDay, nextMidnight - wall.getTime() + 1000);
 		};
 		const onVisibilityChange = () => {
 			if (document.visibilityState === 'visible') checkDay();
 		};
-		checkDay();
+		const timer = window.setInterval(checkDay, 60_000);
 		document.addEventListener('visibilitychange', onVisibilityChange);
 		return () => {
-			clearTimeout(timer);
+			clearInterval(timer);
 			document.removeEventListener('visibilitychange', onVisibilityChange);
 		};
 	});

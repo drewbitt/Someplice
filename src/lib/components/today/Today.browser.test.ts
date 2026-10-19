@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
 import { UpdateResult } from 'kysely';
@@ -8,6 +8,8 @@ import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
 import Review from './review-outcomes/Review.svelte';
 import { notDones } from '#lib/stores/notDones.svelte.js';
+import { appTimeZone } from '#lib/stores/timezone.svelte.js';
+import TodayPage from '../../../routes/today/+page.svelte';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -18,6 +20,40 @@ vi.mock('#lib/trpc/client.js', () =>
 
 beforeEach(() => {
 	notDones.recentIntentions = [];
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+});
+
+test.each([
+	['2026-03-08T05:30:00Z', '2026-03-09T04:00:00Z'],
+	['2026-11-01T04:30:00Z', '2026-11-02T05:00:00Z']
+])('Today rechecks the date across DST from %s', async (start, midnight) => {
+	vi.useFakeTimers({ toFake: ['Date'] });
+	vi.setSystemTime(new Date(start));
+	appTimeZone.set('America/New_York');
+	const interval = vi.spyOn(window, 'setInterval');
+	await render(TodayPage, {
+		data: {
+			goals: [goal],
+			intentions: [],
+			intentionsOnLatestDate: [],
+			priorities: [],
+			inactiveGoals: [],
+			hasOutstandingOutcome: false
+		}
+	});
+	const [checkDay, delay] = interval.mock.calls.find(([, delay]) => delay === 60_000)!;
+	expect(delay).toBe(60_000);
+	if (typeof checkDay !== 'function') throw new Error('Missing date check');
+	checkDay();
+	expect(api.refresh).not.toHaveBeenCalled();
+	vi.setSystemTime(new Date(midnight));
+	checkDay();
+	checkDay();
+	expect(api.refresh).toHaveBeenCalledTimes(1);
 });
 
 test('NotDones uses a native modal, cancels without mutation, and resets strategy', async () => {
