@@ -73,11 +73,9 @@
 		if (intention.id === null) return;
 		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
 		try {
-			await trpc().intentions.edit.mutate({
-				id: intention.id,
-				status,
-				text: intention.text,
-				subIntentionQualifier: intention.subIntentionQualifier
+			await trpc().intentions.setStatus.mutate({
+				ids: [intention.id],
+				status
 			});
 			opened = false;
 			dialog?.close();

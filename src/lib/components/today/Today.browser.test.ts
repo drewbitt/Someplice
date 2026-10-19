@@ -6,6 +6,7 @@ import type { Intention } from '#lib/trpc/types.js';
 import { api, goal, intention } from '../browser-fixtures.js';
 import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
+import IntentionsModal from './IntentionsModal.svelte';
 import Review from './review-outcomes/Review.svelte';
 import { notDones } from '#lib/stores/notDones.svelte.js';
 
@@ -46,6 +47,25 @@ test('NotDones uses a native modal, cancels without mutation, and resets strateg
 	await screen.getByRole('button', { name: 'Keep', exact: true }).click();
 	expect(onImport).toHaveBeenCalledExactlyOnceWith('1) Read a chapter ⟶ Before breakfast');
 });
+
+test.each(['pending', 'not_today'] as const)(
+	'the %s modal changes status without submitting stale text',
+	async (status) => {
+		const screen = await render(IntentionsModal, {
+			goals: [goal],
+			intention: { ...intention, status },
+			opened: true
+		});
+		await screen
+			.getByRole('button', { name: status === 'not_today' ? 'Mark pending' : 'Not today' })
+			.click();
+		expect(api.setStatus).toHaveBeenCalledExactlyOnceWith({
+			ids: [intention.id],
+			status: status === 'not_today' ? 'pending' : 'not_today'
+		});
+		expect(api.refresh).toHaveBeenCalledOnce();
+	}
+);
 
 test('checkbox changes are single-flight and roll back after failure', async () => {
 	let finish!: (value: UpdateResult | undefined) => void;
