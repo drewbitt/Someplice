@@ -173,7 +173,7 @@
 				class="btn mx-2"
 				disabled={saving ||
 					!editButtonEnabled ||
-					!saveButtonEnabled ||
+					(editButtonActive && !saveButtonEnabled) ||
 					(noGoals && inactiveGoals.length === 0)}
 				onclick={handleEditButtonClick}
 			>
