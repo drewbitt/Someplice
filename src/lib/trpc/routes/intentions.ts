@@ -302,7 +302,7 @@ export const intentions = t.router({
 			const query = getDb()
 				.updateTable('intentions')
 				.set({
-					text: sql`text || ${input.text}`
+					text: sql`CASE WHEN ltrim(${input.text}) = '' THEN text WHEN rtrim(text) = '' THEN ltrim(${input.text}) ELSE rtrim(text) || ' ' || ltrim(${input.text}) END`
 				})
 				.where('id', '=', input.id);
 			const result = await query.executeTakeFirst();

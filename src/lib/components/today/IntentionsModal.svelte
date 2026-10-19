@@ -36,9 +36,13 @@
 		}
 	});
 
+	const restoreRowFocus = () =>
+		requestAnimationFrame(() => document.getElementById(`intention-text-${intention.id}`)?.focus());
+
 	const closeIntentionsModal = () => {
 		if (!showAppendModal) {
 			opened = false;
+			restoreRowFocus();
 		} else {
 			intentionsModalOpened = false;
 		}
@@ -47,6 +51,7 @@
 	const closeAppendModal = () => {
 		showAppendModal = false;
 		opened = false;
+		restoreRowFocus();
 	};
 
 	const deleteIntention = async () => {
@@ -68,11 +73,9 @@
 		if (intention.id === null) return;
 		const status = intention.status === 'not_today' ? 'pending' : 'not_today';
 		try {
-			await trpc().intentions.edit.mutate({
-				id: intention.id,
-				status,
-				text: intention.text,
-				subIntentionQualifier: intention.subIntentionQualifier
+			await trpc().intentions.setStatus.mutate({
+				ids: [intention.id],
+				status
 			});
 			opened = false;
 			dialog?.close();

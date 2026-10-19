@@ -266,7 +266,7 @@ describe('intentions', () => {
 		expect(added).toBeDefined();
 
 		// Append text to the intention
-		const appendText = ' - edit';
+		const appendText = 'by noon';
 		const appendedIntention = (await caller.intentions.appendText({
 			id: TEST_INTENTION.id as number,
 			text: appendText
@@ -279,8 +279,12 @@ describe('intentions', () => {
 		expect(result).toBeInstanceOf(Array);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual(
-			expect.objectContaining({ ...TEST_INTENTION, text: TEST_INTENTION.text + appendText })
+			expect.objectContaining({ ...TEST_INTENTION, text: TEST_INTENTION.text + ' ' + appendText })
 		);
+
+		await caller.intentions.appendText({ id: TEST_INTENTION.id as number, text: '  ' });
+		const afterEmpty = (await caller.intentions.list(undefined)) as Intention[];
+		expect(afterEmpty[0].text).toBe(TEST_INTENTION.text + ' ' + appendText);
 	});
 
 	it('appendText with invalid id', async () => {
