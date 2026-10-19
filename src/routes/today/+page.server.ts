@@ -14,9 +14,20 @@ export const load = (async (event) => {
 		// the orderNumber an archived goal had (archive resets it to 0).
 		trpcLoad(event, (t) => t.goals.listGoalsSortedByDate(0))
 	]);
+	// The review gate belongs to the latest *past* intention day: a save racing
+	// midnight can fill today's list while yesterday's review is outstanding.
+	const startOfZoneDay = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+	);
+	const latestPastIntentions =
+		intentions.length === 0
+			? intentionsOnLatestDate
+			: await trpcLoad(event, (t) =>
+					t.intentions.intentionsOnLatestDate({ before: startOfZoneDay.toISOString() })
+				);
 	let hasOutstandingOutcome = false;
-	if (intentions.length === 0 && intentionsOnLatestDate.length > 0) {
-		const date = new Date(intentionsOnLatestDate[0].date);
+	if (latestPastIntentions.length > 0) {
+		const date = new Date(latestPastIntentions[0].date);
 		const outcomes = await trpcLoad(event, (t) =>
 			t.outcomes.list({ startDate: date, endDate: date })
 		);

@@ -65,6 +65,7 @@
 				wall.getUTCMonth(),
 				wall.getUTCDate() + 1
 			);
+			clearTimeout(timer);
 			timer = window.setTimeout(checkDay, nextMidnight - wall.getTime() + 1000);
 		};
 		const onVisibilityChange = () => {
