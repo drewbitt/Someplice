@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { wallClockInZone, goalOrderNumberForId } from '#lib/utils/index.js';
+	import { wallClockInZone } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
-	import { untrack } from 'svelte';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import Editor from './actions-input/Editor.svelte';
 	import NotDonesPanel from './NotDonesPanel.svelte';
@@ -10,30 +9,19 @@
 	let {
 		goals,
 		existingIntentions,
+		intentionsString = $bindable(),
 		valid = $bindable(),
 		intentions = $bindable([])
 	}: {
 		goals: PageServerData['goals'];
 		existingIntentions?: PageServerData['intentions'];
+		intentionsString: string;
 		valid: boolean;
 		intentions?: PageServerData['intentions'];
 	} = $props();
 
 	type Intention = (typeof intentions)[0];
 	type Goal = (typeof goals)[0];
-
-	let intentionsString = $state(
-		untrack(
-			() =>
-				todaysIntentions.current ??
-				intentions
-					.map(
-						(intention) =>
-							`${goalOrderNumberForId(intention.goalId, goals)}${intention.subIntentionQualifier ?? ''}) ${intention.text}`
-					)
-					.join('\n')
-		)
-	);
 
 	$effect(() => {
 		todaysIntentions.current = intentionsString;

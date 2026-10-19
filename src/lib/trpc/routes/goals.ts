@@ -1,7 +1,7 @@
 import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
 import { getDb } from '#lib/db/db.js';
-import { NoResultError, sql } from 'kysely';
+import { sql } from 'kysely';
 import { z } from 'zod';
 import type { Transaction } from 'kysely';
 import type { DB } from '#lib/types/data.js';
@@ -243,9 +243,6 @@ export const goals = t.router({
 					// permutation: the editor's "N)" syntax and listGoalsOnDate's replayed
 					// ordering both assume it, and gaps/duplicates/out-of-range values
 					// otherwise only fail later at the unique index or not at all.
-					const activeIds = new Set(
-						existingGoals.filter((goal) => goal.active === 1).map((goal) => goal.id)
-					);
 					const updateIds = new Set(updates.map((goal) => goal.id));
 
 					// A submitted update id that is missing or archived on the server
@@ -253,16 +250,7 @@ export const goals = t.router({
 					// since an archived earlier goal already shifted server positions.
 					for (const goal of updates) {
 						const existing = existingById.get(goal.id as number);
-						if (!existing) {
-							throw new NoResultError(
-								trx
-									.selectFrom('goals')
-									.selectAll()
-									.where('id', '=', goal.id as number)
-									.toOperationNode()
-							);
-						}
-						if (existing.active !== 1) {
+						if (!existing || existing.active !== 1) {
 							throw new TRPCError({
 								code: 'CONFLICT',
 								message: 'The goal list changed. Refresh and try again.'
@@ -273,9 +261,7 @@ export const goals = t.router({
 						...existingGoals
 							.filter((goal) => goal.active === 1 && !updateIds.has(goal.id))
 							.map((goal) => goal.orderNumber),
-						...updates
-							.filter((goal) => activeIds.has(goal.id as number))
-							.map((goal) => goal.orderNumber),
+						...updates.map((goal) => goal.orderNumber),
 						...inserts.map((goal) => goal.orderNumber)
 					];
 					const sortedOrderNumbers = [...finalActiveOrderNumbers].sort((a, b) => a - b);

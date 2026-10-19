@@ -3,6 +3,7 @@ import { render } from 'vitest-browser-svelte';
 import { api, goal, intention } from '../browser-fixtures.js';
 import ReviewGoalBox from './review-outcomes/ReviewGoalBox.svelte';
 import GoalsPage from '../../../routes/goals/+page.svelte';
+import { TRPCClientError } from '@trpc/client';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -39,6 +40,25 @@ test('outcome drafts reset on every successful save, not just the first', async 
 		await screen.rerender({ saveRevision: revision });
 		await expect.element(screen.getByPlaceholder('What did you do?')).not.toBeInTheDocument();
 	}
+});
+
+test('goal conflicts resync using the error code, not message text', async () => {
+	const screen = await render(GoalsPage, {
+		data: { goals: [goal], inactiveGoals: [], goalLogs: [], priorities: [] }
+	});
+	api.updateGoals.mockRejectedValueOnce(
+		TRPCClientError.from({
+			error: {
+				code: -32009,
+				message: 'Changed elsewhere',
+				data: { code: 'CONFLICT', httpStatus: 409 }
+			}
+		})
+	);
+	await screen.getByRole('button', { name: 'Edit', exact: true }).click();
+	await screen.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect.element(screen.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+	expect(api.refresh).toHaveBeenCalledOnce();
 });
 
 test('inactive-only goals still expose edit, restore and delete controls', async () => {

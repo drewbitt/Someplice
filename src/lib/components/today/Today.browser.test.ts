@@ -8,6 +8,9 @@ import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
 import Review from './review-outcomes/Review.svelte';
 import { notDones } from '#lib/stores/notDones.svelte.js';
+import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
+import { TRPCClientError } from '@trpc/client';
+import TodayPage from '../../../routes/today/+page.svelte';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -18,7 +21,60 @@ vi.mock('#lib/trpc/client.js', () =>
 
 beforeEach(() => {
 	notDones.recentIntentions = [];
+	todaysIntentions.current = null;
 });
+
+test.each([false, true])(
+	'conflict refresh preserves the tab-local draft (additional=%s)',
+	async (additional) => {
+		const data = {
+			goals: [goal],
+			intentions: additional ? [intention] : [],
+			intentionsOnLatestDate: [],
+			priorities: [],
+			inactiveGoals: [],
+			hasOutstandingOutcome: false
+		};
+		const screen = await render(TodayPage, { data });
+		if (additional) await screen.getByRole('button', { name: /^Add more/ }).click();
+		const draft = '1a)  Keep my local draft';
+		await screen.getByRole('textbox', { name: 'Daily intentions' }).fill(draft);
+		const refreshedIntentions = additional
+			? [intention, { ...intention, id: 2, orderNumber: 2, text: 'Saved in another tab' }]
+			: [intention];
+		api.refresh.mockImplementation(() =>
+			screen.rerender({ data: { ...data, intentions: refreshedIntentions } })
+		);
+		api.updateIntentions.mockRejectedValueOnce(
+			TRPCClientError.from({
+				error: {
+					code: -32009,
+					message: 'Changed elsewhere',
+					data: { code: 'CONFLICT', httpStatus: 409 }
+				}
+			})
+		);
+		// A successful save in another tab clears the shared draft, not this editor.
+		todaysIntentions.current = null;
+		await screen.getByRole('button', { name: /^Set .* intentions$/ }).click();
+		await expect.element(screen.getByText('Changed elsewhere')).toBeVisible();
+		await expect
+			.element(screen.getByRole('textbox', { name: 'Daily intentions' }))
+			.toHaveValue(draft);
+		await screen.getByRole('button', { name: /^Set .* intentions$/ }).click();
+		expect(api.updateIntentions).toHaveBeenLastCalledWith({
+			intentions: [
+				expect.objectContaining({
+					orderNumber: refreshedIntentions.length + 1,
+					subIntentionQualifier: 'a',
+					text: 'Keep my local draft'
+				})
+			]
+		});
+		await screen.getByRole('button', { name: /^Add more/ }).click();
+		await expect.element(screen.getByRole('textbox', { name: 'Daily intentions' })).toHaveValue('');
+	}
+);
 
 test('NotDones uses a native modal, cancels without mutation, and resets strategy', async () => {
 	const recent = [1, 2, 3].map((id) => ({

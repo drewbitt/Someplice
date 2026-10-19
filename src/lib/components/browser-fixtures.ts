@@ -6,22 +6,29 @@ export const api = {
 	goalLogs: vi.fn(),
 	uniqueDates: vi.fn(),
 	deleteGoal: vi.fn(),
+	updateGoals: vi.fn(),
 	list: vi.fn(),
 	goalsOnDate: vi.fn(),
 	priorities: vi.fn(),
 	saveReview: vi.fn(),
 	savePriority: vi.fn(),
 	setStatus: vi.fn(),
+	updateIntentions: vi.fn(),
 	refresh: vi.fn()
 };
 export const navigation = { refreshAll: api.refresh, beforeNavigate: vi.fn() };
 export const client = {
 	goal_logs: { getAllForGoal: { query: api.goalLogs } },
-	goals: { delete: { mutate: api.deleteGoal }, listGoalsOnDate: { query: api.goalsOnDate } },
+	goals: {
+		delete: { mutate: api.deleteGoal },
+		updateGoals: { mutate: api.updateGoals },
+		listGoalsOnDate: { query: api.goalsOnDate }
+	},
 	intentions: {
 		list: { query: api.list },
 		listUniqueDates: { query: api.uniqueDates },
-		setStatus: { mutate: api.setStatus }
+		setStatus: { mutate: api.setStatus },
+		updateIntentions: { mutate: api.updateIntentions }
 	},
 	priorities: { list: { query: api.priorities }, upsert: { mutate: api.savePriority } },
 	outcomes: { saveReview: { mutate: api.saveReview } }

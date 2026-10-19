@@ -13,6 +13,7 @@
 	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 	import { onMount } from 'svelte';
 	import { appLogger } from '#lib/utils/logger.js';
+	import { TRPCClientError } from '@trpc/client';
 
 	let { data }: { data: PageServerData } = $props();
 	type Intentions = (typeof data.intentions)[0];
@@ -31,6 +32,7 @@
 	let intentionsFromServer = $state(data.intentions);
 	let hasOutstandingOutcome = $state(false);
 	let saving = $state(false);
+	let draft = $state(todaysIntentions.current ?? '');
 
 	$effect(() => {
 		intentions = data.intentions;
@@ -72,13 +74,12 @@
 			todaysIntentions.current = null;
 			handleHideAdditionalIntentionsTextArea();
 			await refreshAll();
+			draft = '';
 		} catch (error) {
 			appLogger.error('Error saving intentions', error);
-			if (error instanceof Error && error.message.includes('Refresh and try again')) {
+			if (error instanceof TRPCClientError && error.data?.code === 'CONFLICT') {
 				saveError = error.message;
 				await refreshAll();
-				// The refresh may reveal intentions another tab saved; keep the
-				// draft visible so the retry path stays obvious.
 				showAdditionalIntentionsTextArea = true;
 			} else {
 				saveError = 'Error saving intentions';
@@ -157,6 +158,7 @@
 			{/if}
 			<ActionsTextInput
 				goals={data.goals}
+				bind:intentionsString={draft}
 				bind:intentions={additionalIntentions}
 				bind:valid={validIntentions}
 				existingIntentions={intentionsFromServer}
@@ -182,7 +184,12 @@
 				>
 			</div>
 		{/if}
-		<ActionsTextInput goals={data.goals} bind:intentions bind:valid={validIntentions} />
+		<ActionsTextInput
+			goals={data.goals}
+			bind:intentionsString={draft}
+			bind:intentions
+			bind:valid={validIntentions}
+		/>
 
 		<div>
 			<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
