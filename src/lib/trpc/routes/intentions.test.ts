@@ -1,5 +1,7 @@
 import { createDb, getDb, setDb } from '#lib/db/db.js';
 import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import { getConfiguredTimeZone } from '#lib/db/queries.js';
+import { wallClockInZone } from '#lib/utils/index.js';
 import type { DB } from '#lib/types/data.js';
 import { type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -310,6 +312,16 @@ describe('intentions', () => {
 		expect(listResult).toBeInstanceOf(Array);
 		expect(listResult).toHaveLength(1);
 		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
+	});
+
+	it('stamps new rows with the configured-zone day, not the submitted date', async () => {
+		const added = (await caller.intentions.updateIntentions({
+			intentions: [{ ...TEST_INTENTION, id: null, date: '2020-01-01T23:59:59.000Z' }]
+		})) as unknown as Intention[];
+		const expectedDay = wallClockInZone(await getConfiguredTimeZone(db))
+			.toISOString()
+			.slice(0, 10);
+		expect(added[0].date.slice(0, 10)).toBe(expectedDay);
 	});
 
 	it('updateIntentions swaps orderNumbers without tripping the unique index', async () => {

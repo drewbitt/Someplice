@@ -4,7 +4,7 @@ import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
-import { deleteOrphanedOutcomes } from '#lib/db/queries.js';
+import { configuredZoneNow, deleteOrphanedOutcomes } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { INTENTION_STATUSES as intentionStatuses } from '../enums';
 
@@ -484,9 +484,15 @@ export const intentions = t.router({
 						}
 					}
 
+					// New rows are stamped with the configured zone's current day at
+					// save time: a draft that survived a day boundary belongs to
+					// today, not the day it was typed on.
+					const newRowDate = input.intentions.some((i) => i.id === null)
+						? (await configuredZoneNow(trx)).toISOString()
+						: null;
 					const results = await trx
 						.insertInto('intentions')
-						.values(input.intentions)
+						.values(input.intentions.map((i) => (i.id === null ? { ...i, date: newRowDate! } : i)))
 						.onConflict((oc) =>
 							oc.column('id').doUpdateSet((eb) => ({
 								goalId: eb.ref('excluded.goalId'),
