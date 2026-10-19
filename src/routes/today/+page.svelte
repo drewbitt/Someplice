@@ -43,12 +43,16 @@
 			showAdditionalIntentionsTextArea = true;
 		}
 
-		let day = dateKeyInZone(appTimeZone.current);
-		const checkDay = () => {
+		let day = data.today;
+		const checkDay = async () => {
 			const current = dateKeyInZone(appTimeZone.current);
 			if (current !== day) {
-				day = current;
-				void refreshAll();
+				try {
+					await refreshAll();
+					day = current;
+				} catch (error) {
+					appLogger.error('Error refreshing Today', error);
+				}
 			}
 		};
 		const onVisibilityChange = () => {
@@ -56,6 +60,7 @@
 		};
 		const timer = window.setInterval(checkDay, 60_000);
 		document.addEventListener('visibilitychange', onVisibilityChange);
+		void checkDay();
 		return () => {
 			clearInterval(timer);
 			document.removeEventListener('visibilitychange', onVisibilityChange);

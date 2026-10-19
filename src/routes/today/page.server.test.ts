@@ -36,6 +36,7 @@ test.each(['UTC', 'America/New_York'])(
 
 		const event = {} as Parameters<typeof load>[0];
 		const data = await load(event);
+		expect(data.today).toBe('2026-10-19');
 		expect(data.intentions.map((row) => row.date.slice(0, 10))).toEqual(['2026-10-19']);
 		expect(data.intentionsOnLatestDate.map((row) => row.date.slice(0, 10))).toEqual(['2026-10-18']);
 		expect(data.hasOutstandingOutcome).toBe(true);

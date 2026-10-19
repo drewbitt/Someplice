@@ -28,6 +28,7 @@ export const load = (async (event) => {
 		hasOutstandingOutcome = !outcomes[0]?.reviewed;
 	}
 	return {
+		today: now.toISOString().slice(0, 10),
 		goals,
 		intentions,
 		intentionsOnLatestDate,
