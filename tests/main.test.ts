@@ -56,11 +56,32 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 	await editor.fill('1) write tests');
 	await expect(editor).toHaveValue('1) write tests');
 	await expect
-		.poll(() => page.evaluate(() => localStorage.getItem('todaysIntentions')))
-		.toBe('1) write tests');
+		.poll(() => page.evaluate(() => localStorage.getItem('todaysIntentions:v2')))
+		.toBe(JSON.stringify('1) write tests'));
 
 	await page.reload();
 	await expect(page.locator('.goal__editor__textarea')).toHaveValue('1) write tests');
+});
+
+test('a cleared migrated draft stays cleared across navigation and reload', async ({ page }) => {
+	await page.goto('/goals');
+	await page.getByRole('button', { name: 'New Goal' }).click();
+	await page.evaluate(() => {
+		localStorage.removeItem('todaysIntentions:v2');
+		localStorage.setItem('todaysIntentions', '1) legacy draft');
+	});
+	await page.goto('/today');
+	const editor = page.getByRole('textbox', { name: 'Daily intentions' });
+	await expect(editor).toHaveValue('1) legacy draft');
+	await editor.fill('');
+	await page.getByRole('link', { name: 'Goals', exact: true }).click();
+	await page.getByRole('link', { name: 'Today', exact: true }).click();
+	await expect(editor).toHaveValue('');
+	await page.reload();
+	await expect(editor).toHaveValue('');
+	await editor.fill('null');
+	await page.reload();
+	await expect(editor).toHaveValue('null');
 });
 
 test('Today loads missed intentions in the stored timezone on a fresh browser visit', async ({
