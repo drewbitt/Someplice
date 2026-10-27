@@ -12,10 +12,7 @@ export const PrioritySchema = z.object({
 	goalId: z.number(),
 	text: z.string(),
 	description: z.string().nullable(),
-	checkInDate: z
-		.string()
-		.regex(/^\d{4}-\d{2}-\d{2}$/)
-		.nullable(),
+	checkInDate: z.iso.date().nullable(),
 	createdAt: z.string(),
 	completedAt: z.string().nullable(),
 	reflection: z.string().nullable()
@@ -91,11 +88,7 @@ export const priorities = t.router({
 			PrioritySchema.pick({ goalId: true, text: true }).extend({
 				text: z.string().min(1),
 				description: z.string().nullable().optional(),
-				checkInDate: z
-					.string()
-					.regex(/^\d{4}-\d{2}-\d{2}$/)
-					.nullable()
-					.optional()
+				checkInDate: PrioritySchema.shape.checkInDate.optional()
 			})
 		)
 		.mutation(async ({ input }) => {
