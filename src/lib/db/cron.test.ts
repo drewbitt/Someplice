@@ -1,7 +1,8 @@
 import { createDb, getDb, setDb } from '#lib/db/db.js';
 import { runMigrations } from '#lib/db/migrate-to-latest.js';
 import type { DB } from '#lib/types/data.js';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
+import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventEmitter } from 'node:events';
 import { scheduledJobs } from 'croner';
@@ -106,7 +107,7 @@ describe('checkMissingOutcomes', () => {
 		await checkMissingOutcomes();
 
 		// a second run must not create a second outcome or duplicate pairs
-		await checkMissingOutcomes();
+		await Promise.all([checkMissingOutcomes(), checkMissingOutcomes()]);
 		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);
 		expect(await db.selectFrom('outcomes_intentions').selectAll().execute()).toHaveLength(1);
 
@@ -118,6 +119,42 @@ describe('checkMissingOutcomes', () => {
 		expect(outcomes).toHaveLength(2);
 		expect(outcomes[1].date).toBe('2023-07-02');
 		expect(await db.selectFrom('outcomes_intentions').selectAll().execute()).toHaveLength(2);
+	});
+
+	it('repairs a large day with two inserts and does not advance ids on an idle rerun', async () => {
+		const goalId = await insertGoal(db);
+		await db
+			.insertInto('intentions')
+			.values(
+				Array.from({ length: 1001 }, (_, i) => ({
+					goalId,
+					orderNumber: i + 1,
+					status: 'pending' as const,
+					text: 'Read',
+					date: '2023-07-01T00:00:00.000Z'
+				}))
+			)
+			.execute();
+		const prepare = vi.spyOn(DatabaseSync.prototype, 'prepare');
+		await checkMissingOutcomes();
+		expect(prepare.mock.calls.filter(([query]) => /^insert /i.test(query))).toHaveLength(2);
+		expect(await db.selectFrom('outcomes_intentions').selectAll().execute()).toHaveLength(1001);
+		const sequence = await sql`SELECT * FROM sqlite_sequence`.execute(db);
+		await checkMissingOutcomes();
+		expect((await sql`SELECT * FROM sqlite_sequence`.execute(db)).rows).toEqual(sequence.rows);
+	});
+
+	it('rolls back newly created outcomes if linking fails, preserving reviewed history', async () => {
+		const goalId = await insertGoal(db);
+		await insertIntention(db, goalId, '2023-07-01T00:00:00.000Z', 1);
+		await insertIntention(db, goalId, '2023-07-02T00:00:00.000Z', 1);
+		await db.insertInto('outcomes').values({ date: '2023-07-01', reviewed: 1 }).execute();
+		const history = await db.selectFrom('outcomes').selectAll().execute();
+		await sql`CREATE TRIGGER fail_links BEFORE INSERT ON outcomes_intentions
+			BEGIN SELECT RAISE(ABORT, 'blocked'); END`.execute(db);
+		await expect(checkMissingOutcomes()).rejects.toThrow('blocked');
+		expect(await db.selectFrom('outcomes').selectAll().execute()).toEqual(history);
+		expect(await db.selectFrom('outcomes_intentions').selectAll().execute()).toEqual([]);
 	});
 
 	it('keeps an existing reviewed outcome but adds the missing link', async () => {
