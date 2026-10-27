@@ -117,14 +117,18 @@ jobs:
 
       - name: Run Playwright tests
         if: ${{ !cancelled() }}
-        run: pnpm test:e2e --project ${{ matrix.browser }}
+        env:
+          PLAYWRIGHT_PERFETTO_OUTPUT_FILE: test-results/playwright/perfetto.json.gz
+        run: pnpm test:e2e --project ${{ matrix.browser }} --add-reporter perfetto
 
-      - name: Upload browser failure artifacts
+      - name: Upload browser traces and timings
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: browser-failures-${{ matrix.browser }}
-          path: test-results/**/*.zip
+          name: browser-results-${{ matrix.browser }}
+          path: |
+            test-results/**/*.zip
+            test-results/**/perfetto.json.gz
           compression-level: 0
           if-no-files-found: ignore
           retention-days: 7

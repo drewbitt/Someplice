@@ -1,19 +1,10 @@
 name: Setup pnpm + Node
-description: Install pnpm, Node.js (from package.json), and dependencies with pnpm cache
+description: Install pnpm, Node.js, and locked dependencies from package.json with pnpm cache
 runs:
   using: composite
   steps:
-    - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
-      name: Install pnpm
+    - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+      name: Install pnpm, Node.js, and dependencies
       with:
-        run_install: false
-
-    - name: Install Node.js
-      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
-      with:
-        node-version-file: package.json
-        cache: pnpm
-
-    - name: Install dependencies
-      shell: bash
-      run: pnpm install --frozen-lockfile
+        cache: true
+        require-lockfile: true
