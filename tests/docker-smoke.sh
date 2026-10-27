@@ -24,7 +24,7 @@ trap cleanup EXIT
 docker volume create "$volume" >/dev/null
 start() {
   docker run -d --name "$name" --platform "$platform" \
-    --read-only --cap-drop ALL --security-opt no-new-privileges \
+    --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
     --mount "type=volume,source=$1,target=/app/data" \
     -e SOMEPLICE_TIMEZONE=UTC -p 127.0.0.1::3000 "$image" >/dev/null
   port=$(docker port "$name" 3000/tcp | cut -d: -f2)
@@ -59,6 +59,13 @@ docker exec "$name" node --input-type=module -e '
     typeof pattern === "string" && typeof value === "string" && new RegExp(pattern).test(value) ? 1 : 0);
   assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
   assert.equal(db.prepare("SELECT count(*) AS n FROM kysely_migration").get().n, 1);
+  const temp = new DatabaseSync(":memory:");
+  // Exercise a disk-backed SQLite sort in the read-only image.
+  temp.exec("CREATE TABLE spill(value TEXT); WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<100000) INSERT INTO spill SELECT hex(zeroblob(100)) || x FROM n");
+  let sorted = 0;
+  for (const row of temp.prepare("SELECT value FROM spill ORDER BY substr(value,100) DESC").iterate()) sorted++;
+  assert.equal(sorted, 100000);
+  temp.close();
   db.prepare("INSERT INTO goals (active, orderNumber, title, color) VALUES (1, 1, ?, ?)")
     .run("container-persistence-marker", "#ffffff");
   db.close();
