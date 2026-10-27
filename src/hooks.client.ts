@@ -1,5 +1,5 @@
 import type { HandleClientError } from '@sveltejs/kit/hooks';
-import { appLogger } from '#lib/utils/logger.js';
+import { appLogger } from '#lib/utils/app-logger.js';
 
 export const handleError: HandleClientError = ({ error, event }) => {
 	const errorId = crypto.randomUUID();

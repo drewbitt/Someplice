@@ -2,7 +2,7 @@
 	import { refreshAll } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import type { Goal, Priority } from '#lib/trpc/types.js';
-	import { appLogger } from '#lib/utils/logger.js';
+	import { appLogger } from '#lib/utils/app-logger.js';
 
 	let {
 		showModal = $bindable(),
