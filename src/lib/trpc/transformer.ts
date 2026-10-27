@@ -2,9 +2,11 @@ import { parse, stringify } from 'devalue';
 import { DeleteResult, InsertResult, UpdateResult } from 'kysely';
 
 const reducers = {
-	DeleteResult: (value: unknown): bigint | undefined => {
+	DeleteResult: (value: unknown): bigint | [bigint] | undefined => {
 		if (value instanceof DeleteResult) {
-			return value.numDeletedRows;
+			// devalue uses a truthy reducer result to recognize custom types.
+			// Wrap zero; retain the scalar wire format for existing nonzero results.
+			return value.numDeletedRows === 0n ? [0n] : value.numDeletedRows;
 		}
 	},
 	InsertResult: (value: unknown): [bigint | undefined, bigint | undefined] | undefined => {
@@ -20,8 +22,8 @@ const reducers = {
 };
 
 const revivers = {
-	DeleteResult: (numDeletedRows: bigint): DeleteResult => {
-		return new DeleteResult(numDeletedRows);
+	DeleteResult: (numDeletedRows: bigint | [bigint]): DeleteResult => {
+		return new DeleteResult(Array.isArray(numDeletedRows) ? numDeletedRows[0] : numDeletedRows);
 	},
 	InsertResult: ([insertId, numInsertedOrUpdatedRows]: [
 		bigint | undefined,
