@@ -1,5 +1,9 @@
 name: Setup pnpm + Node
 description: Install pnpm, Node.js, and locked dependencies from package.json with pnpm cache
+inputs:
+  save-cache:
+    description: Save the shared pnpm store after this job
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -7,4 +11,5 @@ runs:
       name: Install pnpm, Node.js, and dependencies
       with:
         cache: true
+        save-cache: ${{ inputs.save-cache }}
         require-lockfile: true
