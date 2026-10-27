@@ -2,7 +2,7 @@ import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlit
 import { GenericSqliteDialect } from 'kysely-generic-sqlite';
 
 function disposeStatement(statement: StatementSync): void {
-	// Runtime narrowing bridges @types/node until it declares Node 24.22's API.
+	// @types/node 24.19.2 omits statement disposal (added in Node 24.22.0).
 	const dispose = Symbol.dispose in statement ? statement[Symbol.dispose] : undefined;
 	if (typeof dispose === 'function') {
 		dispose.call(statement);

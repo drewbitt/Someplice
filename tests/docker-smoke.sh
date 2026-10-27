@@ -48,6 +48,13 @@ docker exec "$name" node --input-type=module -e '
   import assert from "node:assert/strict";
   import { DatabaseSync } from "node:sqlite";
   const db = new DatabaseSync(process.env.DATABASE_PATH);
+  // Verify statement disposal in the final image on both architectures.
+  const statement = db.prepare("SELECT 1 AS value");
+  assert.equal(typeof statement[Symbol.dispose], "function");
+  assert.equal(statement.get().value, 1);
+  statement[Symbol.dispose]();
+  assert.throws(() => statement.get(), /statement has been finalized/);
+  statement[Symbol.dispose](); // Disposal is idempotent.
   db.function("regexp", { deterministic: true }, (pattern, value) =>
     typeof pattern === "string" && typeof value === "string" && new RegExp(pattern).test(value) ? 1 : 0);
   assert.equal(db.prepare("PRAGMA integrity_check").get().integrity_check, "ok");
