@@ -32,6 +32,31 @@ describe('transformer', () => {
 		expect(del.numDeletedRows).toEqual(9n);
 	});
 
+	it.each(['input', 'output'] as const)(
+		'round-trips a zero-row DeleteResult through %s',
+		(direction) => {
+			const codec = transformer[direction];
+			const value = codec.deserialize(codec.serialize(new DeleteResult(0n))) as DeleteResult;
+			expect(value).toBeInstanceOf(DeleteResult);
+			expect(value.numDeletedRows).toBe(0n);
+		}
+	);
+
+	it('still reads the legacy scalar DeleteResult format', () => {
+		// Previous clients encode the row count directly, rather than in a tuple.
+		const legacy = '[["DeleteResult",1],["BigInt","9"]]';
+		const value = transformer.output.deserialize(legacy) as DeleteResult;
+		expect(value).toBeInstanceOf(DeleteResult);
+		expect(value.numDeletedRows).toBe(9n);
+		expect(transformer.output.serialize(new DeleteResult(9n))).toBe(legacy);
+	});
+
+	it('preserves escaped text and lone surrogates across UTF-8 transport', () => {
+		const value = { text: '"quoted"\n\\ </script>\u2028\u2029 \ud800 \udc00' };
+		const bytes = new TextEncoder().encode(transformer.output.serialize(value));
+		expect(transformer.output.deserialize(new TextDecoder().decode(bytes))).toEqual(value);
+	});
+
 	it('round-trips mixed structures containing result types', () => {
 		const value = {
 			when: new Date('2024-01-01'),
