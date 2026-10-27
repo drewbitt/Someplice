@@ -13,13 +13,15 @@ export const ensureOutcomeForDate = async (
 	db: Kysely<DB>,
 	date: string
 ): Promise<number | null> => {
-	// INSERT-or-ignore then SELECT: a read-then-insert races with a concurrent
-	// caller and one of them dies on the outcomes.date UNIQUE constraint.
-	await db
+	// Return the new id directly; ignored conflicts still read the existing row.
+	// Inserting first keeps concurrent callers safe on the UNIQUE date constraint.
+	const inserted = await db
 		.insertInto('outcomes')
 		.values({ reviewed: 0, date })
 		.onConflict((oc) => oc.column('date').doNothing())
-		.execute();
+		.returning('id')
+		.executeTakeFirst();
+	if (inserted) return inserted.id;
 	const outcome = await db
 		.selectFrom('outcomes')
 		.select('id')
@@ -53,20 +55,32 @@ export const deleteOrphanedOutcomes = async (
 	db: Kysely<DB>,
 	outcomeIds: number[]
 ): Promise<void> => {
-	for (const outcomeId of new Set(outcomeIds)) {
-		const remaining = await db
-			.selectFrom('outcomes_intentions')
-			.select(({ fn }) => [fn.countAll<number>().as('count')])
-			.where('outcomeId', '=', outcomeId)
-			.executeTakeFirstOrThrow();
-		const verdicts = await db
-			.selectFrom('outcome_verdicts')
-			.select(({ fn }) => [fn.countAll<number>().as('count')])
-			.where('outcomeId', '=', outcomeId)
-			.executeTakeFirstOrThrow();
-		if (Number(remaining.count) === 0 && Number(verdicts.count) === 0) {
-			await db.deleteFrom('outcomes').where('id', '=', outcomeId).execute();
-		}
+	const ids = [...new Set(outcomeIds)];
+	// Keep bound parameters below SQLite's limit, including for large histories.
+	const batchSize = 900;
+	for (let offset = 0; offset < ids.length; offset += batchSize) {
+		await db
+			.deleteFrom('outcomes')
+			.where('id', 'in', ids.slice(offset, offset + batchSize))
+			.where(({ and, not, exists, selectFrom }) =>
+				and([
+					not(
+						exists(
+							selectFrom('outcomes_intentions')
+								.select('outcomeId')
+								.whereRef('outcomes_intentions.outcomeId', '=', 'outcomes.id')
+						)
+					),
+					not(
+						exists(
+							selectFrom('outcome_verdicts')
+								.select('outcomeId')
+								.whereRef('outcome_verdicts.outcomeId', '=', 'outcomes.id')
+						)
+					)
+				])
+			)
+			.execute();
 	}
 };
 
