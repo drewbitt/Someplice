@@ -36,6 +36,15 @@
 			groupSlug: 'non-major',
 			automerge: true,
 			schedule: ['* 17-23 * * 1']
+		},
+		{
+			// 2.2.2 lost the trusted publishing/provenance present in 2.2.1.
+			// Keep pnpm's no-downgrade policy and isolate future hook updates.
+			matchPackageNames: ['lefthook'],
+			allowedVersions: '!/^2\\.2\\.2$/',
+			groupName: 'lefthook',
+			groupSlug: 'lefthook',
+			automerge: false
 		}
 	]
 }

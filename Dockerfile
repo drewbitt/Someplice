@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # check=error=true
 
-FROM --platform=$BUILDPLATFORM node:24.21.0-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS base
+FROM --platform=$BUILDPLATFORM node:24.22.1-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS base
 RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -27,7 +27,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     DATABASE_PATH=/app/data/db.sqlite
 
-COPY --from=node:24.21.0-alpine3.24@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 /usr/local/bin/node /usr/local/bin/
+COPY --from=node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 /usr/local/bin/node /usr/local/bin/
 COPY --from=base /usr/local/LICENSE /usr/local/share/doc/node/LICENSE
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
