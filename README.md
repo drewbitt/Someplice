@@ -65,7 +65,7 @@ There are two ways to install Someplice: with pnpm or Docker. Choose the method 
 
 #### Option 1: pnpm
 
-Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24.21.0 for `node:sqlite`) if needed.
+Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24.22.1) if needed.
 
 1. Clone the repository
 2. Install dependencies

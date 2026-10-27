@@ -1,5 +1,13 @@
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
 import { GenericSqliteDialect } from 'kysely-generic-sqlite';
+
+function disposeStatement(statement: StatementSync): void {
+	// @types/node 24.19.2 omits statement disposal (added in Node 24.22.0).
+	const dispose = Symbol.dispose in statement ? statement[Symbol.dispose] : undefined;
+	if (typeof dispose === 'function') {
+		dispose.call(statement);
+	}
+}
 
 // node:sqlite's StatementSync differs from better-sqlite3: bind params are
 // spread into statement calls rather than passed as an array, and there is no
@@ -11,22 +19,31 @@ export function createNodeSqliteDialect(database: DatabaseSync) {
 		db: database,
 		query: (_isSelect, sql, parameters) => {
 			const stmt = database.prepare(sql);
-			const params = parameters as SQLInputValue[];
-			if (stmt.columns().length > 0) {
-				return { rows: stmt.all(...params).map((row) => ({ ...row })) };
+			try {
+				const params = parameters as SQLInputValue[];
+				if (stmt.columns().length > 0) {
+					return { rows: stmt.all(...params).map((row) => ({ ...row })) };
+				}
+				const { changes, lastInsertRowid } = stmt.run(...params);
+				return {
+					rows: [],
+					insertId: BigInt(lastInsertRowid),
+					numAffectedRows: BigInt(changes)
+				};
+			} finally {
+				disposeStatement(stmt);
 			}
-			const { changes, lastInsertRowid } = stmt.run(...params);
-			return {
-				rows: [],
-				insertId: BigInt(lastInsertRowid),
-				numAffectedRows: BigInt(changes)
-			};
 		},
 		iterator: (_isSelect, sql, parameters) => {
 			const params = parameters as SQLInputValue[];
 			return (function* () {
-				for (const row of database.prepare(sql).iterate(...params)) {
-					yield { ...row };
+				const stmt = database.prepare(sql);
+				try {
+					for (const row of stmt.iterate(...params)) {
+						yield { ...row };
+					}
+				} finally {
+					disposeStatement(stmt);
 				}
 			})();
 		},
