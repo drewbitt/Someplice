@@ -400,6 +400,9 @@ export const intentions = t.router({
 					const updateIds = input.intentions
 						.filter((intention) => intention.id !== null)
 						.map((intention) => intention.id as number);
+					if (new Set(updateIds).size !== updateIds.length) {
+						throw new TRPCError({ code: 'BAD_REQUEST', message: 'Intention IDs must be unique.' });
+					}
 					if (updateIds.length > 0) {
 						const existingDays = await trx
 							.selectFrom('intentions')

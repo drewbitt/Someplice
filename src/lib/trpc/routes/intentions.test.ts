@@ -44,6 +44,22 @@ describe('intentions', () => {
 		await db.destroy();
 	});
 
+	it('rejects duplicate update IDs without writes but permits multiple new intentions', async () => {
+		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		const before = await db.selectFrom('intentions').selectAll().execute();
+		await expect(
+			caller.intentions.updateIntentions({
+				intentions: [TEST_INTENTION, { ...TEST_INTENTION, orderNumber: 2, text: 'Overwrite' }]
+			})
+		).rejects.toMatchObject({ code: 'BAD_REQUEST', message: 'Intention IDs must be unique.' });
+		expect(await db.selectFrom('intentions').selectAll().execute()).toEqual(before);
+		expect(
+			await caller.intentions.updateIntentions({
+				intentions: [2, 3].map((orderNumber) => ({ ...TEST_INTENTION, id: null, orderNumber }))
+			})
+		).toHaveLength(2);
+	});
+
 	it('reorders without rewriting independently changed text and status', async () => {
 		await caller.intentions.updateIntentions({
 			intentions: [TEST_INTENTION, { ...TEST_INTENTION, id: 2, orderNumber: 2 }]
