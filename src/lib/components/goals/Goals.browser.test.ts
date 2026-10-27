@@ -47,7 +47,6 @@ test('legacy whitespace-only titles can be edited and repaired', async () => {
 		data: {
 			goals: [{ ...goal, title: '   ' }],
 			inactiveGoals: [],
-			goalLogs: [],
 			priorities: []
 		}
 	});
@@ -64,7 +63,7 @@ test('legacy whitespace-only titles can be edited and repaired', async () => {
 
 test('goal conflicts resync using the error code, not message text', async () => {
 	const screen = await render(GoalsPage, {
-		data: { goals: [goal], inactiveGoals: [], goalLogs: [], priorities: [] }
+		data: { goals: [goal], inactiveGoals: [], priorities: [] }
 	});
 	api.updateGoals.mockRejectedValueOnce(
 		TRPCClientError.from({
@@ -87,8 +86,7 @@ test('inactive-only goals still expose edit, restore and delete controls', async
 		data: {
 			goals: [],
 			inactiveGoals: [archived],
-			priorities: [],
-			goalLogs: [{ id: 1, goalId: 1, type: 'end', date: intention.date, orderNumber: null }]
+			priorities: []
 		}
 	});
 	await screen.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -101,8 +99,7 @@ test('goal deletion confirmation resets after a failed attempt and reopening', a
 		data: {
 			goals: [],
 			inactiveGoals: [{ ...goal, active: 0 }],
-			priorities: [],
-			goalLogs: []
+			priorities: []
 		}
 	});
 	await screen.getByRole('button', { name: 'Edit', exact: true }).click();

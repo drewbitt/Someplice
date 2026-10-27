@@ -11,6 +11,18 @@ beforeEach(() => {
 	api.list.mockReset().mockResolvedValue([]);
 });
 
+test.each([
+	['navy', [0, 0, 204, 255]],
+	['hsl(200 50% 40%)', [71, 153, 194, 255]]
+])('lightens %s without changing its hue or saturation', async (color, expected) => {
+	const screen = await render(GoalColorPalette, { goalColor: color });
+	const button = screen.getByRole('button', { name: 'Choose goal color' }).element();
+	const context = document.createElement('canvas').getContext('2d')!;
+	context.fillStyle = getComputedStyle(button).backgroundColor;
+	context.fillRect(0, 0, 1, 1);
+	expect([...context.getImageData(0, 0, 1, 1).data]).toEqual(expected);
+});
+
 test('a failed color request can be retried and colors work with the keyboard', async () => {
 	api.list
 		.mockRejectedValueOnce(new Error('offline'))

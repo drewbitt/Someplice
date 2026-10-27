@@ -7,7 +7,6 @@ import {
 	goalColorForIntention,
 	goalOrderNumberForId,
 	goalsForJourneyDay,
-	lightenHSL,
 	previousDateKey,
 	wallClockInZone
 } from './index.ts';
@@ -60,12 +59,6 @@ describe('utils', () => {
 
 	it('dayOfWeekFromDate returns the UTC weekday name', () => {
 		expect(dayOfWeekFromDate(new Date('2024-06-03T00:00:00Z'))).toBe('Monday');
-	});
-
-	it('HSL lightening increases lightness monotonically', () => {
-		const color = 'hsl(200 50% 40%)';
-		expect(lightenHSL(color, 0.2)).toBe('hsl(200,50%,52%)');
-		expect(lightenHSL(color, 0.4)).toBe('hsl(200,50%,64%)');
 	});
 
 	it('goalColorForIntention falls back to black', () => {

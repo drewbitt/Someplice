@@ -192,6 +192,7 @@ test('checkbox changes are single-flight and roll back after failure', async () 
 			})
 	);
 	const screen = await render(ActionsDisplay, {
+		today: intention.date.slice(0, 10),
 		goals: [goal],
 		intentions: [intention],
 		handleUpdateSingleIntention: update

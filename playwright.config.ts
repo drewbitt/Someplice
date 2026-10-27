@@ -33,6 +33,7 @@ export default defineConfig({
 		env: {
 			DATABASE_PATH: process.env.DATABASE_PATH,
 			SOMEPLICE_TIMEZONE: 'UTC',
+			TZ: 'Pacific/Kiritimati',
 			NODE_ENV: 'production',
 			HOST: '127.0.0.1',
 			PORT: '4173'

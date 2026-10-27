@@ -74,14 +74,8 @@ export const previousDateKey = (dateKey: string): string => {
 export const dayOfWeekInZone = (timeZone: string, instant: Date = new Date()): string =>
 	new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone }).format(instant);
 
-export const lightenHSL = (color: string, amount: number): string => {
-	const [hue, saturation, lightness] = color
-		.slice(4, -1)
-		.split(' ')
-		.map((x) => parseFloat(x));
-	const lighterLightness = lightness + (100 - lightness) * amount;
-	return `hsl(${hue},${saturation}%,${lighterLightness}%)`;
-};
+export const lightenHSL = (color: string, amount: number): string =>
+	`hsl(from ${color} h s calc(l + (100 - l) * ${amount}))`;
 
 export const goalColorForIntention = (intention: Pick<Intention, 'goalId'>, goals: Goal[]) => {
 	const goal = goals.find((goal) => goal.id === intention.goalId);
