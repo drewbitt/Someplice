@@ -20,14 +20,17 @@
 
 	let availableColorsPromise = $state<Promise<string[]> | undefined>(undefined);
 
+	function loadColors() {
+		availableColorsPromise = trpc()
+			.goals.list.query(1)
+			.then((allGoals) => {
+				const usedColors = new Set(allGoals.map((goal) => goal.color));
+				return colors.filter((color) => !usedColors.has(color));
+			});
+	}
+
 	$effect(() => {
-		if (opened && !availableColorsPromise) {
-			availableColorsPromise = (async () => {
-				const allGoals = await trpc().goals.list.query(1);
-				const usedColors = allGoals.map((goal) => goal.color);
-				return colors.filter((color) => !usedColors.includes(color));
-			})();
-		}
+		if (opened) loadColors();
 	});
 </script>
 
@@ -40,24 +43,23 @@
 			{:then availColors}
 				{#each availColors as color (color)}
 					<div class="flex justify-center">
-						<div
-							tabindex="0"
-							role="button"
+						<button
+							type="button"
+							aria-label={`Use ${color}`}
 							style="background-color: {color}"
 							class="size-10 cursor-pointer rounded-full"
 							onclick={() => {
 								goalColor = color;
 								opened = false;
 							}}
-							onkeydown={(event) => {
-								if (event.key === 'Enter') {
-									goalColor = color;
-									opened = false;
-								}
-							}}
-						></div>
+						></button>
 					</div>
 				{/each}
+			{:catch}
+				<div class="col-span-4" role="alert">
+					<p>Could not load goal colors.</p>
+					<button type="button" class="btn" onclick={loadColors}>Retry</button>
+				</div>
 			{/await}
 		</div>
 	</div>
@@ -66,17 +68,12 @@
 	</form>
 </dialog>
 
-<div
-	tabindex="0"
-	role="button"
+<button
+	type="button"
+	aria-label="Choose goal color"
 	style="background-color: {lightenHSL(goalColor, 0.2)}"
 	class="flex h-8 w-14 cursor-pointer items-center justify-center"
 	onclick={() => (opened = true)}
-	onkeydown={(event) => {
-		if (event.key === 'Enter') {
-			opened = true;
-		}
-	}}
 >
-	<div style="background-color: {goalColor}" class="size-6 border"></div>
-</div>
+	<span style="background-color: {goalColor}" class="size-6 border"></span>
+</button>
