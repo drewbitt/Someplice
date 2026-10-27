@@ -40,7 +40,7 @@ export default defineConfig({
 						headless: true,
 						provider: playwright(),
 						trace: { mode: 'retain-on-failure', tracesDir: 'test-results/vitest' },
-						instances: [{ browser: 'chromium' }]
+						instances: [{ browser: 'chromium' }, { browser: 'firefox' }, { browser: 'webkit' }]
 					}
 				}
 			}

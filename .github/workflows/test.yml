@@ -101,8 +101,8 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
 
       - name: Run Vitest browser tests
         run: pnpm test:browser --run

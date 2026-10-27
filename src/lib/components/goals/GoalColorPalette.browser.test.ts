@@ -17,8 +17,7 @@ test('a failed color request can be retried and colors work with the keyboard', 
 		.mockResolvedValueOnce([{ color: colors[0] }]);
 	const screen = await render(GoalColorPalette, { goalColor: 'navy' });
 	const opener = screen.getByRole('button', { name: 'Choose goal color' });
-	opener.element().focus();
-	await userEvent.keyboard(' ');
+	await userEvent.type(opener, ' ');
 	await expect
 		.element(screen.getByRole('alert'))
 		.toMatchTextContent(/Could not load goal colors\./);
@@ -28,8 +27,7 @@ test('a failed color request can be retried and colors work with the keyboard', 
 	await expect
 		.element(screen.getByRole('button', { name: `Use ${colors[0]}`, exact: true }))
 		.not.toBeInTheDocument();
-	option.element().focus();
-	await userEvent.keyboard('{Enter}');
+	await userEvent.type(option, '{Enter}');
 	await expect.element(screen.getByText('Choose Goal Color', { exact: true })).not.toBeVisible();
 	expect(api.list).toHaveBeenCalledTimes(2);
 	expect(screen.container.querySelector('span')?.style.backgroundColor).not.toBe('navy');
