@@ -1,27 +1,7 @@
 import { expect, test } from '@playwright/test';
-import { DatabaseSync } from 'node:sqlite';
+import { openTestDb, resetTestDb } from './fixtures';
 
-function openTestDb() {
-	const db = new DatabaseSync(process.env.DATABASE_PATH!);
-	db.exec('PRAGMA foreign_keys = ON');
-	db.function('regexp', { deterministic: true }, (regex, text) =>
-		typeof regex === 'string' && typeof text === 'string'
-			? new RegExp(regex).test(text)
-				? 1
-				: 0
-			: null
-	);
-	return db;
-}
-
-test.beforeEach(() => {
-	const db = openTestDb();
-	try {
-		db.exec('DELETE FROM goals; DELETE FROM outcomes; DELETE FROM settings;');
-	} finally {
-		db.close();
-	}
-});
+test.beforeEach(resetTestDb);
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');

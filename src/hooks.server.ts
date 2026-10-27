@@ -36,7 +36,7 @@ function ensureInitialized(): Promise<void> {
 export const handle: Handle = async ({ event, resolve }) => {
 	await ensureInitialized();
 
-	if (event.url.pathname.startsWith(trpcEndpoint)) {
+	if (event.url.pathname === trpcEndpoint || event.url.pathname.startsWith(`${trpcEndpoint}/`)) {
 		return fetchRequestHandler({
 			endpoint: trpcEndpoint,
 			req: event.request,
