@@ -12,7 +12,7 @@
 	import type { PageServerData } from './$types';
 	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 	import { onMount } from 'svelte';
-	import { appLogger } from '#lib/utils/logger.js';
+	import { appLogger } from '#lib/utils/app-logger.js';
 	import { TRPCClientError } from '@trpc/client';
 
 	let { data }: { data: PageServerData } = $props();

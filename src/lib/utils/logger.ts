@@ -7,7 +7,6 @@ import { Logger } from 'tslog';
 4: Warn
 5: Error
 6: Fatal */
-export const appLogger = new Logger({ name: 'appLogger' });
 export const dbLogger = new Logger({
 	name: 'dbLogger',
 	minLevel: process.env.NODE_ENV === 'test' ? 4 : import.meta.env?.PROD ? 3 : 1
