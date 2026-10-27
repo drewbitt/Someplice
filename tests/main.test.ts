@@ -66,6 +66,7 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 test('a cleared migrated draft stays cleared across navigation and reload', async ({ page }) => {
 	await page.goto('/goals');
 	await page.getByRole('button', { name: 'New Goal' }).click();
+	await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
 	await page.evaluate(() => {
 		localStorage.removeItem('todaysIntentions:v2');
 		localStorage.setItem('todaysIntentions', '1) legacy draft');
