@@ -12,24 +12,17 @@ export const PrioritySchema = z.object({
 	goalId: z.number(),
 	text: z.string(),
 	description: z.string().nullable(),
-	// YYYY-MM-DD check-in date, optional
 	checkInDate: z
 		.string()
 		.regex(/^\d{4}-\d{2}-\d{2}$/)
 		.nullable(),
-	// ISO 8601 date strings
 	createdAt: z.string(),
 	completedAt: z.string().nullable(),
 	reflection: z.string().nullable()
 });
 
 export const priorities = t.router({
-	/**
-	 * List priorities as plain generated database rows.
-	 * @param input.activeOnly - When true (default), return only active priorities
-	 * (`completedAt IS NULL`) — at most one per goal.
-	 * @returns An array of plain priority rows.
-	 */
+	/** List priorities; by default, only the active priority for each goal. */
 	list: procedure
 		.use(logger)
 		.input(
@@ -48,15 +41,7 @@ export const priorities = t.router({
 
 			return await query.execute();
 		}),
-	/**
-	 * List completed priorities (milestones), newest first.
-	 * @param input.goalId - Restrict to one goal (optional).
-	 * @param input.startDate - Include priorities completed on/after this date (optional).
-	 * @param input.endDate - Include priorities completed on/before this date (optional).
-	 * @param input.limit - Maximum number of results (optional).
-	 * @param input.offset - Offset into the result set (optional).
-	 * @returns An array of completed priorities with goal display fields.
-	 */
+	/** List completed priorities, newest first. */
 	listCompleted: procedure
 		.use(logger)
 		.input(
@@ -99,15 +84,7 @@ export const priorities = t.router({
 
 			return await query.execute();
 		}),
-	/**
-	 * Set or replace a goal's active top priority in place; creates one if none is
-	 * active. Never completes the old one.
-	 * @param input.goalId - Goal to set the priority on.
-	 * @param input.text - The priority text.
-	 * @param input.description - Optional longer description.
-	 * @param input.checkInDate - Optional YYYY-MM-DD check-in date.
-	 * @returns An object containing the `id` of the new priority.
-	 */
+	/** Edit the active priority in place, or create one. Preserve milestone history. */
 	upsert: procedure
 		.use(logger)
 		.input(
@@ -122,52 +99,26 @@ export const priorities = t.router({
 			})
 		)
 		.mutation(async ({ input }) => {
-			const now = (await configuredZoneNow()).toISOString();
+			const fields = {
+				text: input.text,
+				description: input.description ?? null,
+				checkInDate: input.checkInDate ?? null
+			};
 			return await getDb()
-				.transaction()
-				.execute(async (trx) => {
-					const active = await trx
-						.selectFrom('priorities')
-						.select('id')
-						.where('goalId', '=', input.goalId)
-						.where('completedAt', 'is', null)
-						.executeTakeFirst();
-					if (active) {
-						return await trx
-							.updateTable('priorities')
-							.set({
-								text: input.text,
-								description: input.description ?? null,
-								checkInDate: input.checkInDate ?? null
-							})
-							.where('id', '=', active.id)
-							.returning('id')
-							.executeTakeFirstOrThrow();
-					}
-
-					return await trx
-						.insertInto('priorities')
-						.values({
-							goalId: input.goalId,
-							text: input.text,
-							description: input.description ?? null,
-							checkInDate: input.checkInDate ?? null,
-							createdAt: now,
-							completedAt: null,
-							reflection: null
-						})
-						.returning('id')
-						.executeTakeFirstOrThrow();
-				});
+				.insertInto('priorities')
+				.values({
+					goalId: input.goalId,
+					...fields,
+					createdAt: (await configuredZoneNow()).toISOString()
+				})
+				// Target the partial index so completed milestones remain untouched.
+				.onConflict((oc) =>
+					oc.column('goalId').where('completedAt', 'is', null).doUpdateSet(fields)
+				)
+				.returning('id')
+				.executeTakeFirstOrThrow();
 		}),
-	/**
-	 * Complete a priority, recording when and an optional reflection. Completed
-	 * priorities surface as milestones on the journey page.
-	 * @param input.id - The priority to complete.
-	 * @param input.reflection - Optional reflection text.
-	 * @returns An `UpdateResult` object.
-	 * @throws {NoResultError} If no active priority with the provided `id` exists.
-	 */
+	/** Complete an active priority; throw NoResultError if it is missing or already completed. */
 	complete: procedure
 		.use(logger)
 		.input(
@@ -191,12 +142,7 @@ export const priorities = t.router({
 			}
 			return result;
 		}),
-	/**
-	 * Clear a goal's active priority without completing it. The row is deleted so it
-	 * does not appear in milestone history.
-	 * @param input - `goalId` of the goal whose active priority should be removed.
-	 * @returns A `DeleteResult` object.
-	 */
+	/** Clear the active priority without recording a milestone. */
 	clear: procedure
 		.use(logger)
 		.input(z.object({ goalId: z.number() }))
