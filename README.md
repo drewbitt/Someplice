@@ -2,7 +2,7 @@
 
 <img src="src/lib/assets/someplice-compressed-logo-2023-01-21-no-padding.svg" alt="Someplice logo" width="80" />
 
-A self-hosted app for goals, daily intentions, and progress reviews. Built with SvelteKit and SQLite for current Chrome, Firefox, and Safari releases.
+A self-hosted app for goals, daily intentions, and progress reviews.
 
 ## Run with Docker
 
@@ -19,7 +19,7 @@ Open <http://localhost:3000>. Published version tags omit the release's `v` pref
 
 **There is no built-in authentication.** Keep access local or use an authenticated reverse proxy.
 
-Data lives in the named volume. Bind mounts need write access for UID/GID 1000; use one app instance per database. `/tmp` provides SQLite's temporary sort space. For filesystem backups, stop the app and copy the entire data directory; a live main-file-only copy can miss WAL changes.
+Your data is stored in the `someplice-data` volume. If you use a bind mount instead, its directory must be writable by UID/GID 1000.
 
 ## Configuration
 
@@ -35,32 +35,16 @@ The database initializes automatically. Older development databases aren't migra
 
 ## Development
 
-Install pnpm; the project declares its pnpm and Node versions in `package.json`.
+From a checkout with pnpm installed:
 
 ```bash
-git clone https://github.com/drewbitt/Someplice.git
-cd Someplice
 pnpm install
 pnpm dev
 ```
 
 For a production server without Docker, run `pnpm build`, then `NODE_ENV=production pnpm exec node build/index.js`.
 
-Run checks before opening a PR:
-
-```bash
-pnpm check
-pnpm run check:tsgo
-pnpm lint
-pnpm test:unit --run
-pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
-pnpm test:browser --run
-pnpm test:e2e
-```
-
-Browser tests cover all three engines. End-to-end tests build the app and use a disposable database. Failure traces and CI timing reports are available under `test-results/` or as workflow artifacts.
-
-After changing migrations, run `pnpm db:codegen` to regenerate database types.
+See [package.json](package.json) for available scripts and [CI](.github/workflows/test.yml) for validation.
 
 ## License
 
