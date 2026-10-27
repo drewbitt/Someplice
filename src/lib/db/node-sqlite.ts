@@ -1,5 +1,20 @@
 import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
+import { SqliteAdapter } from 'kysely';
 import { GenericSqliteDialect } from 'kysely-generic-sqlite';
+
+class NodeSqliteAdapter extends SqliteAdapter {
+	// SQLite DDL is transactional. Let the Migrator wrap migrations so a
+	// mid-DDL failure rolls back instead of leaving partial tables.
+	override get supportsTransactionalDdl(): boolean {
+		return true;
+	}
+}
+
+class NodeSqliteDialect extends GenericSqliteDialect {
+	override createAdapter(): NodeSqliteAdapter {
+		return new NodeSqliteAdapter();
+	}
+}
 
 function disposeStatement(statement: StatementSync): void {
 	// @types/node 24.19.2 omits statement disposal (added in Node 24.22.0).
@@ -15,7 +30,7 @@ function disposeStatement(statement: StatementSync): void {
 // Rows are spread into plain objects since node:sqlite returns
 // null-prototype records.
 export function createNodeSqliteDialect(database: DatabaseSync) {
-	const dialect = new GenericSqliteDialect(() => ({
+	return new NodeSqliteDialect(() => ({
 		db: database,
 		query: (_isSelect, sql, parameters) => {
 			const stmt = database.prepare(sql);
@@ -49,14 +64,4 @@ export function createNodeSqliteDialect(database: DatabaseSync) {
 		},
 		close: () => database.close()
 	}));
-	// SQLite DDL is transactional, but Kysely's SqliteAdapter conservatively
-	// reports supportsTransactionalDdl=false — without this, the Migrator runs
-	// each migration unwrapped and a mid-DDL failure leaves partial tables.
-	const createAdapter = dialect.createAdapter.bind(dialect);
-	dialect.createAdapter = () => {
-		const adapter = createAdapter();
-		Object.defineProperty(adapter, 'supportsTransactionalDdl', { value: true });
-		return adapter;
-	};
-	return dialect;
 }
