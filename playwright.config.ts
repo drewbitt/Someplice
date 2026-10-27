@@ -25,8 +25,14 @@ export default defineConfig({
 	},
 	projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
 	webServer: {
-		command: 'pnpm run db:migrate && pnpm run build && pnpm run preview --strictPort',
-		env: { DATABASE_PATH: process.env.DATABASE_PATH, SOMEPLICE_TIMEZONE: 'UTC' },
+		command: 'pnpm run db:migrate && pnpm run build && node build/index.js',
+		env: {
+			DATABASE_PATH: process.env.DATABASE_PATH,
+			SOMEPLICE_TIMEZONE: 'UTC',
+			NODE_ENV: 'production',
+			HOST: '127.0.0.1',
+			PORT: '4173'
+		},
 		port: 4173,
 		reuseExistingServer: false
 	}
