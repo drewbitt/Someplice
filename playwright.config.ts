@@ -25,7 +25,7 @@ export default defineConfig({
 	},
 	projects: [{ name: 'chromium', use: devices['Desktop Chrome'] }],
 	webServer: {
-		command: 'pnpm run db:migrate && pnpm run build && pnpm run preview -- --strictPort',
+		command: 'pnpm run db:migrate && pnpm run build && pnpm run preview --strictPort',
 		env: { DATABASE_PATH: process.env.DATABASE_PATH, SOMEPLICE_TIMEZONE: 'UTC' },
 		port: 4173,
 		reuseExistingServer: false
