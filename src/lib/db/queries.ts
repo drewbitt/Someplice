@@ -5,32 +5,6 @@ import { wallClockInZone } from '../utils';
 import { dbLogger } from '../utils/logger';
 
 /**
- * Return the id of the outcome for a date (`YYYY-MM-DD`), creating it
- * (unreviewed) when it does not exist yet.
- * @returns the outcome id, or null if the row could not be created.
- */
-export const ensureOutcomeForDate = async (
-	db: Kysely<DB>,
-	date: string
-): Promise<number | null> => {
-	// Return the new id directly; ignored conflicts still read the existing row.
-	// Inserting first keeps concurrent callers safe on the UNIQUE date constraint.
-	const inserted = await db
-		.insertInto('outcomes')
-		.values({ reviewed: 0, date })
-		.onConflict((oc) => oc.column('date').doNothing())
-		.returning('id')
-		.executeTakeFirst();
-	if (inserted) return inserted.id;
-	const outcome = await db
-		.selectFrom('outcomes')
-		.select('id')
-		.where('date', '=', date)
-		.executeTakeFirst();
-	return outcome?.id ?? null;
-};
-
-/**
  * Link an intention to an outcome, ignoring an already-existing link.
  * @returns true when the link was inserted.
  */

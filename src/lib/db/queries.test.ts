@@ -5,7 +5,7 @@ import { Kysely, sql } from 'kysely';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createNodeSqliteDialect } from './node-sqlite.ts';
-import { deleteOrphanedOutcomes, ensureOutcomeForDate } from './queries';
+import { deleteOrphanedOutcomes } from './queries';
 
 describe('outcome query helpers', () => {
 	let db: Kysely<DB>;
@@ -27,37 +27,6 @@ describe('outcome query helpers', () => {
 
 	afterEach(async () => {
 		await db.destroy();
-	});
-
-	it('creates a new outcome in one query', async () => {
-		const id = await ensureOutcomeForDate(db, '2023-07-01');
-		expect(id).toBeTypeOf('number');
-		expect(queries).toHaveLength(1);
-	});
-
-	it('creates the outcome once and always returns the same id', async () => {
-		const id = await ensureOutcomeForDate(db, '2023-07-01');
-		const again = await ensureOutcomeForDate(db, '2023-07-01');
-		expect(id).not.toBeNull();
-		expect(again).toBe(id);
-		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);
-	});
-
-	it('concurrent calls for the same date both succeed', async () => {
-		const [a, b] = await Promise.all([
-			ensureOutcomeForDate(db, '2023-07-02'),
-			ensureOutcomeForDate(db, '2023-07-02')
-		]);
-		expect(a).toBe(b);
-		expect(await db.selectFrom('outcomes').selectAll().execute()).toHaveLength(1);
-	});
-
-	it('retains the existing outcome id and reviewed state', async () => {
-		await db.insertInto('outcomes').values({ id: 42, date: '2023-07-01', reviewed: 1 }).execute();
-		expect(await ensureOutcomeForDate(db, '2023-07-01')).toBe(42);
-		expect(await db.selectFrom('outcomes').selectAll().execute()).toEqual([
-			{ id: 42, date: '2023-07-01', reviewed: 1 }
-		]);
 	});
 
 	it('does not delete anything or execute SQL for an empty candidate list', async () => {
