@@ -114,9 +114,9 @@ pnpm check        # svelte-check type checking
 pnpm lint         # prettier + eslint
 pnpm run check:tsgo  # TypeScript native checker
 pnpm test:unit --run # Node Vitest tests
-pnpm exec playwright install chromium
-pnpm test:browser --run # real-Chromium Svelte component tests
-pnpm test:e2e        # builds/previews with a disposable database; no dev server needed
+pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
+pnpm test:browser --run # Chromium, Firefox, and WebKit Svelte component tests
+pnpm test:e2e        # builds/starts the Node adapter with a disposable database
 pnpm build
 ```
 

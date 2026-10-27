@@ -29,21 +29,21 @@ export default defineConfig({
 					exclude: ['src/**/*.browser.test.ts']
 				}
 			},
-			{
+			...(['chromium', 'firefox', 'webkit'] as const).map((browser) => ({
 				extends: true,
 				test: {
-					name: 'browser',
+					name: `browser-${browser}`,
 					include: ['src/**/*.browser.test.ts'],
 					setupFiles: ['vitest-browser-svelte'],
 					browser: {
 						enabled: true,
 						headless: true,
 						provider: playwright(),
-						trace: { mode: 'retain-on-failure', tracesDir: 'test-results/vitest' },
-						instances: [{ browser: 'chromium' }, { browser: 'firefox' }, { browser: 'webkit' }]
+						trace: { mode: 'retain-on-failure', tracesDir: `test-results/vitest/${browser}` },
+						instances: [{ browser }]
 					}
 				}
-			}
+			}))
 		],
 		reporters: [['default', { summary: false }]],
 		env: {

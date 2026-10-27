@@ -8,7 +8,7 @@
 		"preview": "vite preview",
 		"test:e2e": "playwright test",
 		"test:unit": "vitest --project unit",
-		"test:browser": "vitest --project browser",
+		"test:browser": "vitest --project 'browser*'",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc --noEmit -p src/service-worker/tsconfig.json",
 		"check:tsgo": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --tsgo-experimental-api && node node_modules/@typescript/native/bin/tsc --noEmit -p src/service-worker/tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
