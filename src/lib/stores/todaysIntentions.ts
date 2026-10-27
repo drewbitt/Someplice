@@ -1,13 +1,17 @@
 import { PersistedState } from 'runed';
 
-// Values are stored as raw strings (not JSON) to keep the existing localStorage format.
-// null means "no draft saved"; '' means the user cleared the editor — the two
-// must stay distinct so a cleared draft is not repopulated from intentions.
-const stringSerializer = {
-	serialize: (value: string | null) => (value === null ? 'null' : value),
-	deserialize: (value: string) => (value === 'null' ? null : value)
-};
+// JSON keeps an empty draft, the literal text "null", and no draft distinct.
+// A new key lets us migrate raw legacy text without guessing whether text such
+// as '"quoted"' or '{"value":1}' was already JSON. Keep the old key for old tabs.
+export function createTodaysIntentions(
+	browser: typeof window | undefined = typeof window === 'undefined' ? undefined : window
+) {
+	const legacy = browser?.localStorage.getItem('todaysIntentions');
+	return new PersistedState<string | null>(
+		'todaysIntentions:v2',
+		legacy === 'null' ? null : (legacy ?? null),
+		{ window: browser }
+	);
+}
 
-export const todaysIntentions = new PersistedState<string | null>('todaysIntentions', null, {
-	serializer: stringSerializer
-});
+export const todaysIntentions = createTodaysIntentions();
