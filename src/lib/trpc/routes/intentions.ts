@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
 import { NoResultError, sql } from 'kysely';
 import { z } from 'zod';
+import { PaginationSchema } from '../pagination';
 import { configuredZoneNow, deleteOrphanedOutcomes, isUniqueViolation } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { INTENTION_STATUSES as intentionStatuses } from '../enums';
@@ -51,8 +52,7 @@ export const intentions = t.router({
 				.object({
 					startDate: z.date().optional(),
 					endDate: z.date().optional(),
-					limit: z.number().optional(),
-					offset: z.number().optional(),
+					...PaginationSchema.shape,
 					order: z
 						.union([z.literal('asc'), z.literal('desc')])
 						.optional()
@@ -79,11 +79,11 @@ export const intentions = t.router({
 					.where('date', '<=', endDate.toISOString());
 			}
 
-			if (input?.limit) {
+			if (input?.limit !== undefined) {
 				query = query.limit(input.limit);
 			}
-			if (input?.offset) {
-				query = query.offset(input.offset);
+			if (input?.offset !== undefined) {
+				query = query.limit(input.limit ?? -1).offset(input.offset);
 			}
 
 			return await query.execute();
@@ -104,8 +104,7 @@ export const intentions = t.router({
 			z.object({
 				startDate: z.date(),
 				endDate: z.date(),
-				limit: z.number().optional(),
-				offset: z.number().optional()
+				...PaginationSchema.shape
 			})
 		)
 		.query(async ({ input }) => {
@@ -119,11 +118,11 @@ export const intentions = t.router({
 				.where('date', '>=', startDate.toISOString())
 				.where('date', '<=', endDate.toISOString());
 
-			if (input.limit) {
+			if (input.limit !== undefined) {
 				query = query.limit(input.limit);
 			}
-			if (input.offset) {
-				query = query.offset(input.offset);
+			if (input.offset !== undefined) {
+				query = query.limit(input.limit ?? -1).offset(input.offset);
 			}
 
 			const intentions = await query.execute();
@@ -162,8 +161,7 @@ export const intentions = t.router({
 				.object({
 					startDate: z.date().optional(),
 					endDate: z.date().optional(),
-					limit: z.number().optional(),
-					offset: z.number().optional()
+					...PaginationSchema.shape
 				})
 				.refine((data) => Boolean(data.startDate) === Boolean(data.endDate), {
 					message: 'Both startDate and endDate must be provided together.',
@@ -186,11 +184,11 @@ export const intentions = t.router({
 					.where(sql`DATE(date)`, '<=', endDate.toISOString().split('T')[0]); // Extract just the date part
 			}
 
-			if (input?.limit) {
+			if (input?.limit !== undefined) {
 				query = query.limit(input.limit);
 			}
-			if (input?.offset) {
-				query = query.offset(input.offset);
+			if (input?.offset !== undefined) {
+				query = query.limit(input.limit ?? -1).offset(input.offset);
 			}
 
 			const result = await query.execute();

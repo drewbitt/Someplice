@@ -5,6 +5,7 @@ import { getDb } from '#lib/db/db.js';
 import { linkIntentionToOutcome } from '#lib/db/queries.js';
 import { sql } from 'kysely';
 import { z } from 'zod';
+import { PaginationSchema } from '../pagination';
 import { INTENTION_STATUSES, VERDICTS } from '../enums';
 import { IntentionsSchema } from './intentions';
 
@@ -51,8 +52,7 @@ export const outcomes = t.router({
 				.object({
 					startDate: z.date().optional(),
 					endDate: z.date().optional(),
-					limit: z.number().optional(),
-					offset: z.number().optional(),
+					...PaginationSchema.shape,
 					order: z
 						.union([z.literal('asc'), z.literal('desc')])
 						.optional()
@@ -74,11 +74,11 @@ export const outcomes = t.router({
 				if (input.endDate) {
 					query = query.where('date', '<=', input.endDate.toISOString().split('T')[0]);
 				}
-				if (input.limit) {
+				if (input.limit !== undefined) {
 					query = query.limit(input.limit);
 				}
-				if (input.offset) {
-					query = query.offset(input.offset);
+				if (input.offset !== undefined) {
+					query = query.limit(input.limit ?? -1).offset(input.offset);
 				}
 				query = query.orderBy(input.orderBy || 'id', input.order);
 			} else {

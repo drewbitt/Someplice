@@ -3,6 +3,7 @@ import { procedure, t } from '#lib/trpc/t.js';
 import { getDb } from '#lib/db/db.js';
 import { NoResultError, type Selectable } from 'kysely';
 import { z } from 'zod';
+import { PaginationSchema } from '../pagination';
 import type { Priorities } from '#lib/types/data.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
 import { configuredZoneNow } from '#lib/db/queries.js';
@@ -50,8 +51,7 @@ export const priorities = t.router({
 					goalId: z.number().optional(),
 					startDate: z.date().optional(),
 					endDate: z.date().optional(),
-					limit: z.number().optional(),
-					offset: z.number().optional()
+					...PaginationSchema.shape
 				})
 				.refine((data) => Boolean(data.startDate) === Boolean(data.endDate), {
 					message: 'Both startDate and endDate must be provided together.',
@@ -75,11 +75,11 @@ export const priorities = t.router({
 					.where('completedAt', '>=', startDate.toISOString())
 					.where('completedAt', '<=', endDate.toISOString());
 			}
-			if (input?.limit) {
+			if (input?.limit !== undefined) {
 				query = query.limit(input.limit);
 			}
-			if (input?.offset) {
-				query = query.offset(input.offset);
+			if (input?.offset !== undefined) {
+				query = query.limit(input.limit ?? -1).offset(input.offset);
 			}
 
 			return await query.execute();
