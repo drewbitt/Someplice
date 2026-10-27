@@ -2,13 +2,12 @@
 	import { trpc } from '#lib/trpc/client.js';
 	import { refreshAll } from '$app/navigation';
 	import { notDones } from '#lib/stores/notDones.svelte.js';
-	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
-	import { goalColorForIntention, lightenHSL, wallClockInZone } from '#lib/utils/index.js';
+	import { goalColorForIntention, lightenHSL } from '#lib/utils/index.js';
 	import { computeMissCount } from '#lib/utils/notDones.js';
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
@@ -18,10 +17,12 @@
 
 	let {
 		goals,
+		today,
 		intentions = $bindable(),
 		handleUpdateSingleIntention
 	}: {
 		goals: PageServerData['goals'];
+		today: string;
 		intentions: PageServerData['intentions'];
 		handleUpdateSingleIntention: (
 			intention: PageServerData['intentions'][0]
@@ -37,20 +38,7 @@
 	// guard meant moving the mouse unmounted the dialog (and lost typed text).
 	let modalIntentionId = $state<number | null>(null);
 
-	let goalOrderNumbers = new SvelteMap<number, number>();
-
-	function updateGoalOrderNumbers() {
-		goalOrderNumbers.clear();
-		for (const goal of goals) {
-			if (goal.id !== null) {
-				goalOrderNumbers.set(goal.id, goal.orderNumber);
-			}
-		}
-	}
-
-	$effect(() => {
-		if (goals) updateGoalOrderNumbers();
-	});
+	let goalOrderNumbers = $derived(new Map(goals.map((goal) => [goal.id, goal.orderNumber])));
 
 	$effect(() => {
 		if (intentions && goalOrderNumbers) {
@@ -195,14 +183,13 @@
 				</h2>
 				<h2 class="text-base-content/60 text-2xl font-bold tabular-nums">
 					{(() => {
-						const dateObj = wallClockInZone(appTimeZone.current);
 						const formatter = new Intl.DateTimeFormat('en-US', {
 							weekday: 'long',
 							month: 'short',
 							day: 'numeric',
 							timeZone: 'UTC'
 						});
-						return formatter.format(dateObj);
+						return formatter.format(new Date(today));
 					})()}
 				</h2>
 			</div>

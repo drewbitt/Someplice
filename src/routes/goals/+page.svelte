@@ -5,10 +5,8 @@
 	import { goalPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { trpc } from '#lib/trpc/client.js';
 	import { TRPCClientError } from '@trpc/client';
-	import type { GoalLog } from '#lib/trpc/types.js';
 	import { dndzone } from 'svelte-dnd-action';
 	import { untrack } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
 	import type { PageServerData } from './$types';
 
 	let { data }: { data: PageServerData } = $props();
@@ -132,38 +130,6 @@
 			}
 		}
 	};
-
-	async function sortInactiveGoals() {
-		// untrack: reading inactiveGoals here while the effect writes it would
-		// otherwise make the sort effect re-trigger itself.
-		const allInactiveGoals = [...untrack(() => inactiveGoals)];
-		const goalDateMap = new SvelteMap<number, string>();
-		for (const iGoal of allInactiveGoals) {
-			if (!iGoal.id) continue;
-			const goalLogForGoalId = data.goalLogs.filter((log) => log.goalId === iGoal.id);
-			type GoalLogNoId = Omit<GoalLog, 'id'>;
-
-			const last = (goalLogForGoalId as GoalLogNoId[]).sort(
-				(a: GoalLogNoId, b: GoalLogNoId) => new Date(b.date).valueOf() - new Date(a.date).valueOf()
-			)[0];
-			if (last?.type === 'end' && iGoal.id) {
-				goalDateMap.set(iGoal.id, last.date);
-			}
-		}
-		allInactiveGoals.sort((a: Goals, b: Goals) => {
-			if (!a.id || !b.id) return 0;
-			const aValue = goalDateMap.get(a.id);
-			const bValue = goalDateMap.get(b.id);
-			if (!aValue || !bValue) return 0;
-			return new Date(bValue).valueOf() - new Date(aValue).valueOf();
-		});
-		inactiveGoals = allInactiveGoals;
-	}
-	$effect(() => {
-		// Track data.goalLogs (the sort input), not the store it writes.
-		data.goalLogs;
-		sortInactiveGoals();
-	});
 </script>
 
 <svelte:head>

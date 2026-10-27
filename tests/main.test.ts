@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { openTestDb, resetTestDb } from './fixtures';
 import { createNetworkSwitch } from './network';
+import { dateKeyInZone, dayOfWeekFromDate } from '../src/lib/utils/index';
 
 test.beforeEach(resetTestDb);
 
@@ -14,6 +15,78 @@ test('Today page shows text when no goals are set', async ({ page }) => {
 	await expect(
 		page.getByRole('alert').getByText('You have no goals. Please add some goals first.')
 	).toBeVisible();
+});
+
+test('Today renders the same goal codes and configured date before and after hydration', async ({
+	page,
+	browser,
+	baseURL
+}) => {
+	const timeZone = 'Etc/GMT+12';
+	const day = dateKeyInZone(timeZone);
+	const date = `${day}T12:00:00.000Z`;
+	const db = openTestDb();
+	try {
+		db.prepare("INSERT INTO settings(key,value) VALUES('timezone',?)").run(timeZone);
+		for (let id = 1; id <= 4; id++) {
+			db.prepare('INSERT INTO goals(id,active,orderNumber,title,color) VALUES(?,?,?,?,?)').run(
+				id,
+				id === 4 ? 0 : 1,
+				id === 4 ? 0 : id,
+				`SSR goal ${id}`,
+				'navy'
+			);
+			db.prepare('INSERT INTO goal_logs(goalId,type,date,orderNumber) VALUES(?,?,?,?)').run(
+				id,
+				id === 4 ? 'end' : 'start',
+				date,
+				id
+			);
+			db.prepare(
+				'INSERT INTO intentions(goalId,orderNumber,status,text,subIntentionQualifier,date) VALUES(?,?,?,?,?,?)'
+			).run(
+				id,
+				id,
+				id === 3 ? 'not_today' : 'pending',
+				`SSR action ${id}`,
+				id === 2 ? 'a' : null,
+				date
+			);
+		}
+	} finally {
+		db.close();
+	}
+	const serverContext = await browser.newContext({ javaScriptEnabled: false });
+	try {
+		const serverPage = await serverContext.newPage();
+		await serverPage.goto(`${baseURL}/today`);
+		await page.goto('/today');
+		for (const view of [serverPage, page]) {
+			for (const [index, code] of ['1)', '2a)', '-3)', 'x4)'].entries()) {
+				await expect(
+					view.getByRole('listitem', { name: `${code} SSR action ${index + 1}`, exact: true })
+				).toBeVisible();
+			}
+			await expect(
+				view.getByRole('button', {
+					name: `Add more ${dayOfWeekFromDate(new Date(day))} intentions`
+				})
+			).toBeVisible();
+			await expect(
+				view.getByRole('heading', {
+					name: new Intl.DateTimeFormat('en-US', {
+						weekday: 'long',
+						month: 'short',
+						day: 'numeric',
+						timeZone: 'UTC'
+					}).format(new Date(day)),
+					exact: true
+				})
+			).toBeVisible();
+		}
+	} finally {
+		await serverContext.close();
+	}
 });
 
 test('theme toggle persists dark mode across reload', async ({ page }) => {

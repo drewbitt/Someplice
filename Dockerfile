@@ -31,7 +31,7 @@ COPY --from=node:24.22.1-alpine3.24@sha256:06d7adf3e0ef61a13f1d28682726366f97a15
 COPY --from=base /usr/local/LICENSE /usr/local/share/doc/node/LICENSE
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
-COPY package.json LICENSE ./
+COPY --chmod=644 package.json LICENSE ./
 
 USER node
 EXPOSE 3000

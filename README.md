@@ -1,137 +1,51 @@
-<a name="readme-top"></a>
+# Someplice
 
-<br />
-<div align="center">
-  <a href="https://github.com/drewbitt/Someplice">
-    <img src="src/lib/assets/someplice-compressed-logo-2023-01-21-no-padding.svg" alt="Logo" width="100" height="100">
-  </a>
+<img src="src/lib/assets/someplice-compressed-logo-2023-01-21-no-padding.svg" alt="Someplice logo" width="80" />
 
-<h3 align="center">Someplice</h3>
+A self-hosted app for goals, daily intentions, and progress reviews.
 
-  <p align="center">
-    🎯📈 Someplice is a self-hosted application that helps you achieve your goals. Built with SvelteKit and SQLite, it lets you set daily intentions and track your progress effectively.
-    <br />
-    <a href="https://github.com/drewbitt/Someplice/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/drewbitt/Someplice/issues">Request Feature</a>
-  </p>
-</div>
+## Run with Docker
 
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-  </ol>
-</details>
-
-## About The Project
-
-- 🎯 Set and manage multiple goals
-- 📅 Set daily intentions for each goal
-- ✅ Mark intentions as complete
-- 🧐 Review and reflect on your past intentions
-- ☀️/🌙 Toggle between light and dark mode
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-### Built With
-
-- [SvelteKit](https://kit.svelte.dev/)
-- SQLite
-- [kysely](https://github.com/kysely-org/kysely)
-- [TRPC](https://trpc.io/) and [Zod](https://zod.dev/)
-- Tailwind & [DaisyUI](https://daisyui.com/)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-## Getting Started
-
-There are two ways to install Someplice: with pnpm or Docker. Choose the method that best suits your needs.
-
-### Installation
-
-#### Option 1: pnpm
-
-Only pnpm is required — pnpm automatically downloads the pinned Node.js version (`devEngines.runtime`, Node.js >= 24.22.1) if needed.
-
-1. Clone the repository
-2. Install dependencies
-
-```bash
-cd Someplice
-pnpm install
-```
-
-3. The first dynamic request (for example, `/today`) initializes the database and starts outcome backfill. `pnpm run db:migrate` is only needed for CI/scripts.
-
-4. Start the application
-
-```bash
-pnpm run dev
-```
-
-#### Option 2: Docker
-
-Build locally, or use `ghcr.io/drewbitt/someplice:<tag>` (amd64/arm64).
+Use a published image from `ghcr.io/drewbitt/someplice` (amd64/arm64), or build from a checkout:
 
 ```bash
 docker build -t someplice .
 docker run -d --name someplice --restart unless-stopped --stop-timeout 35 \
-  --read-only -v someplice-data:/app/data -p 127.0.0.1:3000:3000 someplice
+  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
+  -v someplice-data:/app/data -p 127.0.0.1:3000:3000 someplice
 ```
 
-Open <http://localhost:3000>. Someplice has no authentication; keep access local or use an authenticated gateway. Use one container per database. Before upgrading, stop the container and back up the entire data volume.
+Open <http://localhost:3000>. Published version tags omit the release's `v` prefix, for example `:0.2.0`.
 
-#### Time zone
+**There is no built-in authentication.** Keep access local or use an authenticated reverse proxy.
 
-Day boundaries use one installation time zone: the stored setting first, then a valid `SOMEPLICE_TIMEZONE`, then UTC. On a fresh installation without an environment override, the first browser visit saves its detected zone. Set `SOMEPLICE_TIMEZONE=America/New_York` (or `docker run -e SOMEPLICE_TIMEZONE=America/New_York ...`) to choose the initial zone explicitly. Server `TZ` does not control application dates.
+Your data is stored in the `someplice-data` volume. If you use a bind mount instead, its directory must be writable by UID/GID 1000.
 
-#### Pre-user database baseline
+## Configuration
 
-The schema is a single `001_initial` migration. Databases from earlier development revisions are intentionally not upgraded. To keep old data, back up the database and continue using the earlier revision until an upgrade path is written. For disposable development data, stop the app, back up anything you need, and run `pnpm run db:reset`. This deletes the default `data/db.sqlite` database; never run it on data you want to retain. A custom `DATABASE_PATH` must be reset separately.
+Pass environment variables with Docker's `-e`, or set them before starting the Node server.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+| Variable             | Purpose                                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_PATH`      | SQLite file; defaults to `./data/db.sqlite`, or `/app/data/db.sqlite` in Docker.                                                  |
+| `SOMEPLICE_TIMEZONE` | Initial IANA timezone, e.g. `America/New_York`; otherwise detected on the first browser visit. A stored setting takes precedence. |
+| `PORT`               | Node server port; defaults to `3000`.                                                                                             |
 
-## Contributing
+The database initializes automatically. Older development databases aren't migrated to the current schema.
 
-Before opening a PR:
+## Development
+
+From a checkout with pnpm installed:
 
 ```bash
-pnpm check        # svelte-check type checking
-pnpm lint         # prettier + eslint
-pnpm run check:tsgo  # TypeScript native checker
-pnpm test:unit --run # Node Vitest tests
-pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
-pnpm test:browser --run # Chromium, Firefox, and WebKit Svelte component tests
-pnpm test:e2e        # builds/starts the Node adapter with a disposable database
-pnpm build
+pnpm install
+pnpm dev
 ```
 
-Browser tests use feature-owned `*.browser.test.ts` files for isolated Svelte behavior with mocked navigation/tRPC; API/database/helper tests stay in the Node project. Playwright covers the built app's real HTTP/database, reload, timezone, and service-worker behavior with a fresh run-owned database, leaving development data untouched.
+For a production server without Docker, run `pnpm build`, then `NODE_ENV=production pnpm exec node build/index.js`.
 
-Both browser runners retain failure traces under `test-results/` in separate `vitest` and `playwright` directories; CI uploads them for seven days. Open a trace with `pnpm exec playwright show-trace path/to/trace.zip`.
-
-CI runs each browser in its own job and database, with one Playwright worker per job. The `e2e` check requires all three browsers to pass. Browser artifacts also include a compressed Perfetto timing report; open it at <https://ui.perfetto.dev> to inspect test, fixture, and step durations. Generate one locally with `pnpm test:e2e --project chromium --add-reporter perfetto`.
-
-The native service worker caches only build/static assets, not pages, SvelteKit data, or API responses. This is not offline data support. Worker updates wait for old tabs to close rather than forcing activation or discarding drafts.
-
-When making database changes, use [kysely-codegen](https://github.com/RobinBlomberg/kysely-codegen) to generate the TypeScript types for the database. `pnpm run db:codegen` regenerates `src/lib/types/data.d.ts` from the migrations (no database file needed); a unit test fails if it is stale.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+See [package.json](package.json) for available scripts and [CI](.github/workflows/test.yml) for validation.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). [Report an issue](https://github.com/drewbitt/Someplice/issues).

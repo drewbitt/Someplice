@@ -6,7 +6,7 @@
 	import PriorityCards from '#lib/components/today/PriorityCards.svelte';
 	import Review from '#lib/components/today/review-outcomes/Review.svelte';
 	import { trpc } from '#lib/trpc/client.js';
-	import { dateKeyInZone, dayOfWeekInZone, goalsForJourneyDay } from '#lib/utils/index.js';
+	import { dateKeyInZone, dayOfWeekFromDate, goalsForJourneyDay } from '#lib/utils/index.js';
 	import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
@@ -16,6 +16,7 @@
 	import { TRPCClientError } from '@trpc/client';
 
 	let { data }: { data: PageServerData } = $props();
+	let weekday = $derived(dayOfWeekFromDate(new Date(data.today)));
 	type Intentions = (typeof data.intentions)[0];
 
 	// svelte-ignore state_referenced_locally
@@ -162,6 +163,7 @@
 		</div>
 	{:else if intentionsFromServer.length > 0}
 		<ActionsDisplay
+			today={data.today}
 			bind:intentions
 			{handleUpdateSingleIntention}
 			goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
@@ -188,13 +190,13 @@
 			/>
 			<div>
 				<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
-					Set {dayOfWeekInZone(appTimeZone.current)} intentions
+					Set {weekday} intentions
 				</button>
 			</div>
 		{:else}
 			<div>
 				<button class="btn" onclick={handleShowAdditionalIntentionsTextArea}>
-					Add more {dayOfWeekInZone(appTimeZone.current)} intentions
+					Add more {weekday} intentions
 				</button>
 			</div>
 		{/if}
@@ -216,7 +218,7 @@
 
 		<div>
 			<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
-				Set {dayOfWeekInZone(appTimeZone.current)} intentions
+				Set {weekday} intentions
 			</button>
 		</div>
 	{/if}
