@@ -114,15 +114,17 @@ pnpm check        # svelte-check type checking
 pnpm lint         # prettier + eslint
 pnpm run check:tsgo  # TypeScript native checker
 pnpm test:unit --run # Node Vitest tests
-pnpm exec playwright install chromium
-pnpm test:browser --run # real-Chromium Svelte component tests
-pnpm test:e2e        # builds/previews with a disposable database; no dev server needed
+pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
+pnpm test:browser --run # Chromium, Firefox, and WebKit Svelte component tests
+pnpm test:e2e        # builds/starts the Node adapter with a disposable database
 pnpm build
 ```
 
 Browser tests use feature-owned `*.browser.test.ts` files for isolated Svelte behavior with mocked navigation/tRPC; API/database/helper tests stay in the Node project. Playwright covers the built app's real HTTP/database, reload, timezone, and service-worker behavior with a fresh run-owned database, leaving development data untouched.
 
 Both browser runners retain failure traces under `test-results/` in separate `vitest` and `playwright` directories; CI uploads them for seven days. Open a trace with `pnpm exec playwright show-trace path/to/trace.zip`.
+
+CI runs each browser in its own job and database, with one Playwright worker per job. The `e2e` check requires all three browsers to pass. Browser artifacts also include a compressed Perfetto timing report; open it at <https://ui.perfetto.dev> to inspect test, fixture, and step durations. Generate one locally with `pnpm test:e2e --project chromium --add-reporter perfetto`.
 
 The native service worker caches only build/static assets, not pages, SvelteKit data, or API responses. This is not offline data support. Worker updates wait for old tabs to close rather than forcing activation or discarding drafts.
 

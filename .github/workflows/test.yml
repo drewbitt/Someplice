@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-workflow:
     runs-on: ubuntu-26.04
@@ -44,6 +48,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: ./.github/actions/setup
+        with:
+          save-cache: true
 
       - name: Migrate a fresh database
         run: pnpm run db:migrate
@@ -92,8 +98,13 @@ jobs:
           DOCKER_PLATFORM: ${{ matrix.platform }}
         run: bash tests/docker-smoke.sh someplice:ci
 
-  e2e:
+  browsers:
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
 
     steps:
       - name: Checkout
@@ -101,21 +112,36 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps --only-shell ${{ matrix.browser }}
 
       - name: Run Vitest browser tests
-        run: pnpm test:browser --run
+        run: pnpm exec vitest run --project browser-${{ matrix.browser }}
 
       - name: Run Playwright tests
         if: ${{ !cancelled() }}
-        run: pnpm test:e2e
+        env:
+          PLAYWRIGHT_PERFETTO_OUTPUT_FILE: test-results/playwright/perfetto.json.gz
+        run: pnpm test:e2e --project ${{ matrix.browser }} --add-reporter perfetto
 
-      - name: Upload browser failure artifacts
-        if: ${{ failure() && !cancelled() }}
+      - name: Upload browser traces and timings
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: browser-failures
-          path: test-results/**/*.zip
+          name: browser-results-${{ matrix.browser }}
+          path: |
+            test-results/**/*.zip
+            test-results/**/perfetto.json.gz
+          compression-level: 0
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e:
+    needs: browsers
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require every browser to pass
+        env:
+          RESULT: ${{ needs.browsers.result }}
+        run: test "$RESULT" = success

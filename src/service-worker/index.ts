@@ -27,13 +27,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
 	const url = new URL(event.request.url);
-	// Dynamic pages and API responses must always come from the server.
-	if (
-		event.request.method !== 'GET' ||
-		url.origin !== self.location.origin ||
-		!assetPaths.has(url.pathname)
-	)
+	if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+	if (!assetPaths.has(url.pathname)) {
+		// Handle navigation explicitly so Firefox keeps the page controlled.
+		if (event.request.mode === 'navigate') event.respondWith(fetch(event.request));
 		return;
+	}
 	event.respondWith(
 		caches
 			.open(cacheName)

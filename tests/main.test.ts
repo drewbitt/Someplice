@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { openTestDb, resetTestDb } from './fixtures';
+import { createNetworkSwitch } from './network';
 
 test.beforeEach(resetTestDb);
 
@@ -291,40 +292,45 @@ test('failed additional intention saves retry the corrected draft without rewrit
 
 test('controlled worker serves assets offline but never dynamic pages, data or APIs', async ({
 	page,
-	context
+	context,
+	baseURL
 }) => {
-	await page.goto('/today');
-	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
-	await page.reload();
-	await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-	const cached = await page.evaluate(async () => {
-		const names = (await caches.keys()).filter((name) => name.startsWith('someplice-'));
-		const entries = await Promise.all(
-			names.map(async (name) =>
-				(await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)
-			)
-		);
-		return entries.flat();
-	});
-	expect(cached.length).toBeGreaterThan(0);
-	expect(cached.some((path) => path.startsWith('/_app/immutable/'))).toBe(true);
-	expect(cached).not.toContain('/today');
-	expect(cached.some((path) => path.startsWith('/api/trpc'))).toBe(false);
-	const script = cached.find((path) => path.startsWith('/_app/immutable/') && path.endsWith('.js'));
-	expect(script).toBeDefined();
-	const dynamicPaths = ['/today', '/today/__data.json', '/api/trpc/settings.getTimeZone'];
-	const statuses = await page.evaluate(
-		async (paths) =>
-			Promise.all(paths.map(async (path) => (await fetch(path, { cache: 'no-store' })).status)),
-		dynamicPaths
-	);
-	expect(statuses).toEqual([200, 200, 200]);
-	const readAsset = () =>
-		page.evaluate(async (path) => (await fetch(path, { cache: 'no-store' })).text(), script!);
-	const onlineAsset = await readAsset();
-	expect(onlineAsset.length).toBeGreaterThan(0);
-	await context.setOffline(true);
+	// Firefox's setOffline also blocks worker responses, so fail real network connections.
+	const network = await createNetworkSwitch(baseURL!);
 	try {
+		await page.goto(`${network.url}/today`);
+		await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+		await page.reload();
+		await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+		const cached = await page.evaluate(async () => {
+			const names = (await caches.keys()).filter((name) => name.startsWith('someplice-'));
+			const entries = await Promise.all(
+				names.map(async (name) =>
+					(await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)
+				)
+			);
+			return entries.flat();
+		});
+		expect(cached.length).toBeGreaterThan(0);
+		expect(cached.some((path) => path.startsWith('/_app/immutable/'))).toBe(true);
+		expect(cached).not.toContain('/today');
+		expect(cached.some((path) => path.startsWith('/api/trpc'))).toBe(false);
+		const script = cached.find(
+			(path) => path.startsWith('/_app/immutable/') && path.endsWith('.js')
+		);
+		expect(script).toBeDefined();
+		const dynamicPaths = ['/today', '/today/__data.json', '/api/trpc/settings.getTimeZone'];
+		const statuses = await page.evaluate(
+			async (paths) =>
+				Promise.all(paths.map(async (path) => (await fetch(path, { cache: 'no-store' })).status)),
+			dynamicPaths
+		);
+		expect(statuses).toEqual([200, 200, 200]);
+		const readAsset = () =>
+			page.evaluate(async (path) => (await fetch(path, { cache: 'no-store' })).text(), script!);
+		const onlineAsset = await readAsset();
+		expect(onlineAsset.length).toBeGreaterThan(0);
+		network.goOffline();
 		expect(await readAsset()).toBe(onlineAsset);
 		const reachable = await page.evaluate(
 			async (paths) =>
@@ -342,19 +348,22 @@ test('controlled worker serves assets offline but never dynamic pages, data or A
 		);
 		expect(reachable).toEqual([false, false, false]);
 		const offlinePage = await context.newPage();
-		await expect(offlinePage.goto('/today')).rejects.toThrow(
-			/ERR_INTERNET_DISCONNECTED|ERR_FAILED/
-		);
+		await expect(offlinePage.goto(`${network.url}/today`)).rejects.toThrow();
 		await offlinePage.close();
 	} finally {
-		await context.setOffline(false);
+		await network.close();
 	}
 });
 
 test('worker updates wait for old clients and remove only obsolete app caches', async ({
 	page,
-	context
+	context,
+	browserName
 }) => {
+	test.skip(
+		browserName !== 'chromium',
+		'Playwright exposes service worker targets only in Chromium.'
+	);
 	await page.goto('/today');
 	await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
 	await page.reload();
