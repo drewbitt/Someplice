@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-workflow:
     runs-on: ubuntu-26.04
@@ -92,8 +96,12 @@ jobs:
           DOCKER_PLATFORM: ${{ matrix.platform }}
         run: bash tests/docker-smoke.sh someplice:ci
 
-  e2e:
+  browsers:
     runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
 
     steps:
       - name: Checkout
@@ -102,20 +110,31 @@ jobs:
       - uses: ./.github/actions/setup
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps --only-shell chromium firefox webkit
+        run: pnpm exec playwright install --with-deps --only-shell ${{ matrix.browser }}
 
       - name: Run Vitest browser tests
-        run: pnpm test:browser --run
+        run: pnpm exec vitest run --project browser-${{ matrix.browser }}
 
       - name: Run Playwright tests
         if: ${{ !cancelled() }}
-        run: pnpm test:e2e
+        run: pnpm test:e2e --project ${{ matrix.browser }}
 
       - name: Upload browser failure artifacts
-        if: ${{ failure() && !cancelled() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: browser-failures
+          name: browser-failures-${{ matrix.browser }}
           path: test-results/**/*.zip
+          compression-level: 0
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e:
+    needs: browsers
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Require every browser to pass
+        env:
+          RESULT: ${{ needs.browsers.result }}
+        run: test "$RESULT" = success
