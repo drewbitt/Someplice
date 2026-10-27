@@ -65,6 +65,11 @@ describe('priorities', () => {
 		const goalId = await addGoal();
 
 		const first = await caller.priorities.upsert({ goalId, text: 'First priority' });
+		await db
+			.updateTable('priorities')
+			.set({ createdAt: '2000-01-01T00:00:00.000Z', reflection: 'Keep' })
+			.where('id', '=', first.id)
+			.execute();
 		const second = await caller.priorities.upsert({ goalId, text: 'Second priority' });
 
 		const active = (await caller.priorities.list()) as Priority[];
@@ -72,6 +77,31 @@ describe('priorities', () => {
 		expect(active[0].text).toBe('Second priority');
 		expect(Number(second.id)).toBe(Number(first.id));
 		expect(active[0].completedAt).toBeNull();
+		expect(active[0].createdAt).toBe('2000-01-01T00:00:00.000Z');
+		expect(active[0].reflection).toBe('Keep');
+	});
+
+	it('creates a new active priority without modifying a completed milestone', async () => {
+		const goalId = await addGoal();
+		const first = await caller.priorities.upsert({ goalId, text: 'First priority' });
+		await caller.priorities.complete({ id: Number(first.id), reflection: 'Finished' });
+		const completed = await caller.priorities.listCompleted();
+		const second = await caller.priorities.upsert({ goalId, text: 'Next priority' });
+		expect(second.id).not.toBe(first.id);
+		expect(await caller.priorities.listCompleted()).toEqual(completed);
+		expect(await caller.priorities.list()).toMatchObject([
+			{ id: second.id, text: 'Next priority' }
+		]);
+	});
+
+	it('concurrent upserts retain one active row and return its id', async () => {
+		const goalId = await addGoal();
+		const [first, second] = await Promise.all([
+			caller.priorities.upsert({ goalId, text: 'First' }),
+			caller.priorities.upsert({ goalId, text: 'Second' })
+		]);
+		expect(first.id).toBe(second.id);
+		expect(await caller.priorities.list()).toMatchObject([{ id: first.id }]);
 	});
 
 	it('enforces one active priority per goal at the database level', async () => {
