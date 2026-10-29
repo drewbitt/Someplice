@@ -147,6 +147,7 @@
 </svelte:head>
 
 <div class="flex flex-col gap-4">
+	<h1 class="sr-only">Today</h1>
 	<GoalBadges goals={data.goals} />
 	{#if !noGoals && !hasOutstandingOutcome}
 		<PriorityCards goals={data.goals} priorities={data.priorities} />

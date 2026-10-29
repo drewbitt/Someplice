@@ -31,4 +31,33 @@
 	.modal-box {
 		overscroll-behavior: contain;
 	}
+
+	:where(button, [role='button'], input[type='submit'], input[type='checkbox'], summary):not(
+		:disabled,
+		[aria-disabled='true']
+	) {
+		cursor: pointer;
+	}
+
+	:where(button, a[href], [tabindex]):focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 3px;
+	}
+}
+
+/* Goal colors stay visible around the field; editing always uses a clear,
+   high-contrast surface, independent of the goal color and app theme. */
+.goal-edit-input {
+	background: white;
+	color: #111827;
+	border-color: #64748b;
+	caret-color: #111827;
+	cursor: text;
+}
+
+.goal-edit-input:focus {
+	border-color: #1d4ed8;
+	outline: 2px solid white;
+	outline-offset: 1px;
+	box-shadow: 0 0 0 4px #1d4ed8;
 }
