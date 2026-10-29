@@ -147,7 +147,9 @@ test('NotDones uses a native modal, cancels without mutation, and resets strateg
 	const onImport = vi.fn();
 	const screen = await render(NotDonesPanel, { goals: [goal], plannedIntentions: [], onImport });
 	const trigger = screen.getByRole('button', { name: 'Import Read a chapter into today' });
-	await trigger.click();
+	// Keyboard activation establishes a return-focus target in WebKit too,
+	// where pointer clicks do not focus buttons.
+	await userEvent.type(trigger, '{Enter}');
 	expect(document.querySelector('dialog')?.matches(':modal')).toBe(true);
 	const strategy = screen.getByRole('textbox', { name: 'How will you make it happen today?' });
 	await strategy.fill('Old strategy');
@@ -209,6 +211,47 @@ test('checkbox changes are single-flight and roll back after failure', async () 
 	finish(new UpdateResult(1n, undefined));
 	await expect.element(checkbox).toBeChecked();
 	await expect.element(checkbox).not.toBeDisabled();
+});
+
+test('the current intention skips done, deferred and archived items and advances on completion', async () => {
+	const screen = await render(ActionsDisplay, {
+		today: intention.date.slice(0, 10),
+		goals: [goal, { ...goal, id: 2, active: 0, orderNumber: 2 }],
+		intentions: [
+			{ ...intention, id: 1, status: 'done', text: 'Finished' },
+			{ ...intention, id: 2, status: 'not_today', text: 'Deferred' },
+			{ ...intention, id: 3, goalId: 2, text: 'Archived' },
+			{ ...intention, id: 4, text: 'Focus here' },
+			{ ...intention, id: 5, text: 'Then here' }
+		],
+		handleUpdateSingleIntention: vi.fn().mockResolvedValue(new UpdateResult(1n, undefined))
+	});
+	const current = () => screen.container.querySelectorAll('[aria-current="step"]');
+	expect(current()).toHaveLength(1);
+	expect(current()[0].textContent).toContain('Focus here');
+	await screen.getByRole('checkbox', { name: /Focus here$/ }).click();
+	await expect.poll(() => current()[0]?.textContent).toContain('Then here');
+	await screen.getByRole('checkbox', { name: /Then here$/ }).click();
+	await expect.poll(() => current().length).toBe(0);
+});
+
+test('intention text supports pointer, Enter and Space activation without starting a drag', async () => {
+	const update = vi.fn().mockResolvedValue(new UpdateResult(1n, undefined));
+	const screen = await render(ActionsDisplay, {
+		today: intention.date.slice(0, 10),
+		goals: [goal],
+		intentions: [intention],
+		handleUpdateSingleIntention: update
+	});
+	const action = screen.getByRole('button', { name: '1) Read a chapter', exact: true });
+	await action.click();
+	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
+	await userEvent.type(action, '{Enter}');
+	await expect.element(action).toHaveAttribute('aria-pressed', 'false');
+	await userEvent.type(action, ' ');
+	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
+	expect(update.mock.calls.map(([row]) => row.status)).toEqual(['done', 'pending', 'done']);
+	await expect.element(screen.getByRole('button', { name: 'Open intention menu' })).toBeVisible();
 });
 
 test('failed review loading blocks saving and exposes a working retry', async () => {

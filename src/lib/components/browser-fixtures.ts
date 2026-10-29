@@ -7,6 +7,8 @@ export const api = {
 	uniqueDates: vi.fn(),
 	deleteGoal: vi.fn(),
 	updateGoals: vi.fn(),
+	addGoal: vi.fn(),
+	listGoals: vi.fn(),
 	list: vi.fn(),
 	goalsOnDate: vi.fn(),
 	priorities: vi.fn(),
@@ -20,6 +22,8 @@ export const navigation = { refreshAll: api.refresh, beforeNavigate: vi.fn() };
 export const client = {
 	goal_logs: { getAllForGoal: { query: api.goalLogs } },
 	goals: {
+		add: { mutate: api.addGoal },
+		list: { query: api.listGoals },
 		delete: { mutate: api.deleteGoal },
 		updateGoals: { mutate: api.updateGoals },
 		listGoalsOnDate: { query: api.goalsOnDate }
@@ -57,6 +61,8 @@ beforeEach(() => {
 	api.goalLogs.mockResolvedValue([]);
 	api.uniqueDates.mockResolvedValue([]);
 	api.deleteGoal.mockRejectedValue(new Error('Offline'));
+	api.addGoal.mockResolvedValue({ id: 2 });
+	api.listGoals.mockResolvedValue([goal]);
 	api.list.mockResolvedValue([]);
 	api.goalsOnDate.mockImplementation(({ active }) => Promise.resolve(active === 0 ? [] : [goal]));
 	api.priorities.mockResolvedValue([]);

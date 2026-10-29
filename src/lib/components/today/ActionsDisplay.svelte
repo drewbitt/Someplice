@@ -8,12 +8,10 @@
 	import type { UpdateResult } from 'kysely';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { dndzone, setKeyboardDragTrigger } from 'svelte-dnd-action';
+	import { dndzone } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
-	// Space toggles the focused intention's checkbox; leave keyboard drag on Enter
-	setKeyboardDragTrigger('enter');
 
 	let {
 		goals,
@@ -31,8 +29,6 @@
 
 	type Intention = PageServerData['intentions'][0];
 
-	let showMousoverMenu = $state(false);
-	let showMousoverIndex = $state<number | null>(null);
 	let showIntentionModal = $state(false);
 	// The open modal tracks its own intention id: rendering it under the hover
 	// guard meant moving the mouse unmounted the dialog (and lost typed text).
@@ -67,7 +63,9 @@
 	});
 
 	let firstIncompleteIntentionIndex = $derived(
-		intentions.findIndex((intention) => intention.status === 'pending')
+		intentions.findIndex(
+			(intention) => intention.status === 'pending' && !inactiveGoalIds.has(intention.goalId)
+		)
 	);
 
 	// Propagated items inflate their close parens per prior miss (6))) = 2 skips);
@@ -98,28 +96,24 @@
 	const pendingUpdates = new SvelteSet<number>();
 	let reordering = $state(false);
 
-	const updateIntention = async (event: Event) => {
-		const target = event.currentTarget as HTMLInputElement;
-		const id = Number(target.id.split('-')[1]);
-		const original = intentions.find((row) => row.id === id);
-		if (!original || pendingUpdates.has(id)) return;
-		const status = target.checked ? 'done' : 'pending';
+	const updateIntention = async (original: Intention, status: 'done' | 'pending') => {
+		const id = original.id;
+		if (id === null || pendingUpdates.has(id)) return false;
 		pendingUpdates.add(id);
 		try {
 			const result = await handleUpdateSingleIntention({ ...original, status });
 			if (result?.numUpdatedRows && result.numUpdatedRows > 0) {
 				intentions = intentions.map((row) => (row.id === id ? { ...row, status } : row));
-			} else {
-				target.checked = original.status === 'done';
+				return true;
 			}
 		} catch (error) {
-			target.checked = original.status === 'done';
 			todayPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Could not update intention.'
 			);
 		} finally {
 			pendingUpdates.delete(id);
 		}
+		return false;
 	};
 
 	const lighterGoalColorForIntention = (goalColor: string) => {
@@ -155,22 +149,6 @@
 			reordering = false;
 		}
 	};
-
-	const handleButtonPressIntention = (
-		event: KeyboardEvent & {
-			currentTarget: EventTarget & HTMLSpanElement;
-		}
-	) => {
-		if ((event.target as HTMLElement).closest('dialog, input, textarea, button')) return;
-		if (event.key === ' ') {
-			event.preventDefault();
-			const checkbox = event.currentTarget.parentElement?.querySelector(
-				'input[type="checkbox"]'
-			) as HTMLInputElement;
-			// click() toggles and fires 'change' so updateIntention persists
-			checkbox.click();
-		}
-	};
 </script>
 
 <div class="rounded-box bg-base-100 shadow-sm">
@@ -194,7 +172,7 @@
 				</h2>
 			</div>
 		{/if}
-		<section
+		<div
 			role="list"
 			class="overflow-hidden"
 			use:dndzone={{ items: intentions, dragDisabled: reordering }}
@@ -205,58 +183,42 @@
 				<span
 					role="listitem"
 					aria-label="{intentionCode(intention)} {intention.text}"
-					class={'flex items-center pl-3' +
+					aria-current={index === firstIncompleteIntentionIndex ? 'step' : undefined}
+					style="--goal-color: {goalColorForIntention(intention, goals)}"
+					class:current-intention={index === firstIncompleteIntentionIndex}
+					class={'intention-row flex items-center border-l-4 border-transparent py-1 pr-3 pl-2' +
 						(intention.status === 'done' ? ' line-through' : '') +
-						(intention.status === 'not_today' || inactiveGoalIds.has(intention.goalId)
-							? ' opacity-60'
-							: '') +
 						(index === firstIncompleteIntentionIndex ? ' mb-1' : '')}
-					onmouseover={() => {
-						showMousoverMenu = true;
-						showMousoverIndex = intention.id;
-					}}
-					onfocusin={() => {
-						showMousoverMenu = true;
-						showMousoverIndex = intention.id;
-					}}
-					onfocusout={(event) => {
-						if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-						showMousoverMenu = false;
-						showMousoverIndex = null;
-					}}
 				>
 					{#if showIntentionModal && modalIntentionId === intention.id}
 						<IntentionsModal bind:opened={showIntentionModal} {intention} {goals} />
 					{/if}
-					{#if showMousoverMenu && showMousoverIndex === intention.id}
-						<button
-							aria-haspopup="dialog"
-							aria-label="Open intention menu"
-							class="hover:bg-base-300 cursor-pointer py-0.5"
-							onclick={() => {
-								modalIntentionId = intention.id;
-								showIntentionModal = true;
-							}}
+					<button
+						type="button"
+						aria-haspopup="dialog"
+						aria-label="Open intention menu"
+						class="hover:bg-base-300 flex size-8 shrink-0 items-center justify-center rounded-sm opacity-60 hover:opacity-100 focus-visible:opacity-100"
+						onclick={() => {
+							modalIntentionId = intention.id;
+							showIntentionModal = true;
+						}}
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
+							><g
+								fill="none"
+								stroke="currentColor"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="1.5"
+								><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
+									cx="8"
+									cy="13.5"
+									r=".75"
+								/></g
+							></svg
 						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
-								><g
-									fill="none"
-									stroke="currentColor"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="1.5"
-									><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
-										cx="8"
-										cy="13.5"
-										r=".75"
-									/></g
-								></svg
-							>
-						</button>
-						<Menu class="w-5" color="grey" aria-hidden="true" />
-					{:else}
-						<div class="w-9"></div>
-					{/if}
+					</button>
+					<Menu class="hidden w-4 shrink-0 opacity-40 sm:block" aria-hidden="true" />
 					<input
 						tabindex={-1}
 						id="intention-{intention.id}"
@@ -267,37 +229,61 @@
 							: 'checkbox-sm ml-0.5'}
 						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
 						checked={intention.status === 'done'}
-						onchange={updateIntention}
+						onchange={async (event) => {
+							const checkbox = event.currentTarget;
+							const saved = await updateIntention(intention, checkbox.checked ? 'done' : 'pending');
+							if (!saved) checkbox.checked = intention.status === 'done';
+						}}
 					/>
-					<span
-						role="button"
+					<button
+						type="button"
 						aria-pressed={intention.status === 'done'}
-						tabindex={0}
 						id="intention-text-{intention.id}"
-						aria-haspopup="dialog"
+						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
+						onclick={() =>
+							updateIntention(intention, intention.status === 'done' ? 'pending' : 'done')}
 						oncontextmenu={(e) => {
 							e.preventDefault();
 							modalIntentionId = intention.id;
 							showIntentionModal = true;
 						}}
 						onkeydown={(e) => {
-							handleButtonPressIntention(e);
 							if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
 								e.preventDefault();
 								modalIntentionId = intention.id;
 								showIntentionModal = true;
 							}
 						}}
-						class="goal-text ml-2 font-bold {index === firstIncompleteIntentionIndex
-							? 'text-xl'
-							: 'text-lg'} {intention.status === 'not_today' ? 'italic' : ''}"
+						class="goal-text ml-2 min-h-8 min-w-0 py-0.5 text-left break-words {index ===
+						firstIncompleteIntentionIndex
+							? 'text-xl font-bold'
+							: 'text-lg font-medium'} {intention.status === 'not_today' ||
+						inactiveGoalIds.has(intention.goalId)
+							? 'italic'
+							: ''}"
 						style="--goal-color: {intention.status === 'done'
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
-						>{intentionCode(intention)} {intention.text}</span
+						>{intentionCode(intention)} {intention.text}</button
 					>
 				</span>
 			{/each}
-		</section>
+		</div>
 	</div>
 </div>
+
+<style>
+	.intention-row .goal-text {
+		color: oklch(from var(--goal-color) min(l, 0.5) c h);
+	}
+
+	:global([data-theme='dark']) .intention-row .goal-text {
+		color: oklch(from var(--goal-color) max(l, 0.75) c h);
+	}
+
+	.current-intention {
+		background-color: color-mix(in srgb, var(--goal-color) 12%, var(--color-base-100));
+		border-left-color: var(--goal-color);
+		border-radius: 0.25rem;
+	}
+</style>

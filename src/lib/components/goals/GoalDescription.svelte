@@ -31,8 +31,9 @@
 	<div class="goal-box-description-editable w-full">
 		<div class="flex items-center justify-between">
 			<textarea
+				aria-label="Goal description"
 				maxlength="500"
-				class="w-5/6 max-w-6xl overflow-visible rounded-md border border-transparent bg-white px-2 py-1 text-black"
+				class="goal-edit-input min-w-0 flex-1 rounded-md border px-2 py-1"
 				placeholder="Describe your goal"
 				bind:value={description}></textarea>
 			<div class="flex">
@@ -60,7 +61,7 @@
 {:else if currentlyEditing && isInactiveGoal}
 	<div class="goal-box-description w-full">
 		<div class="flex items-center justify-between">
-			<p class="truncate break-words" style="color: {descriptionColor}" title={description ?? ''}>
+			<p class="min-w-0 break-words" style="color: {descriptionColor}" title={description ?? ''}>
 				{description ?? ''}
 			</p>
 			<div class="flex">
@@ -87,6 +88,8 @@
 	</div>
 {:else}
 	<div class="goal-box-description w-full">
-		<p class="truncate break-words" style="color: {descriptionColor}">{description ?? ''}</p>
+		<p class="leading-relaxed break-words whitespace-pre-wrap" style="color: {descriptionColor}">
+			{description ?? ''}
+		</p>
 	</div>
 {/if}

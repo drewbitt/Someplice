@@ -46,23 +46,9 @@
 	let dragDisabled = $state(true);
 	let editButtonActive = $state(false);
 	let saving = $state(false);
-	let editButtonEnabled = $derived(dragDisabled);
-	let dragButtonEnabled = $derived(!editButtonActive);
 
 	let backupGoals: Goals[] = [];
-	let addedGoal = $state(false);
-	$effect(() => {
-		if (addedGoal) {
-			addedGoal = false;
-			backupGoals = goals.map((goal) => {
-				return { ...goal };
-			});
-			editButtonActive = true;
-			// Entering edit mode while renumber mode is on left the New Goal
-			// button dead: edits stayed hidden until the user toggled Renumber.
-			dragDisabled = true;
-		}
-	});
+	let creatingGoal = $state(false);
 
 	async function handleEditButtonClick() {
 		if (saving) return;
@@ -136,9 +122,9 @@
 	<title>Someplice - Your Goals</title>
 </svelte:head>
 
-<div>
-	<h1 class="flex flex-wrap items-center gap-y-2 text-3xl font-bold text-balance">
-		Goals
+<fieldset disabled={saving} class="min-w-0" aria-label="Goals">
+	<div class="flex flex-wrap items-center gap-y-2">
+		<h1 class="text-3xl font-bold">Goals</h1>
 		<div class="indicator">
 			<span class={editButtonActive ? 'badge indicator-item badge-secondary translate-x-1/4' : ''}
 			></span>
@@ -148,7 +134,8 @@
 			<button
 				class="btn mx-2"
 				disabled={saving ||
-					!editButtonEnabled ||
+					creatingGoal ||
+					!dragDisabled ||
 					(editButtonActive && !saveButtonEnabled) ||
 					(noGoals && inactiveGoals.length === 0)}
 				onclick={handleEditButtonClick}
@@ -161,14 +148,14 @@
 			></span>
 			<button
 				class="btn mx-2"
-				disabled={!dragButtonEnabled || noGoals}
+				disabled={creatingGoal || editButtonActive || noGoals}
 				onclick={handleRenumberButtonClick}
 			>
 				{dragDisabled ? 'Enable renumber goals' : 'Disable renumber goals'}
 			</button>
 		</div>
-	</h1>
-	<section
+	</div>
+	<div
 		role="list"
 		id="goals-list-container"
 		class="mt-2.5 grid gap-2.5 overflow-hidden"
@@ -183,13 +170,18 @@
 				priority={data.priorities.find((p) => p.goalId === goal.id)}
 			/>
 		{/each}
-	</section>
+	</div>
 	<!-- Inside the dndzone it became a droppable item: dragging the "+ New
 	Goal" card appended a broken goal instead of opening the editor. -->
-	<NewGoalBoxComponent bind:addedGoal />
-	{#if goals.length > 0 || inactiveGoals.length > 0}
+	<NewGoalBoxComponent
+		{goals}
+		bind:creating={creatingGoal}
+		disabled={editButtonActive || saving}
+		onstart={() => (dragDisabled = true)}
+	/>
+	{#if inactiveGoals.length > 0}
 		<h2 class="text-3xl font-bold">Inactive Goals</h2>
-		<section role="list" id="goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
+		<div role="list" id="inactive-goals-list-container" class="mt-2.5 grid gap-2.5 overflow-hidden">
 			{#each inactiveGoals as goal, i (goal.id)}
 				<GoalBoxComponent
 					bind:goal={inactiveGoals[i]}
@@ -197,6 +189,6 @@
 					isInactiveGoal={true}
 				/>
 			{/each}
-		</section>
+		</div>
 	{/if}
-</div>
+</fieldset>

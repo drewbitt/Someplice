@@ -110,7 +110,7 @@
 <div role="listitem">
 	<div
 		style="background-color: {goal.color}"
-		class="mx-5 grid auto-rows-[6rem] grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
+		class="mx-5 grid min-h-24 grid-cols-[minmax(0,3rem)_4fr] gap-4 leading-none"
 	>
 		<span class="pl-2 font-mono text-7xl" style="color: {readableTextColor(goal.color)}">
 			{goal.active ? goal.orderNumber : 'X'}
@@ -145,8 +145,9 @@
 				actionButtonClass="btn btn-accent"
 			/>
 		{/if}
-		<div class="goal-box-details flex flex-col gap-1">
+		<div class="goal-box-details flex min-w-0 flex-col gap-2 py-1 pr-2">
 			<GoalTitleRow
+				goalId={goal.id}
 				bind:title={goal.title}
 				{currentlyEditing}
 				{isInactiveGoal}

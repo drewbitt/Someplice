@@ -1,9 +1,17 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { openTestDb, resetTestDb } from './fixtures';
 import { createNetworkSwitch } from './network';
 import { dateKeyInZone, dayOfWeekFromDate } from '../src/lib/utils/index';
 
 test.beforeEach(resetTestDb);
+
+async function createGoal(page: Page, title = 'Read') {
+	await page.goto('/goals');
+	await page.getByRole('button', { name: 'New Goal', exact: true }).click();
+	await page.getByRole('textbox', { name: 'Goal title', exact: true }).fill(title);
+	await page.getByRole('button', { name: 'Create goal', exact: true }).click();
+	await expect(page.locator('.goal-box-title').last()).toHaveText(title);
+}
 
 test('index page has expected h1', async ({ page }) => {
 	await page.goto('/');
@@ -99,11 +107,43 @@ test('theme toggle persists dark mode across reload', async ({ page }) => {
 	await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
+test('a new goal stays unsaved until submission and cancellation leaves no history', async ({
+	page
+}) => {
+	await page.goto('/goals');
+	const newGoal = page.getByRole('button', { name: 'New Goal', exact: true });
+	await expect(newGoal).toHaveCSS('cursor', 'pointer');
+	await newGoal.click();
+	const title = page.getByRole('textbox', { name: 'Goal title', exact: true });
+	await expect(title).toBeFocused();
+	await expect(page.getByRole('button', { name: 'Create goal', exact: true })).toBeDisabled();
+	await title.fill('Maybe later');
+	await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect(newGoal).toBeFocused();
+	await newGoal.click();
+	await expect(title).toHaveValue('');
+	await title.fill('Another idea');
+	await title.press('Escape');
+	await expect(newGoal).toBeFocused();
+	const db = openTestDb();
+	try {
+		expect(db.prepare('SELECT COUNT(*) AS count FROM goals').get()).toEqual({ count: 0 });
+		expect(db.prepare('SELECT COUNT(*) AS count FROM goal_logs').get()).toEqual({ count: 0 });
+	} finally {
+		db.close();
+	}
+	await newGoal.click();
+	await title.fill('Build a reading habit');
+	await title.press('Enter');
+	await expect(page.locator('.goal-box-title')).toHaveText('Build a reading habit');
+	await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+	await page.reload();
+	await expect(page.locator('.goal-box-title')).toHaveText('Build a reading habit');
+});
+
 test('intentions typed on Today persist across reload', async ({ page }) => {
 	// Today hides the editor until a goal exists
-	await page.goto('/goals');
-	await page.getByRole('button', { name: 'New Goal' }).click();
-	await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
+	await createGoal(page);
 
 	await page.goto('/today');
 	const editor = page.locator('.goal__editor__textarea');
@@ -117,10 +157,43 @@ test('intentions typed on Today persist across reload', async ({ page }) => {
 	await expect(page.locator('.goal__editor__textarea')).toHaveValue('1) write tests');
 });
 
+test('intention text activates with mouse and keyboard, and row reordering persists', async ({
+	page
+}) => {
+	await createGoal(page);
+	await page.goto('/today');
+	await page
+		.getByRole('textbox', { name: 'Daily intentions' })
+		.fill('1) First step\n1) Second step');
+	await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
+	const first = page.getByRole('button', { name: '1) First step', exact: true });
+	const second = page.getByRole('button', { name: '1) Second step', exact: true });
+	await first.click();
+	await expect(first).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('[aria-current="step"]')).toContainText('Second step');
+	await first.press('Enter');
+	await expect(first).toHaveAttribute('aria-pressed', 'false');
+	await second.press('Space');
+	await expect(second).toHaveAttribute('aria-pressed', 'true');
+	await second.click();
+	await expect(second).toHaveAttribute('aria-pressed', 'false');
+	const firstRow = page.getByRole('listitem', { name: '1) First step', exact: true });
+	await firstRow.focus();
+	await firstRow.press('Enter');
+	const reordered = page.waitForResponse((response) =>
+		response.url().includes('/api/trpc/intentions.reorder')
+	);
+	await firstRow.press('ArrowDown');
+	expect((await reordered).ok()).toBe(true);
+	await expect(page.locator('.intention-row').first()).toContainText('Second step');
+	await page.keyboard.press('Escape');
+	await page.reload();
+	await expect(page.locator('.intention-row').first()).toContainText('Second step');
+	await expect(page.locator('[aria-current="step"]')).toContainText('Second step');
+});
+
 test('a cleared migrated draft stays cleared across navigation and reload', async ({ page }) => {
-	await page.goto('/goals');
-	await page.getByRole('button', { name: 'New Goal' }).click();
-	await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
+	await createGoal(page);
 	await page.evaluate(() => {
 		localStorage.removeItem('todaysIntentions:v2');
 		localStorage.setItem('todaysIntentions', '1) legacy draft');
@@ -159,9 +232,7 @@ test('Today loads missed intentions in the stored timezone on a fresh browser vi
 	const context = await browser.newContext({ timezoneId: browserZone });
 	try {
 		const page = await context.newPage();
-		await page.goto('/goals');
-		await page.getByRole('button', { name: 'New Goal' }).click();
-		await expect(page.locator('.goal-box-title-editable input').last()).toHaveValue(/Goal/);
+		await createGoal(page);
 
 		const recentIntentions = page.waitForResponse((response) =>
 			response.url().includes('/api/trpc/intentions.list?')
@@ -195,8 +266,8 @@ test('Today loads missed intentions in the stored timezone on a fresh browser vi
 });
 
 test('failed goal saves preserve the draft for retry or cancellation', async ({ page }) => {
-	await page.goto('/goals');
-	await page.getByRole('button', { name: 'New Goal', exact: true }).click();
+	await createGoal(page);
+	await page.getByRole('button', { name: 'Edit', exact: true }).click();
 	const title = page.locator('.goal-box-title-editable input').last();
 	const description = page.locator('.goal-box-description-editable textarea').last();
 	const originalTitle = await title.inputValue();

@@ -60,3 +60,22 @@ test('reopening the palette refreshes colors used by other goals', async () => {
 		.not.toBeInTheDocument();
 	expect(api.list).toHaveBeenCalledTimes(2);
 });
+
+test('editing a color keeps the goal’s original color available while excluding other goals', async () => {
+	api.list.mockResolvedValue([
+		{ id: 1, color: colors[0] },
+		{ id: 2, color: colors[1] }
+	]);
+	const screen = await render(GoalColorPalette, { goalColor: colors[0], goalId: 1 });
+	const trigger = screen.getByRole('button', { name: 'Choose goal color' });
+	await trigger.click();
+	await expect.element(screen.getByRole('dialog', { name: 'Choose Goal Color' })).toBeVisible();
+	await screen.getByRole('button', { name: `Use ${colors[2]}`, exact: true }).click();
+	await trigger.click();
+	await expect
+		.element(screen.getByRole('button', { name: `Use ${colors[0]}`, exact: true }))
+		.toBeVisible();
+	await expect
+		.element(screen.getByRole('button', { name: `Use ${colors[1]}`, exact: true }))
+		.not.toBeInTheDocument();
+});
