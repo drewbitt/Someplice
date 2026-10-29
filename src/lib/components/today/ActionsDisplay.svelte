@@ -256,8 +256,10 @@
 						}}
 						class="goal-text ml-2 min-h-8 min-w-0 py-0.5 text-left break-words {index ===
 						firstIncompleteIntentionIndex
-							? 'text-xl font-bold'
-							: 'text-lg font-medium'} {intention.status === 'not_today' ||
+							? 'text-xl font-extrabold'
+							: intention.status === 'done'
+								? 'text-lg font-normal'
+								: 'text-lg font-bold'} {intention.status === 'not_today' ||
 						inactiveGoalIds.has(intention.goalId)
 							? 'italic'
 							: ''}"
@@ -274,15 +276,18 @@
 
 <style>
 	.intention-row .goal-text {
-		color: oklch(from var(--goal-color) min(l, 0.5) c h);
+		/* Keep goal hues brighter than the previous blanket 0.5 lightness cap.
+		   The larger, bold current item can carry more of the original color. */
+		color: oklch(from var(--goal-color) min(l, var(--intention-lightness, 0.55)) c h);
 	}
 
 	:global([data-theme='dark']) .intention-row .goal-text {
-		color: oklch(from var(--goal-color) max(l, 0.75) c h);
+		color: oklch(from var(--goal-color) max(l, 0.7) c h);
 	}
 
 	.current-intention {
-		background-color: color-mix(in srgb, var(--goal-color) 12%, var(--color-base-100));
+		--intention-lightness: 0.6;
+		background-color: color-mix(in srgb, var(--goal-color) 6%, var(--color-base-100));
 		border-left-color: var(--goal-color);
 		border-radius: 0.25rem;
 	}
