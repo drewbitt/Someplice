@@ -2,23 +2,29 @@
 	import type { Goal, Intention } from '#lib/trpc/types.js';
 	import { goalColorForIntention, goalOrderNumberForId } from '#lib/utils/index.js';
 	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '#lib/utils/notDones.js';
-	import { notDones } from '#lib/stores/notDones.svelte.js';
-	import { onMount, tick } from 'svelte';
+	import { notDoneSkips } from '#lib/stores/notDoneSkips.svelte.js';
+	import { tick } from 'svelte';
+	import { IsMounted } from 'runed';
 	import Plus from 'virtual:icons/lucide/plus';
 	import ChevronDown from 'virtual:icons/lucide/chevron-down';
 
 	let {
 		goals,
+		today,
+		recentIntentions,
 		plannedIntentions,
 		onImport
 	}: {
 		goals: Goal[];
+		today: string;
+		recentIntentions: Intention[];
 		/** Items already on today's list (saved or drafted) — skipped items matching one are not re-offered. */
 		plannedIntentions: Intention[];
 		onImport: (line: string) => void;
 	} = $props();
 
 	const panelId = $props.id();
+	const mounted = new IsMounted();
 	let toggle = $state<HTMLButtonElement>();
 	let feedback = $state('');
 	let lastSkipped = $state<Intention | null>(null);
@@ -31,19 +37,16 @@
 		if (confirmGroup && dialog && !dialog.open) dialog.showModal();
 	});
 
-	const refresh = () => void notDones.refresh().catch(() => undefined);
-	onMount(refresh);
-
 	const focusToggle = () => void tick().then(() => toggle?.focus({ preventScroll: true }));
 	const skip = (group: NotDoneGroup) => {
-		notDones.skipToday(group.representative);
+		notDoneSkips.skipToday(group.representative, today);
 		lastSkipped = group.representative;
 		feedback = `Skipped for today: ${group.representative.text}`;
 		focusToggle();
 	};
 	const undoSkip = () => {
 		if (!lastSkipped) return;
-		notDones.restoreToday(lastSkipped);
+		notDoneSkips.restoreToday(lastSkipped, today);
 		feedback = `Restored: ${lastSkipped.text}`;
 		lastSkipped = null;
 		focusToggle();
@@ -51,14 +54,16 @@
 
 	let groups = $derived.by(() => {
 		const planned = new Set(plannedIntentions.map((i) => intentionMatchKey(i.goalId, i.text)));
-		return groupNotDones(notDones.recentIntentions)
+		return groupNotDones(recentIntentions)
 			.filter(
 				(group) =>
 					goals.some(
 						(goal) =>
 							goal.id === group.representative.goalId && goal.active === 1 && goal.orderNumber > 0
 					) &&
-					!notDones.isSkipped(group.representative) &&
+					// Local preferences apply after hydration so the first client render
+					// matches the server, which cannot read this browser's storage.
+					(!mounted.current || !notDoneSkips.isSkipped(group.representative, today)) &&
 					!planned.has(intentionMatchKey(group.representative.goalId, group.representative.text))
 			)
 			.sort(
@@ -116,7 +121,7 @@
 	};
 </script>
 
-{#if groups.length > 0 || notDones.loading || notDones.error || feedback}
+{#if groups.length > 0 || feedback}
 	<section
 		class="border-base-300 bg-base-200/40 rounded-field w-full border p-3 sm:w-4/5"
 		aria-label="NotDones"
@@ -174,14 +179,6 @@
 					</li>
 				{/each}
 			</ul>
-			{#if notDones.error}
-				<div class="mt-2 text-sm" role="alert">
-					<p>{notDones.error}</p>
-					<button class="btn btn-sm mt-2" onclick={refresh}>Retry NotDones</button>
-				</div>
-			{:else if notDones.loading}
-				<p class="text-base-content/70 mt-2 text-sm" role="status">Loading NotDones…</p>
-			{/if}
 		</div>
 		<div class="mt-1 text-sm wrap-anywhere" role="status">
 			<span>{feedback}</span>

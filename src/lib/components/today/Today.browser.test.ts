@@ -7,7 +7,6 @@ import NotDonesPanel from './NotDonesPanel.svelte';
 import ActionsDisplay from './ActionsDisplay.svelte';
 import IntentionsModal from './IntentionsModal.svelte';
 import Review from './review-outcomes/Review.svelte';
-import { notDones } from '#lib/stores/notDones.svelte.js';
 import { appTimeZone } from '#lib/stores/timezone.svelte.js';
 import TodayPage from '../../../routes/today/+page.svelte';
 import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
@@ -23,9 +22,6 @@ vi.mock('#lib/trpc/client.js', () =>
 );
 
 beforeEach(() => {
-	notDones.recentIntentions = [];
-	notDones.error = '';
-	notDones.loading = false;
 	todaysIntentions.current = null;
 });
 
@@ -49,6 +45,7 @@ test.each([
 			intentionsOnLatestDate: [],
 			priorities: [],
 			inactiveGoals: [],
+			recentIntentions: [],
 			hasOutstandingOutcome: false
 		}
 	});
@@ -70,6 +67,7 @@ test.each([false, true])(
 			intentionsOnLatestDate: [],
 			priorities: [],
 			inactiveGoals: [],
+			recentIntentions: [],
 			hasOutstandingOutcome: false
 		};
 		const screen = await render(TodayPage, { data });
@@ -128,6 +126,7 @@ test.each([false, true])(
 				intentionsOnLatestDate: [],
 				priorities: [],
 				inactiveGoals: [],
+				recentIntentions: [],
 				hasOutstandingOutcome: false
 			}
 		});
@@ -145,9 +144,14 @@ test('NotDones uses a native modal, cancels without mutation, and resets strateg
 		id,
 		date: `2026-10-0${id}T12:00:00.000Z`
 	}));
-	api.list.mockResolvedValue(recent);
 	const onImport = vi.fn();
-	const screen = await render(NotDonesPanel, { goals: [goal], plannedIntentions: [], onImport });
+	const screen = await render(NotDonesPanel, {
+		goals: [goal],
+		today: '2026-10-04',
+		recentIntentions: recent,
+		plannedIntentions: [],
+		onImport
+	});
 	const trigger = screen.getByRole('button', { name: 'Add to today: Read a chapter' });
 	// Keyboard activation establishes a return-focus target in WebKit too,
 	// where pointer clicks do not focus buttons.
@@ -169,9 +173,14 @@ test('NotDones uses a native modal, cancels without mutation, and resets strateg
 });
 
 test('NotDones offers deferred items and imports them as active intentions', async () => {
-	api.list.mockResolvedValue([{ ...intention, status: 'not_today' }]);
 	const onImport = vi.fn();
-	const screen = await render(NotDonesPanel, { goals: [goal], plannedIntentions: [], onImport });
+	const screen = await render(NotDonesPanel, {
+		goals: [goal],
+		today: '2026-10-02',
+		recentIntentions: [{ ...intention, status: 'not_today' }],
+		plannedIntentions: [],
+		onImport
+	});
 	await expect.element(screen.getByText('Thu · Deferred')).toBeVisible();
 	await screen.getByRole('button', { name: 'Add to today: Read a chapter' }).click();
 	expect(onImport).toHaveBeenCalledExactlyOnceWith('1) Read a chapter');
@@ -186,75 +195,48 @@ test('skipping a NotDone survives remounts but expires the next day without chan
 	vi.setSystemTime(new Date('2026-10-02T12:00:00Z'));
 	appTimeZone.set('UTC');
 	const deferred = { ...intention, text: 'Deferred episode', status: 'not_today' as const };
-	api.list.mockResolvedValue([deferred]);
-	const props = { goals: [goal], plannedIntentions: [], onImport: vi.fn() };
+	const props = {
+		goals: [goal],
+		today: '2026-10-02',
+		recentIntentions: [deferred],
+		plannedIntentions: [],
+		onImport: vi.fn()
+	};
 	const screen = await render(NotDonesPanel, props);
 	await screen.getByRole('button', { name: 'Skip today: Deferred episode' }).click();
 	await expect
 		.element(screen.getByRole('button', { name: /^Add to today:/ }))
 		.not.toBeInTheDocument();
 	expect(api.setStatus).not.toHaveBeenCalled();
-	expect(notDones.recentIntentions).toEqual([deferred]);
+	expect(props.recentIntentions).toEqual([deferred]);
 	await screen.unmount();
 	const remounted = await render(NotDonesPanel, props);
 	await expect.element(remounted.getByRole('region', { name: 'NotDones' })).not.toBeInTheDocument();
 	await remounted.unmount();
 	vi.setSystemTime(new Date('2026-10-03T12:00:00Z'));
-	const tomorrow = await render(NotDonesPanel, props);
+	const tomorrow = await render(NotDonesPanel, { ...props, today: '2026-10-03' });
 	await expect
 		.element(tomorrow.getByRole('button', { name: 'Add to today: Deferred episode' }))
 		.toBeVisible();
 });
 
-test('NotDones provides retry feedback and an accessible, reversible skip', async () => {
-	api.list
-		.mockRejectedValueOnce(new Error('Offline'))
-		.mockResolvedValue([{ ...intention, text: 'Retry task' }]);
+test('NotDones provides an accessible, reversible skip without a history request', async () => {
 	const screen = await render(NotDonesPanel, {
 		goals: [goal],
+		today: '2026-10-02',
+		recentIntentions: [{ ...intention, text: 'Undo task' }],
 		plannedIntentions: [],
 		onImport: vi.fn()
 	});
-	await expect.element(screen.getByRole('alert')).toBeVisible();
-	await expect
-		.element(screen.getByText('Could not load NotDones. Please try again.'))
-		.toBeVisible();
-	await screen.getByRole('button', { name: 'Retry NotDones' }).click();
-	const add = screen.getByRole('button', { name: 'Add to today: Retry task' });
+	const add = screen.getByRole('button', { name: 'Add to today: Undo task' });
 	await expect.element(add).toBeVisible();
-	await screen.getByRole('button', { name: 'Skip today: Retry task' }).click();
+	await screen.getByRole('button', { name: 'Skip today: Undo task' }).click();
 	await expect.element(add).not.toBeInTheDocument();
-	await expect.element(screen.getByText('Skipped for today: Retry task')).toBeVisible();
+	await expect.element(screen.getByText('Skipped for today: Undo task')).toBeVisible();
 	await screen.getByRole('button', { name: 'Undo skip' }).click();
 	await expect.element(add).toBeVisible();
 	expect(api.setStatus).not.toHaveBeenCalled();
-});
-
-test('a stale request cannot overwrite history from a newer day', async () => {
-	vi.useFakeTimers({ toFake: ['Date'] });
-	vi.setSystemTime(new Date('2026-10-02T12:00:00Z'));
-	appTimeZone.set('UTC');
-	const older = Promise.withResolvers<Intention[]>();
-	const newer = Promise.withResolvers<Intention[]>();
-	api.list.mockReturnValueOnce(older.promise).mockReturnValueOnce(newer.promise);
-	const oldRequest = notDones.refresh();
-	vi.setSystemTime(new Date('2026-10-03T12:00:00Z'));
-	const newRequest = notDones.refresh();
-	expect(
-		api.list.mock.calls.map(([input]) => [
-			input.startDate.toISOString().slice(0, 10),
-			input.endDate.toISOString().slice(0, 10)
-		])
-	).toEqual([
-		['2026-09-29', '2026-10-01'],
-		['2026-09-30', '2026-10-02']
-	]);
-	newer.resolve([{ ...intention, id: 20 }]);
-	await newRequest;
-	older.resolve([intention]);
-	await oldRequest;
-	expect(notDones.recentIntentions.map((i) => i.id)).toEqual([20]);
-	expect(notDones.loading).toBe(false);
+	expect(api.list).not.toHaveBeenCalled();
 });
 
 test('Today refreshes recovery history when server data changes without remounting', async () => {
@@ -265,18 +247,20 @@ test('Today refreshes recovery history when server data changes without remounti
 		intentionsOnLatestDate: [],
 		priorities: [],
 		inactiveGoals: [],
+		recentIntentions: [intention],
 		hasOutstandingOutcome: false
 	};
-	api.list.mockResolvedValue([intention]);
 	const screen = await render(TodayPage, { data });
 	await expect
 		.element(screen.getByRole('button', { name: 'Add to today: Read a chapter' }))
 		.toBeVisible();
-	api.list.mockResolvedValue([{ ...intention, status: 'done' }]);
-	await screen.rerender({ data: { ...data } });
+	await screen.rerender({
+		data: { ...data, recentIntentions: [{ ...intention, status: 'done' }] }
+	});
 	await expect
 		.element(screen.getByRole('button', { name: 'Add to today: Read a chapter' }))
 		.not.toBeInTheDocument();
+	expect(api.list).not.toHaveBeenCalled();
 });
 
 test('draft recovery stays deduplicated and saveable after refreshed empty server data', async () => {
@@ -287,9 +271,9 @@ test('draft recovery stays deduplicated and saveable after refreshed empty serve
 		intentionsOnLatestDate: [],
 		priorities: [],
 		inactiveGoals: [],
+		recentIntentions: [{ ...intention, status: 'not_today' as const }],
 		hasOutstandingOutcome: false
 	};
-	api.list.mockResolvedValue([{ ...intention, status: 'not_today' }]);
 	const screen = await render(TodayPage, { data });
 	const add = screen.getByRole('button', { name: 'Add to today: Read a chapter' });
 	await add.click();
@@ -305,14 +289,27 @@ test('draft recovery stays deduplicated and saveable after refreshed empty serve
 	});
 });
 
-test('a forced refresh after a review supersedes an in-flight request on the same day', async () => {
-	const beforeReview = Promise.withResolvers<Intention[]>();
-	api.list.mockReturnValueOnce(beforeReview.promise).mockResolvedValueOnce([]);
-	const previous = notDones.refresh();
-	await notDones.refresh({ force: true });
-	beforeReview.resolve([intention]);
-	await previous;
-	expect(notDones.recentIntentions).toEqual([]);
+test('returning to the tab refreshes page data once without a separate history request', async () => {
+	const request = Promise.withResolvers<void>();
+	api.refresh.mockReturnValue(request.promise);
+	await render(TodayPage, {
+		data: {
+			today: dateKeyInZone(appTimeZone.current),
+			goals: [goal],
+			intentions: [],
+			intentionsOnLatestDate: [],
+			priorities: [],
+			inactiveGoals: [],
+			recentIntentions: [],
+			hasOutstandingOutcome: false
+		}
+	});
+	document.dispatchEvent(new Event('visibilitychange'));
+	document.dispatchEvent(new Event('visibilitychange'));
+	expect(api.refresh).toHaveBeenCalledTimes(1);
+	request.resolve();
+	await request.promise;
+	expect(api.list).not.toHaveBeenCalled();
 });
 
 test.each(['pending', 'not_today'] as const)(
@@ -339,6 +336,7 @@ test('checkbox changes are single-flight and roll back after failure', async () 
 	const retry = Promise.withResolvers<Intention[]>();
 	api.setCompletion.mockReturnValueOnce(failed.promise).mockReturnValueOnce(retry.promise);
 	const screen = await render(ActionsDisplay, {
+		recentIntentions: [],
 		today: intention.date.slice(0, 10),
 		goals: [goal],
 		intentions: [intention, { ...intention, id: 2, text: 'Next' }]
@@ -369,6 +367,7 @@ test('the current intention skips done, deferred and archived items', async () =
 		{ ...intention, id: 5, text: 'Then here' }
 	];
 	const screen = await render(ActionsDisplay, {
+		recentIntentions: [],
 		today: intention.date.slice(0, 10),
 		goals: [goal, { ...goal, id: 2, active: 0, orderNumber: 2 }],
 		intentions: rows
@@ -387,6 +386,7 @@ test('native activation uses server order and keeps focus on the moved intention
 		.mockResolvedValueOnce([{ ...later, orderNumber: 1 }, refreshed])
 		.mockResolvedValueOnce(completed);
 	const screen = await render(ActionsDisplay, {
+		recentIntentions: [],
 		today: intention.date.slice(0, 10),
 		goals: [goal],
 		intentions: [intention, later]
@@ -412,6 +412,7 @@ test.each(['completion', 'reorder'] as const)(
 			request.promise
 		);
 		const screen = await render(ActionsDisplay, {
+			recentIntentions: [],
 			today: '2026-10-01',
 			goals: [goal],
 			intentions: [intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]
@@ -442,6 +443,7 @@ test.each(['completion', 'reorder'] as const)(
 test('failed reorder discards the preview and releases the save lock', async () => {
 	api.reorder.mockRejectedValueOnce(new Error('Save failed'));
 	const screen = await render(ActionsDisplay, {
+		recentIntentions: [],
 		today: intention.date.slice(0, 10),
 		goals: [goal],
 		intentions: [intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]

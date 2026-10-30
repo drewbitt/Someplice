@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { trpc } from '#lib/trpc/client.js';
-	import { notDones } from '#lib/stores/notDones.svelte.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { goalColorForIntention, lightenHSL } from '#lib/utils/index.js';
 	import { computeMissCount } from '#lib/utils/notDones.js';
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { dndzone, SOURCES, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
@@ -12,10 +11,12 @@
 
 	let {
 		goals,
+		recentIntentions,
 		today,
 		intentions = $bindable()
 	}: {
 		goals: PageServerData['goals'];
+		recentIntentions: PageServerData['recentIntentions'];
 		today: string;
 		intentions: PageServerData['intentions'];
 	} = $props();
@@ -38,12 +39,6 @@
 	// Only this derived view is overridden during dragging; the bound list stays saved data.
 	let displayedIntentions = $derived(knownIntentions);
 
-	onMount(() => {
-		notDones.refresh().catch(() => {
-			// Non-fatal: the panel and paren inflation just stay empty.
-		});
-	});
-
 	let firstIncompleteIntentionIndex = $derived(
 		displayedIntentions.findIndex(
 			(intention) => intention.status === 'pending' && !inactiveGoalIds.has(intention.goalId)
@@ -62,7 +57,7 @@
 		if (intention.status === 'not_today') {
 			return `-${goalOrder}${qualifier})`;
 		}
-		const misses = computeMissCount(notDones.recentIntentions, intention.goalId, intention.text);
+		const misses = computeMissCount(recentIntentions, intention.goalId, intention.text);
 		return `${goalOrder}${qualifier}${')'.repeat(1 + misses)}`;
 	};
 

@@ -11,8 +11,7 @@
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
-	import { onMount, untrack } from 'svelte';
-	import { notDones } from '#lib/stores/notDones.svelte.js';
+	import { onMount } from 'svelte';
 	import { appLogger } from '#lib/utils/app-logger.js';
 	import { TRPCClientError } from '@trpc/client';
 
@@ -20,10 +19,7 @@
 	let weekday = $derived(dayOfWeekFromDate(new Date(data.today)));
 	type Intentions = (typeof data.intentions)[0];
 
-	// svelte-ignore state_referenced_locally
-	let intentions = $state(data.intentions);
-	// svelte-ignore state_referenced_locally
-	let intentionsOnLatestDate = $state(data.intentionsOnLatestDate);
+	let intentions = $derived(data.intentions);
 	let additionalIntentions = $state<Intentions[]>([]);
 	let draftIntentions = $state<Intentions[]>([]);
 	let validIntentions = $state<boolean>(false);
@@ -31,26 +27,9 @@
 	let showAdditionalIntentionsTextArea = $state(false);
 	let showDBErrorNotification = $state(false);
 	let saveError = $state('Error saving intentions');
-	// svelte-ignore state_referenced_locally
-	let intentionsFromServer = $state(data.intentions);
-	let hasOutstandingOutcome = $state(false);
+	let hasOutstandingOutcome = $derived(data.hasOutstandingOutcome);
 	let saving = $state(false);
 	let draft = $state(todaysIntentions.current ?? '');
-
-	// SvelteKit preserves components when page data refreshes. Keep the shared
-	// recovery history in sync after reviews, conflicts, and day/zone changes.
-	$effect(() => {
-		void data;
-		void appTimeZone.current;
-		untrack(() => void notDones.refresh({ force: true }).catch(() => undefined));
-	});
-
-	$effect(() => {
-		intentions = data.intentions;
-		intentionsOnLatestDate = data.intentionsOnLatestDate;
-		intentionsFromServer = data.intentions;
-		hasOutstandingOutcome = data.hasOutstandingOutcome;
-	});
 
 	onMount(() => {
 		if (todaysIntentions.current && !noGoals && !noIntentions) {
@@ -58,21 +37,24 @@
 		}
 
 		let day = data.today;
-		const checkDay = async () => {
+		let refreshing = false;
+		const checkDay = async (force = false) => {
 			const current = dateKeyInZone(appTimeZone.current);
-			if (current !== day) {
+			if (!refreshing && (force || current !== day)) {
+				refreshing = true;
 				try {
 					await refreshAll();
 					day = current;
 				} catch (error) {
 					appLogger.error('Error refreshing Today', error);
+				} finally {
+					refreshing = false;
 				}
 			}
 		};
 		const onVisibilityChange = () => {
 			if (document.visibilityState === 'visible') {
-				void checkDay();
-				void notDones.refresh().catch(() => undefined);
+				void checkDay(true);
 			}
 		};
 		const timer = window.setInterval(checkDay, 60_000);
@@ -148,18 +130,19 @@
 	{#if !noGoals && !hasOutstandingOutcome}
 		<PriorityCards goals={data.goals} priorities={data.priorities} />
 	{/if}
-	{#if !(intentionsFromServer.length > 0) && !hasOutstandingOutcome}
+	{#if !(data.intentions.length > 0) && !hasOutstandingOutcome}
 		<h2 class="text-xl font-bold">Actions you'll take towards your goals today</h2>
 	{/if}
 	{#if hasOutstandingOutcome}
-		<Review {intentionsOnLatestDate} {setHasOutstandingOutcome} />
+		<Review intentionsOnLatestDate={data.intentionsOnLatestDate} {setHasOutstandingOutcome} />
 	{:else if noGoals && noIntentions}
 		<div role="alert" class="alert alert-error border-error">
 			<CircleX class="size-6 shrink-0 stroke-current" />
 			<span>You have no goals. Please add some goals first.</span>
 		</div>
-	{:else if intentionsFromServer.length > 0}
+	{:else if data.intentions.length > 0}
 		<ActionsDisplay
+			recentIntentions={data.recentIntentions}
 			today={data.today}
 			bind:intentions
 			goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
@@ -178,11 +161,13 @@
 				</div>
 			{/if}
 			<ActionsTextInput
+				today={data.today}
+				recentIntentions={data.recentIntentions}
 				goals={data.goals}
 				bind:intentionsString={draft}
 				bind:intentions={additionalIntentions}
 				bind:valid={validIntentions}
-				existingIntentions={intentionsFromServer}
+				existingIntentions={data.intentions}
 			/>
 			<div>
 				<button class="btn" disabled={saving} onclick={handleSaveIntentions}>
@@ -206,6 +191,8 @@
 			</div>
 		{/if}
 		<ActionsTextInput
+			today={data.today}
+			recentIntentions={data.recentIntentions}
 			goals={data.goals}
 			bind:intentionsString={draft}
 			bind:intentions={draftIntentions}
