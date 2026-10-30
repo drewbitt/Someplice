@@ -2,7 +2,7 @@ import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
-import { NoResultError, sql, type Kysely } from 'kysely';
+import { NoResultError, sql, type Transaction } from 'kysely';
 import type { DB } from '#lib/types/data.js';
 import { z } from 'zod';
 import { PaginationSchema } from '../pagination';
@@ -24,7 +24,7 @@ export const IntentionsSchema = z.object({
 
 // Move the entire day out of the unique index's destination slots before assigning
 // its final order. Callers own the transaction so status and order commit together.
-async function persistIntentionOrder(db: Kysely<DB>, ids: number[]) {
+async function persistIntentionOrder(db: Transaction<DB>, ids: number[]) {
 	await db
 		.updateTable('intentions')
 		.set({
@@ -282,10 +282,7 @@ export const intentions = t.router({
 						.selectFrom('intentions')
 						.selectAll()
 						.where('id', '=', input.id)
-						.executeTakeFirst();
-					if (!target) {
-						throw new TRPCError({ code: 'NOT_FOUND', message: 'Intention no longer exists.' });
-					}
+						.executeTakeFirstOrThrow();
 					const rows = await trx
 						.selectFrom('intentions')
 						.selectAll()
@@ -297,10 +294,11 @@ export const intentions = t.router({
 					// after a later manual reorder or another completion.
 					if (target.status === status) return rows;
 					await trx.updateTable('intentions').set({ status }).where('id', '=', target.id).execute();
+					const others = rows.filter((row) => row.id !== target.id);
 					const ordered: typeof rows = [
-						...rows.filter((row) => row.id !== target.id && row.status === 'done'),
+						...others.filter((row) => row.status === 'done'),
 						{ ...target, status },
-						...rows.filter((row) => row.id !== target.id && row.status !== 'done')
+						...others.filter((row) => row.status !== 'done')
 					];
 					if (ordered.some((row, index) => row.id !== rows[index].id)) {
 						await persistIntentionOrder(
