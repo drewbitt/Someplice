@@ -7,12 +7,6 @@
 	overflow: hidden;
 }
 
-@media (min-width: 640px) {
-	.goal__editor {
-		width: 80%;
-	}
-}
-
 .goal__editor__pre,
 .goal__editor__textarea {
 	position: absolute;

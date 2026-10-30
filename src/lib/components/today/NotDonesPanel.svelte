@@ -122,13 +122,10 @@
 </script>
 
 {#if groups.length > 0 || feedback}
-	<section
-		class="border-base-300 bg-base-200/40 rounded-field w-full border p-3 sm:w-4/5"
-		aria-label="NotDones"
-	>
+	<section class="border-base-300 bg-base-200/40 rounded-field border p-3" aria-label="NotDones">
 		<button
 			bind:this={toggle}
-			class="focus-visible:outline-primary flex min-h-8 w-full items-center gap-2 rounded-sm text-start font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+			class="btn btn-ghost btn-sm w-full justify-start"
 			aria-controls={panelId}
 			aria-expanded={!hidden}
 			onclick={() => (hidden = !hidden)}

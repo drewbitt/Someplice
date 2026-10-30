@@ -126,7 +126,7 @@
 	};
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex w-full flex-col gap-2 sm:w-4/5">
 	{#key today}
 		<NotDonesPanel
 			{goals}
