@@ -2,7 +2,7 @@
 	position: relative;
 	min-height: 160px;
 	height: 170px;
-	width: 80%;
+	width: 100%;
 	/* the highlight overlay must not spill past the textarea's box */
 	overflow: hidden;
 }

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { openTestDb, resetTestDb } from './fixtures';
 import { createNetworkSwitch } from './network';
-import { dateKeyInZone, dayOfWeekFromDate } from '../src/lib/utils/index';
+import { dateKeyInZone, dayOfWeekFromDate, previousDateKey } from '../src/lib/utils/index';
 
 test.beforeEach(resetTestDb);
 
@@ -61,6 +61,11 @@ test('Today renders the same goal codes and configured date before and after hyd
 				date
 			);
 		}
+		const yesterday = previousDateKey(day);
+		db.prepare(
+			"INSERT INTO intentions(goalId,orderNumber,status,text,date) VALUES(1,1,'pending','SSR action 1',?)"
+		).run(`${yesterday}T12:00:00.000Z`);
+		db.prepare('INSERT INTO outcomes(date,reviewed) VALUES(?,1)').run(yesterday);
 	} finally {
 		db.close();
 	}
@@ -70,7 +75,7 @@ test('Today renders the same goal codes and configured date before and after hyd
 		await serverPage.goto(`${baseURL}/today`);
 		await page.goto('/today');
 		for (const view of [serverPage, page]) {
-			for (const [index, code] of ['1)', '2a)', '-3)', 'x4)'].entries()) {
+			for (const [index, code] of ['1))', '2a)', '-3)', 'x4)'].entries()) {
 				await expect(
 					view.getByRole('listitem', { name: `${code} SSR action ${index + 1}`, exact: true })
 				).toBeVisible();
@@ -254,50 +259,48 @@ test('a cleared migrated draft stays cleared across navigation and reload', asyn
 test('Today loads missed intentions in the stored timezone on a fresh browser visit', async ({
 	browser
 }) => {
+	const now = new Date();
+	const today = dateKeyInZone('UTC', now);
+	const yesterday = previousDateKey(today);
+	const threeDaysAgo = previousDateKey(previousDateKey(yesterday));
+	// Deliberately use a browser whose calendar date differs from the stored zone.
+	const browserZone = now.getUTCHours() >= 10 ? 'Pacific/Kiritimati' : 'Etc/GMT+12';
 	const db = openTestDb();
 	try {
 		db.prepare(
 			"INSERT INTO settings(key, value) VALUES('timezone', 'UTC') ON CONFLICT(key) DO UPDATE SET value = excluded.value"
 		).run();
+		db.prepare(
+			"INSERT INTO goals(id,active,orderNumber,title,color) VALUES(1,1,1,'Read','navy')"
+		).run();
+		for (const [index, date] of [threeDaysAgo, yesterday].entries()) {
+			db.prepare(
+				"INSERT INTO intentions(goalId,orderNumber,status,text,date) VALUES(1,1,'not_today',?,?)"
+			).run(`Stored-zone recovery ${index}`, `${date}T12:00:00.000Z`);
+			db.prepare('INSERT INTO outcomes(date,reviewed) VALUES(?,1)').run(date);
+		}
 	} finally {
 		db.close();
 	}
-
-	const now = new Date();
-	const browserZone = now.getUTCHours() >= 10 ? 'Pacific/Kiritimati' : 'Etc/GMT+12';
-	const yesterday = new Date(now);
-	yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-
 	const context = await browser.newContext({ timezoneId: browserZone });
 	try {
 		const page = await context.newPage();
-		await createGoal(page);
-
-		const recentIntentions = page.waitForResponse((response) =>
-			response.url().includes('/api/trpc/intentions.list?')
-		);
 		await page.goto('/today');
-		const response = await recentIntentions;
-		const input = new URL(response.url()).searchParams.get('input');
-		expect(input).toContain(yesterday.toISOString().slice(0, 10));
-		expect(input).not.toContain(now.toISOString().slice(0, 10));
-
-		await page.locator('.goal__editor__textarea').fill('1) timezone refresh persists');
+		for (const index of [0, 1]) {
+			await expect(
+				page.getByRole('button', { name: `Add to today: Stored-zone recovery ${index}` })
+			).toBeVisible();
+		}
+		await page
+			.getByRole('textbox', { name: 'Daily intentions' })
+			.fill('1) timezone refresh persists');
 		await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
 		const intention = page.getByRole('listitem', {
 			name: '1) timezone refresh persists',
 			exact: true
 		});
 		await expect(intention).toBeVisible();
-
-		const reloadedIntentions = page.waitForResponse((response) =>
-			response.url().includes('/api/trpc/intentions.list?')
-		);
 		await page.reload();
-		const reloadedResponse = await reloadedIntentions;
-		expect(new URL(reloadedResponse.url()).searchParams.get('input')).not.toContain(
-			now.toISOString().slice(0, 10)
-		);
 		await expect(intention).toBeVisible();
 	} finally {
 		await context.close();
@@ -591,4 +594,66 @@ test('worker updates wait for old clients and remove only obsolete app caches', 
 	await expect
 		.poll(() => nextPage.evaluate(() => navigator.serviceWorker.controller?.scriptURL))
 		.toBe(nextScript);
+});
+
+test('NotDones is server rendered and hydrates persisted skips without a client history request', async ({
+	page,
+	browser,
+	baseURL
+}) => {
+	const today = dateKeyInZone('UTC');
+	const yesterday = previousDateKey(today);
+	const db = openTestDb();
+	try {
+		db.prepare("INSERT INTO settings(key,value) VALUES('timezone','UTC')").run();
+		db.prepare(
+			"INSERT INTO goals(id,active,orderNumber,title,color) VALUES(1,1,1,'Learning','navy')"
+		).run();
+		db.prepare(
+			"INSERT INTO intentions(goalId,orderNumber,status,text,date) VALUES(1,1,'not_today','Deferred recovery',?)"
+		).run(`${yesterday}T12:00:00.000Z`);
+		db.prepare(
+			"INSERT INTO intentions(goalId,orderNumber,status,text,date) VALUES(1,2,'pending','Unfinished recovery',?)"
+		).run(`${yesterday}T12:00:00.000Z`);
+		db.prepare('INSERT INTO outcomes(date,reviewed) VALUES(?,1)').run(yesterday);
+	} finally {
+		db.close();
+	}
+	const serverContext = await browser.newContext({ javaScriptEnabled: false });
+	try {
+		const serverPage = await serverContext.newPage();
+		await serverPage.goto(`${baseURL}/today`);
+		await expect(
+			serverPage.getByRole('button', { name: 'Add to today: Deferred recovery' })
+		).toBeVisible();
+		await expect(
+			serverPage.getByRole('button', { name: 'Add to today: Unfinished recovery' })
+		).toBeVisible();
+	} finally {
+		await serverContext.close();
+	}
+	const historyRequests: string[] = [];
+	const hydrationErrors: string[] = [];
+	page.on('request', (request) => {
+		if (/\/api\/trpc\/[^?]*intentions\.list(?:,|\?|$)/.test(request.url()))
+			historyRequests.push(request.url());
+	});
+	page.on('console', (message) => {
+		if (/hydration/i.test(message.text())) hydrationErrors.push(message.text());
+	});
+	page.on('pageerror', (error) => hydrationErrors.push(error.message));
+	await page.goto('/today');
+	await page.getByRole('button', { name: 'Skip today: Deferred recovery' }).click();
+	await expect(page.getByRole('button', { name: 'Add to today: Deferred recovery' })).toHaveCount(
+		0
+	);
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Add to today: Deferred recovery' })).toHaveCount(
+		0
+	);
+	await expect(
+		page.getByRole('button', { name: 'Add to today: Unfinished recovery' })
+	).toBeVisible();
+	expect(historyRequests).toEqual([]);
+	expect(hydrationErrors).toEqual([]);
 });

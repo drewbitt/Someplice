@@ -8,12 +8,16 @@
 
 	let {
 		goals,
+		today,
+		recentIntentions,
 		existingIntentions,
 		intentionsString = $bindable(),
 		valid = $bindable(),
 		intentions = $bindable([])
 	}: {
 		goals: PageServerData['goals'];
+		today: string;
+		recentIntentions: PageServerData['recentIntentions'];
 		existingIntentions?: PageServerData['intentions'];
 		intentionsString: string;
 		valid: boolean;
@@ -122,11 +126,15 @@
 	};
 </script>
 
-<div class="flex flex-col gap-2">
-	<NotDonesPanel
-		{goals}
-		plannedIntentions={[...(existingIntentions ?? []), ...intentions]}
-		onImport={appendIntentionLine}
-	/>
+<div class="flex w-full flex-col gap-2 sm:w-4/5">
+	{#key today}
+		<NotDonesPanel
+			{goals}
+			{today}
+			{recentIntentions}
+			plannedIntentions={[...(existingIntentions ?? []), ...intentions]}
+			onImport={appendIntentionLine}
+		/>
+	{/key}
 	<Editor {highlight} bind:value={intentionsString} />
 </div>
