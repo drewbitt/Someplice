@@ -23,7 +23,7 @@
 	"dependencies": {
 		"@trpc/client": "^11.19.0",
 		"@trpc/server": "^11.19.0",
-		"croner": "^10.0.1",
+		"croner": "^11.0.0",
 		"devalue": "^6.0.3",
 		"kysely": "^0.29.7",
 		"kysely-generic-sqlite": "^2.0.1",
