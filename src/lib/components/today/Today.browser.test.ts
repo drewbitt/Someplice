@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-svelte';
 import { userEvent } from 'vitest/browser';
-import { UpdateResult } from 'kysely';
 import type { Intention } from '#lib/trpc/types.js';
 import { api, goal, intention } from '../browser-fixtures.js';
 import NotDonesPanel from './NotDonesPanel.svelte';
@@ -14,6 +13,7 @@ import TodayPage from '../../../routes/today/+page.svelte';
 import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 import { TRPCClientError } from '@trpc/client';
 import { dateKeyInZone } from '#lib/utils/index.js';
+import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -186,72 +186,128 @@ test.each(['pending', 'not_today'] as const)(
 );
 
 test('checkbox changes are single-flight and roll back after failure', async () => {
-	let finish!: (value: UpdateResult | undefined) => void;
-	const update = vi.fn(
-		(_intention: Intention) =>
-			new Promise<UpdateResult | undefined>((resolve) => {
-				finish = resolve;
-			})
-	);
+	const failed = Promise.withResolvers<Intention[]>();
+	const retry = Promise.withResolvers<Intention[]>();
+	api.setCompletion.mockReturnValueOnce(failed.promise).mockReturnValueOnce(retry.promise);
 	const screen = await render(ActionsDisplay, {
 		today: intention.date.slice(0, 10),
 		goals: [goal],
-		intentions: [intention],
-		handleUpdateSingleIntention: update
+		intentions: [intention, { ...intention, id: 2, text: 'Next' }]
 	});
 	const checkbox = screen.getByRole('checkbox', { name: /Read a chapter$/ });
 	await checkbox.click();
 	await expect.element(checkbox).toBeDisabled();
-	expect(update).toHaveBeenCalledTimes(1);
-	expect(update.mock.calls[0]).toEqual([{ ...intention, status: 'done' }]);
-	finish(undefined);
+	await expect.element(screen.getByRole('button', { name: '1) Next', exact: true })).toBeDisabled();
+	expect(api.setCompletion).toHaveBeenCalledExactlyOnceWith({ id: intention.id, completed: true });
+	failed.reject(new Error('Offline'));
 	await expect.element(checkbox).not.toBeDisabled();
 	await expect.element(checkbox).not.toBeChecked();
 	await checkbox.click();
-	finish(new UpdateResult(1n, undefined));
+	retry.resolve([
+		{ ...intention, status: 'done' },
+		{ ...intention, id: 2, text: 'Next' }
+	]);
 	await expect.element(checkbox).toBeChecked();
 	await expect.element(checkbox).not.toBeDisabled();
 });
 
-test('the current intention skips done, deferred and archived items and advances on completion', async () => {
+test('the current intention skips done, deferred and archived items', async () => {
+	const rows: Intention[] = [
+		{ ...intention, id: 1, status: 'done', text: 'Finished' },
+		{ ...intention, id: 2, status: 'not_today', text: 'Deferred' },
+		{ ...intention, id: 3, goalId: 2, text: 'Archived' },
+		{ ...intention, id: 4, text: 'Focus here' },
+		{ ...intention, id: 5, text: 'Then here' }
+	];
 	const screen = await render(ActionsDisplay, {
 		today: intention.date.slice(0, 10),
 		goals: [goal, { ...goal, id: 2, active: 0, orderNumber: 2 }],
-		intentions: [
-			{ ...intention, id: 1, status: 'done', text: 'Finished' },
-			{ ...intention, id: 2, status: 'not_today', text: 'Deferred' },
-			{ ...intention, id: 3, goalId: 2, text: 'Archived' },
-			{ ...intention, id: 4, text: 'Focus here' },
-			{ ...intention, id: 5, text: 'Then here' }
-		],
-		handleUpdateSingleIntention: vi.fn().mockResolvedValue(new UpdateResult(1n, undefined))
+		intentions: rows
 	});
 	const current = () => screen.container.querySelectorAll('[aria-current="step"]');
 	expect(current()).toHaveLength(1);
 	expect(current()[0].textContent).toContain('Focus here');
-	await screen.getByRole('checkbox', { name: /Focus here$/ }).click();
-	await expect.poll(() => current()[0]?.textContent).toContain('Then here');
-	await screen.getByRole('checkbox', { name: /Then here$/ }).click();
-	await expect.poll(() => current().length).toBe(0);
 });
 
-test('intention text supports pointer, Enter and Space activation without starting a drag', async () => {
-	const update = vi.fn().mockResolvedValue(new UpdateResult(1n, undefined));
+test('native activation uses server order and keeps focus on the moved intention', async () => {
+	const later = { ...intention, id: 2, orderNumber: 2, text: 'Later task' };
+	const refreshed = { ...intention, orderNumber: 2, text: 'Updated in another tab' };
+	const completed: Intention[] = [{ ...later, status: 'done', orderNumber: 1 }, refreshed];
+	api.setCompletion
+		.mockResolvedValueOnce(completed)
+		.mockResolvedValueOnce([{ ...later, orderNumber: 1 }, refreshed])
+		.mockResolvedValueOnce(completed);
 	const screen = await render(ActionsDisplay, {
 		today: intention.date.slice(0, 10),
 		goals: [goal],
-		intentions: [intention],
-		handleUpdateSingleIntention: update
+		intentions: [intention, later]
 	});
-	const action = screen.getByRole('button', { name: '1) Read a chapter', exact: true });
-	await action.click();
-	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
+	const action = screen.getByRole('button', { name: '1) Later task', exact: true });
 	await userEvent.type(action, '{Enter}');
+	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
+	await expect.element(action).toHaveFocus();
+	expect(
+		[...screen.container.querySelectorAll('.intention-row')].map((row) => row.textContent?.trim())
+	).toEqual(['1) Later task', '1) Updated in another tab']);
+	await action.click();
 	await expect.element(action).toHaveAttribute('aria-pressed', 'false');
 	await userEvent.type(action, ' ');
 	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
-	expect(update.mock.calls.map(([row]) => row.status)).toEqual(['done', 'pending', 'done']);
-	await expect.element(screen.getByRole('button', { name: 'Open intention menu' })).toBeVisible();
+});
+
+test.each(['completion', 'reorder'] as const)(
+	'a late %s response cannot replace the next day',
+	async (operation) => {
+		const request = Promise.withResolvers<Intention[]>();
+		(operation === 'completion' ? api.setCompletion : api.reorder).mockReturnValueOnce(
+			request.promise
+		);
+		const screen = await render(ActionsDisplay, {
+			today: '2026-10-01',
+			goals: [goal],
+			intentions: [intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]
+		});
+		if (operation === 'completion') {
+			await screen.getByRole('button', { name: '1) Read a chapter', exact: true }).click();
+		} else {
+			await userEvent.type(
+				screen.getByRole('listitem', { name: '1) Read a chapter', exact: true }),
+				'{Enter}{ArrowDown}'
+			);
+		}
+		await screen.rerender({
+			today: '2026-10-02',
+			intentions: [{ ...intention, id: 3, text: 'New day' }]
+		});
+		request.resolve([intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]);
+		await userEvent.keyboard('{Escape}');
+		await expect
+			.element(screen.getByRole('button', { name: '1) New day', exact: true }))
+			.toBeEnabled();
+		await expect
+			.element(screen.getByRole('button', { name: '1) Read a chapter', exact: true }))
+			.not.toBeInTheDocument();
+	}
+);
+
+test('failed reorder discards the preview and releases the save lock', async () => {
+	api.reorder.mockRejectedValueOnce(new Error('Save failed'));
+	const screen = await render(ActionsDisplay, {
+		today: intention.date.slice(0, 10),
+		goals: [goal],
+		intentions: [intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]
+	});
+	const row = screen.getByRole('listitem', { name: '1) Read a chapter', exact: true });
+	await userEvent.type(row, '{Enter}{ArrowDown}');
+	await expect.poll(() => todayPageErrorStore.current).toBe('Save failed');
+	await userEvent.keyboard('{Escape}');
+	await expect.element(screen.getByRole('button', { name: '1) Next', exact: true })).toBeEnabled();
+	expect(
+		[...screen.container.querySelectorAll('.intention-row .goal-text')].map((row) =>
+			row.textContent?.trim()
+		)
+	).toEqual(['1) Read a chapter', '1) Next']);
+	expect(api.refresh).not.toHaveBeenCalled();
 });
 
 test('failed review loading blocks saving and exposes a working retry', async () => {

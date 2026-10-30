@@ -180,16 +180,55 @@ test('intention text activates with mouse and keyboard, and row reordering persi
 	const firstRow = page.getByRole('listitem', { name: '1) First step', exact: true });
 	await firstRow.focus();
 	await firstRow.press('Enter');
+	await expect(first).toBeDisabled();
 	const reordered = page.waitForResponse((response) =>
 		response.url().includes('/api/trpc/intentions.reorder')
 	);
-	await firstRow.press('ArrowDown');
+	await firstRow.press('ArrowUp');
 	expect((await reordered).ok()).toBe(true);
-	await expect(page.locator('.intention-row').first()).toContainText('Second step');
+	await expect(page.locator('.intention-row').first()).toContainText('First step');
 	await page.keyboard.press('Escape');
+	await expect(first).toBeEnabled();
 	await page.reload();
-	await expect(page.locator('.intention-row').first()).toContainText('Second step');
-	await expect(page.locator('[aria-current="step"]')).toContainText('Second step');
+	await expect(page.locator('.intention-row').first()).toContainText('First step');
+	await expect(page.locator('[aria-current="step"]')).toContainText('First step');
+});
+
+test('completed intentions collect above the active queue and reopening persists as next', async ({
+	page
+}) => {
+	await createGoal(page);
+	await page.goto('/today');
+	await page
+		.getByRole('textbox', { name: 'Daily intentions' })
+		.fill('1) First\n1) Second\n1) Third\n1) Fourth');
+	await page.getByRole('button', { name: /^Set \w+ intentions$/ }).click();
+	const rows = page.locator('.intention-row .goal-text');
+	const action = (text: string) => page.getByRole('button', { name: `1) ${text}`, exact: true });
+	await page.getByRole('checkbox', { name: '1) Third', exact: true }).check();
+	await expect(rows).toHaveText(['1) Third', '1) First', '1) Second', '1) Fourth']);
+	await expect(page.locator('[aria-current="step"]')).toContainText('First');
+	await action('First').click();
+	await expect(action('First')).toHaveAttribute('aria-pressed', 'true');
+	await action('Fourth').click();
+	await expect(rows).toHaveText(['1) Third', '1) First', '1) Fourth', '1) Second']);
+	await expect(page.locator('[aria-current="step"]')).toContainText('Second');
+	await page.reload();
+	await expect(rows).toHaveText(['1) Third', '1) First', '1) Fourth', '1) Second']);
+	await action('Fourth').press('Space');
+	await expect(action('Fourth')).toHaveAttribute('aria-pressed', 'false');
+	await expect(action('Fourth')).toBeFocused();
+	await expect(page.locator('[aria-current="step"]')).toContainText('Fourth');
+	await action('Third').press('Enter');
+	await expect(rows).toHaveText(['1) First', '1) Third', '1) Fourth', '1) Second']);
+	await page.reload();
+	await expect(rows).toHaveText(['1) First', '1) Third', '1) Fourth', '1) Second']);
+	await expect(page.locator('[aria-current="step"]')).toContainText('Third');
+	for (const text of ['Third', 'Fourth', 'Second']) {
+		await action(text).click();
+		await expect(action(text)).toHaveAttribute('aria-pressed', 'true');
+	}
+	await expect(page.locator('[aria-current="step"]')).toHaveCount(0);
 });
 
 test('a cleared migrated draft stays cleared across navigation and reload', async ({ page }) => {

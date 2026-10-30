@@ -1,14 +1,11 @@
 <script lang="ts">
 	import { trpc } from '#lib/trpc/client.js';
-	import { refreshAll } from '$app/navigation';
 	import { notDones } from '#lib/stores/notDones.svelte.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { goalColorForIntention, lightenHSL } from '#lib/utils/index.js';
 	import { computeMissCount } from '#lib/utils/notDones.js';
-	import type { UpdateResult } from 'kysely';
-	import { onMount } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { dndzone } from 'svelte-dnd-action';
+	import { onMount, tick } from 'svelte';
+	import { dndzone, SOURCES, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
@@ -16,15 +13,11 @@
 	let {
 		goals,
 		today,
-		intentions = $bindable(),
-		handleUpdateSingleIntention
+		intentions = $bindable()
 	}: {
 		goals: PageServerData['goals'];
 		today: string;
 		intentions: PageServerData['intentions'];
-		handleUpdateSingleIntention: (
-			intention: PageServerData['intentions'][0]
-		) => Promise<UpdateResult | undefined>;
 	} = $props();
 
 	type Intention = PageServerData['intentions'][0];
@@ -36,25 +29,14 @@
 
 	let goalOrderNumbers = $derived(new Map(goals.map((goal) => [goal.id, goal.orderNumber])));
 
-	$effect(() => {
-		if (intentions && goalOrderNumbers) {
-			const known = intentions.filter((intention) => {
-				const orderNumber = goalOrderNumbers.get(intention.goalId);
-				return (
-					intention.goalId !== -1 &&
-					intention !== undefined &&
-					intention.goalId !== null &&
-					orderNumber !== undefined &&
-					orderNumber !== -1
-				);
-			});
-			// only reassign when something was dropped; a fresh array every run would
-			// re-trigger this effect through the bound state
-			if (known.length !== intentions.length) {
-				intentions = known;
-			}
-		}
-	});
+	const knownIntentions = $derived(
+		intentions.filter((intention) => {
+			const order = goalOrderNumbers.get(intention.goalId);
+			return intention.goalId !== -1 && order !== undefined && order !== -1;
+		})
+	);
+	// Only this derived view is overridden during dragging; the bound list stays saved data.
+	let displayedIntentions = $derived(knownIntentions);
 
 	onMount(() => {
 		notDones.refresh().catch(() => {
@@ -63,7 +45,7 @@
 	});
 
 	let firstIncompleteIntentionIndex = $derived(
-		intentions.findIndex(
+		displayedIntentions.findIndex(
 			(intention) => intention.status === 'pending' && !inactiveGoalIds.has(intention.goalId)
 		)
 	);
@@ -93,25 +75,35 @@
 		)
 	);
 
-	const pendingUpdates = new SvelteSet<number>();
-	let reordering = $state(false);
+	let saving = $state(false);
+	let dragging = $state(false);
 
 	const updateIntention = async (original: Intention, status: 'done' | 'pending') => {
 		const id = original.id;
-		if (id === null || pendingUpdates.has(id)) return false;
-		pendingUpdates.add(id);
+		if (id === null || saving || dragging) return false;
+		const requestDay = today;
+		const focused = document.activeElement;
+		const restoreFocus =
+			focused instanceof HTMLElement &&
+			(focused.id === `intention-text-${id}` || focused.id === `intention-${id}`);
+		saving = true;
 		try {
-			const result = await handleUpdateSingleIntention({ ...original, status });
-			if (result?.numUpdatedRows && result.numUpdatedRows > 0) {
-				intentions = intentions.map((row) => (row.id === id ? { ...row, status } : row));
-				return true;
-			}
+			const updated = await trpc().intentions.setCompletion.mutate({
+				id,
+				completed: status === 'done'
+			});
+			if (today === requestDay) intentions = updated;
+			return true;
 		} catch (error) {
 			todayPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Could not update intention.'
 			);
 		} finally {
-			pendingUpdates.delete(id);
+			saving = false;
+			await tick();
+			if (restoreFocus && focused.isConnected && document.activeElement === document.body) {
+				focused.focus({ preventScroll: true });
+			}
 		}
 		return false;
 	};
@@ -124,29 +116,33 @@
 	};
 
 	const handleDndConsider = (event: CustomEvent<DndEvent<Intention>>) => {
-		intentions = event.detail.items;
+		if (event.detail.info.trigger === TRIGGERS.DRAG_STOPPED) {
+			dragging = false;
+			return;
+		}
+		if (saving) return;
+		dragging = true;
+		displayedIntentions = event.detail.items;
 	};
 
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Intention>>) => {
-		const items: Intention[] = event.detail.items.map((item, index) => {
-			return { ...item, orderNumber: index + 1 };
-		});
-		if (reordering) return;
-		intentions = items;
-		reordering = true;
+		if (event.detail.info.source === SOURCES.POINTER) dragging = false;
+		if (saving) return;
+		const requestDay = today;
+		displayedIntentions = event.detail.items;
+		saving = true;
 		try {
-			await trpc().intentions.reorder.mutate(
-				items.map(({ id, orderNumber }) => ({ id: id!, orderNumber }))
+			const updated = await trpc().intentions.reorder.mutate(
+				event.detail.items.map(({ id }, index) => ({ id: id!, orderNumber: index + 1 }))
 			);
-			await refreshAll();
+			if (today === requestDay) intentions = updated;
 		} catch (error) {
-			// Resync from the server so the rendered order can't diverge from the DB.
-			await refreshAll();
-			if (error instanceof Error) {
-				todayPageErrorStore.setError(error.message);
-			}
+			todayPageErrorStore.setError(
+				error instanceof Error ? error.message : 'Could not reorder intentions.'
+			);
 		} finally {
-			reordering = false;
+			displayedIntentions = knownIntentions;
+			saving = false;
 		}
 	};
 </script>
@@ -175,11 +171,11 @@
 		<div
 			role="list"
 			class="overflow-hidden"
-			use:dndzone={{ items: intentions, dragDisabled: reordering }}
+			use:dndzone={{ items: displayedIntentions, dragDisabled: saving }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
-			{#each intentions as intention, index (intention.id)}
+			{#each displayedIntentions as intention, index (intention.id)}
 				<span
 					role="listitem"
 					aria-label="{intentionCode(intention)} {intention.text}"
@@ -195,6 +191,7 @@
 					{/if}
 					<button
 						type="button"
+						disabled={saving || dragging}
 						aria-haspopup="dialog"
 						aria-label="Open intention menu"
 						class="hover:bg-base-300 flex size-8 shrink-0 items-center justify-center rounded-sm opacity-60 hover:opacity-100 focus-visible:opacity-100"
@@ -227,7 +224,7 @@
 						class={index === firstIncompleteIntentionIndex
 							? 'checkbox-md ml-0.5'
 							: 'checkbox-sm ml-0.5'}
-						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
+						disabled={saving || dragging}
 						checked={intention.status === 'done'}
 						onchange={async (event) => {
 							const checkbox = event.currentTarget;
@@ -239,7 +236,7 @@
 						type="button"
 						aria-pressed={intention.status === 'done'}
 						id="intention-text-{intention.id}"
-						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
+						disabled={saving || dragging}
 						onclick={() =>
 							updateIntention(intention, intention.status === 'done' ? 'pending' : 'done')}
 						oncontextmenu={(e) => {
