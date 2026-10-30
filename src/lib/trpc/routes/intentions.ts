@@ -358,13 +358,7 @@ export const intentions = t.router({
 			}
 			return result;
 		}),
-	/**
-	 * Replace the intentions with the given intentions, based on the id.
-	 * Also acts as an upsert - if the intention doesn't exist, it will be created.
-	 * @param input - The input object.
-	 * @param input.intentions - The intentions to update.
-	 * @returns The rows parameter will always be defined, but empty since we're not returning anything.
-	 */
+	/** Persist one complete day order and return its saved intentions. */
 	reorder: procedure
 		.use(logger)
 		.input(
@@ -383,7 +377,7 @@ export const intentions = t.router({
 			) {
 				throw new TRPCError({ code: 'BAD_REQUEST', message: 'Invalid intention order.' });
 			}
-			await getDb()
+			return await getDb()
 				.transaction()
 				.execute(async (trx) => {
 					const rows = await trx
@@ -417,6 +411,12 @@ export const intentions = t.router({
 						trx,
 						[...input].sort((a, b) => a.orderNumber - b.orderNumber).map((row) => row.id)
 					);
+					return trx
+						.selectFrom('intentions')
+						.selectAll()
+						.where(sql`DATE(date)`, '=', date!)
+						.orderBy('orderNumber')
+						.execute();
 				});
 		}),
 

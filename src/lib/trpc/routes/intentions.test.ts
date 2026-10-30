@@ -70,10 +70,13 @@ describe('intentions', () => {
 			text: 'Changed in another tab',
 			status: 'not_today'
 		});
-		await caller.intentions.reorder([
+		const saved = await caller.intentions.reorder([
 			{ id: 1, orderNumber: 2 },
 			{ id: 2, orderNumber: 1 }
 		]);
+		expect(saved).toEqual(
+			await db.selectFrom('intentions').selectAll().orderBy('orderNumber').execute()
+		);
 		expect(
 			await db.selectFrom('intentions').selectAll().where('id', '=', 1).executeTakeFirst()
 		).toMatchObject({ text: 'Changed in another tab', status: 'not_today', orderNumber: 2 });

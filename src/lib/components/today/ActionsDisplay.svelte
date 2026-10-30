@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { trpc } from '#lib/trpc/client.js';
-	import { refreshAll } from '$app/navigation';
 	import { notDones } from '#lib/stores/notDones.svelte.js';
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { goalColorForIntention, lightenHSL } from '#lib/utils/index.js';
@@ -30,25 +29,14 @@
 
 	let goalOrderNumbers = $derived(new Map(goals.map((goal) => [goal.id, goal.orderNumber])));
 
-	$effect(() => {
-		if (intentions && goalOrderNumbers) {
-			const known = intentions.filter((intention) => {
-				const orderNumber = goalOrderNumbers.get(intention.goalId);
-				return (
-					intention.goalId !== -1 &&
-					intention !== undefined &&
-					intention.goalId !== null &&
-					orderNumber !== undefined &&
-					orderNumber !== -1
-				);
-			});
-			// only reassign when something was dropped; a fresh array every run would
-			// re-trigger this effect through the bound state
-			if (known.length !== intentions.length) {
-				intentions = known;
-			}
-		}
-	});
+	const knownIntentions = $derived(
+		intentions.filter((intention) => {
+			const order = goalOrderNumbers.get(intention.goalId);
+			return intention.goalId !== -1 && order !== undefined && order !== -1;
+		})
+	);
+	// Only this derived view is overridden during dragging; the bound list stays saved data.
+	let displayedIntentions = $derived(knownIntentions);
 
 	onMount(() => {
 		notDones.refresh().catch(() => {
@@ -57,7 +45,7 @@
 	});
 
 	let firstIncompleteIntentionIndex = $derived(
-		intentions.findIndex(
+		displayedIntentions.findIndex(
 			(intention) => intention.status === 'pending' && !inactiveGoalIds.has(intention.goalId)
 		)
 	);
@@ -134,32 +122,26 @@
 		}
 		if (saving) return;
 		dragging = true;
-		intentions = event.detail.items;
+		displayedIntentions = event.detail.items;
 	};
 
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Intention>>) => {
 		if (event.detail.info.source === SOURCES.POINTER) dragging = false;
 		if (saving) return;
-		const items: Intention[] = event.detail.items.map((item, index) => {
-			return { ...item, orderNumber: index + 1 };
-		});
-		intentions = items;
+		const requestDay = today;
+		displayedIntentions = event.detail.items;
 		saving = true;
 		try {
-			await trpc().intentions.reorder.mutate(
-				items.map(({ id, orderNumber }) => ({ id: id!, orderNumber }))
+			const updated = await trpc().intentions.reorder.mutate(
+				event.detail.items.map(({ id }, index) => ({ id: id!, orderNumber: index + 1 }))
 			);
-			await refreshAll();
+			if (today === requestDay) intentions = updated;
 		} catch (error) {
-			// Resync from the server so the rendered order can't diverge from the DB.
-			let message = error instanceof Error ? error.message : 'Could not reorder intentions.';
-			try {
-				await refreshAll();
-			} catch {
-				message += ' Reload the page to check the saved order.';
-			}
-			todayPageErrorStore.setError(message);
+			todayPageErrorStore.setError(
+				error instanceof Error ? error.message : 'Could not reorder intentions.'
+			);
 		} finally {
+			displayedIntentions = knownIntentions;
 			saving = false;
 		}
 	};
@@ -189,11 +171,11 @@
 		<div
 			role="list"
 			class="overflow-hidden"
-			use:dndzone={{ items: intentions, dragDisabled: saving }}
+			use:dndzone={{ items: displayedIntentions, dragDisabled: saving }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
-			{#each intentions as intention, index (intention.id)}
+			{#each displayedIntentions as intention, index (intention.id)}
 				<span
 					role="listitem"
 					aria-label="{intentionCode(intention)} {intention.text}"
