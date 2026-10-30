@@ -13,6 +13,7 @@ import TodayPage from '../../../routes/today/+page.svelte';
 import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
 import { TRPCClientError } from '@trpc/client';
 import { dateKeyInZone } from '#lib/utils/index.js';
+import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 
 vi.mock('$app/navigation', () =>
 	import('../browser-fixtures.js').then(({ navigation }) => navigation)
@@ -252,6 +253,45 @@ test('native activation uses server order and keeps focus on the moved intention
 	await expect.element(action).toHaveAttribute('aria-pressed', 'false');
 	await userEvent.type(action, ' ');
 	await expect.element(action).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a late completion response cannot replace the next day', async () => {
+	const request = Promise.withResolvers<Intention[]>();
+	api.setCompletion.mockReturnValueOnce(request.promise);
+	const screen = await render(ActionsDisplay, {
+		today: '2026-10-01',
+		goals: [goal],
+		intentions: [intention]
+	});
+	await screen.getByRole('button', { name: '1) Read a chapter', exact: true }).click();
+	await screen.rerender({
+		today: '2026-10-02',
+		intentions: [{ ...intention, id: 2, text: 'New day' }]
+	});
+	request.resolve([{ ...intention, status: 'done' }]);
+	await expect
+		.element(screen.getByRole('button', { name: '1) New day', exact: true }))
+		.toBeEnabled();
+	await expect
+		.element(screen.getByRole('button', { name: '1) Read a chapter', exact: true }))
+		.not.toBeInTheDocument();
+});
+
+test('failed reorder and refresh report an error and release the save lock', async () => {
+	api.reorder.mockRejectedValueOnce(new Error('Save failed'));
+	api.refresh.mockRejectedValueOnce(new Error('Offline'));
+	const screen = await render(ActionsDisplay, {
+		today: intention.date.slice(0, 10),
+		goals: [goal],
+		intentions: [intention, { ...intention, id: 2, orderNumber: 2, text: 'Next' }]
+	});
+	const row = screen.getByRole('listitem', { name: '1) Read a chapter', exact: true });
+	await userEvent.type(row, '{Enter}{ArrowDown}');
+	await expect
+		.poll(() => todayPageErrorStore.current)
+		.toBe('Save failed Reload the page to check the saved order.');
+	await userEvent.keyboard('{Escape}');
+	await expect.element(screen.getByRole('button', { name: '1) Next', exact: true })).toBeEnabled();
 });
 
 test('failed review loading blocks saving and exposes a working retry', async () => {

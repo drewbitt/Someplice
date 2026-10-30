@@ -16,6 +16,7 @@ export const api = {
 	savePriority: vi.fn(),
 	setStatus: vi.fn(),
 	setCompletion: vi.fn(),
+	reorder: vi.fn(),
 	updateIntentions: vi.fn(),
 	refresh: vi.fn()
 };
@@ -34,6 +35,7 @@ export const client = {
 		listUniqueDates: { query: api.uniqueDates },
 		setStatus: { mutate: api.setStatus },
 		setCompletion: { mutate: api.setCompletion },
+		reorder: { mutate: api.reorder },
 		updateIntentions: { mutate: api.updateIntentions }
 	},
 	priorities: { list: { query: api.priorities }, upsert: { mutate: api.savePriority } },

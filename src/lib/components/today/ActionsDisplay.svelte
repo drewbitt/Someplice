@@ -93,16 +93,18 @@
 	const updateIntention = async (original: Intention, status: 'done' | 'pending') => {
 		const id = original.id;
 		if (id === null || saving || dragging) return false;
+		const requestDay = today;
 		const focused = document.activeElement;
 		const restoreFocus =
 			focused instanceof HTMLElement &&
 			(focused.id === `intention-text-${id}` || focused.id === `intention-${id}`);
 		saving = true;
 		try {
-			intentions = await trpc().intentions.setCompletion.mutate({
+			const updated = await trpc().intentions.setCompletion.mutate({
 				id,
 				completed: status === 'done'
 			});
+			if (today === requestDay) intentions = updated;
 			return true;
 		} catch (error) {
 			todayPageErrorStore.setError(
@@ -150,10 +152,13 @@
 			await refreshAll();
 		} catch (error) {
 			// Resync from the server so the rendered order can't diverge from the DB.
-			await refreshAll();
-			if (error instanceof Error) {
-				todayPageErrorStore.setError(error.message);
+			let message = error instanceof Error ? error.message : 'Could not reorder intentions.';
+			try {
+				await refreshAll();
+			} catch {
+				message += ' Reload the page to check the saved order.';
 			}
+			todayPageErrorStore.setError(message);
 		} finally {
 			saving = false;
 		}
