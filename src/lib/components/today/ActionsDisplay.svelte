@@ -5,10 +5,8 @@
 	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { goalColorForIntention, lightenHSL } from '#lib/utils/index.js';
 	import { computeMissCount } from '#lib/utils/notDones.js';
-	import type { UpdateResult } from 'kysely';
-	import { onMount } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
-	import { dndzone } from 'svelte-dnd-action';
+	import { onMount, tick } from 'svelte';
+	import { dndzone, SOURCES, TRIGGERS, type DndEvent } from 'svelte-dnd-action';
 	import Menu from 'virtual:icons/lucide/menu';
 	import type { PageServerData } from '../../../routes/today/$types';
 	import IntentionsModal from './IntentionsModal.svelte';
@@ -16,15 +14,11 @@
 	let {
 		goals,
 		today,
-		intentions = $bindable(),
-		handleUpdateSingleIntention
+		intentions = $bindable()
 	}: {
 		goals: PageServerData['goals'];
 		today: string;
 		intentions: PageServerData['intentions'];
-		handleUpdateSingleIntention: (
-			intention: PageServerData['intentions'][0]
-		) => Promise<UpdateResult | undefined>;
 	} = $props();
 
 	type Intention = PageServerData['intentions'][0];
@@ -93,25 +87,33 @@
 		)
 	);
 
-	const pendingUpdates = new SvelteSet<number>();
-	let reordering = $state(false);
+	let saving = $state(false);
+	let dragging = $state(false);
 
 	const updateIntention = async (original: Intention, status: 'done' | 'pending') => {
 		const id = original.id;
-		if (id === null || pendingUpdates.has(id)) return false;
-		pendingUpdates.add(id);
+		if (id === null || saving || dragging) return false;
+		const focused = document.activeElement;
+		const restoreFocus =
+			focused instanceof HTMLElement &&
+			(focused.id === `intention-text-${id}` || focused.id === `intention-${id}`);
+		saving = true;
 		try {
-			const result = await handleUpdateSingleIntention({ ...original, status });
-			if (result?.numUpdatedRows && result.numUpdatedRows > 0) {
-				intentions = intentions.map((row) => (row.id === id ? { ...row, status } : row));
-				return true;
-			}
+			intentions = await trpc().intentions.setCompletion.mutate({
+				id,
+				completed: status === 'done'
+			});
+			return true;
 		} catch (error) {
 			todayPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Could not update intention.'
 			);
 		} finally {
-			pendingUpdates.delete(id);
+			saving = false;
+			await tick();
+			if (restoreFocus && focused.isConnected && document.activeElement === document.body) {
+				focused.focus({ preventScroll: true });
+			}
 		}
 		return false;
 	};
@@ -124,16 +126,23 @@
 	};
 
 	const handleDndConsider = (event: CustomEvent<DndEvent<Intention>>) => {
+		if (event.detail.info.trigger === TRIGGERS.DRAG_STOPPED) {
+			dragging = false;
+			return;
+		}
+		if (saving) return;
+		dragging = true;
 		intentions = event.detail.items;
 	};
 
 	const handleDndFinalize = async (event: CustomEvent<DndEvent<Intention>>) => {
+		if (event.detail.info.source === SOURCES.POINTER) dragging = false;
+		if (saving) return;
 		const items: Intention[] = event.detail.items.map((item, index) => {
 			return { ...item, orderNumber: index + 1 };
 		});
-		if (reordering) return;
 		intentions = items;
-		reordering = true;
+		saving = true;
 		try {
 			await trpc().intentions.reorder.mutate(
 				items.map(({ id, orderNumber }) => ({ id: id!, orderNumber }))
@@ -146,7 +155,7 @@
 				todayPageErrorStore.setError(error.message);
 			}
 		} finally {
-			reordering = false;
+			saving = false;
 		}
 	};
 </script>
@@ -175,7 +184,7 @@
 		<div
 			role="list"
 			class="overflow-hidden"
-			use:dndzone={{ items: intentions, dragDisabled: reordering }}
+			use:dndzone={{ items: intentions, dragDisabled: saving }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
 		>
@@ -195,6 +204,7 @@
 					{/if}
 					<button
 						type="button"
+						disabled={saving || dragging}
 						aria-haspopup="dialog"
 						aria-label="Open intention menu"
 						class="hover:bg-base-300 flex size-8 shrink-0 items-center justify-center rounded-sm opacity-60 hover:opacity-100 focus-visible:opacity-100"
@@ -227,7 +237,7 @@
 						class={index === firstIncompleteIntentionIndex
 							? 'checkbox-md ml-0.5'
 							: 'checkbox-sm ml-0.5'}
-						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
+						disabled={saving || dragging}
 						checked={intention.status === 'done'}
 						onchange={async (event) => {
 							const checkbox = event.currentTarget;
@@ -239,7 +249,7 @@
 						type="button"
 						aria-pressed={intention.status === 'done'}
 						id="intention-text-{intention.id}"
-						disabled={intention.id !== null && pendingUpdates.has(intention.id)}
+						disabled={saving || dragging}
 						onclick={() =>
 							updateIntention(intention, intention.status === 'done' ? 'pending' : 'done')}
 						oncontextmenu={(e) => {

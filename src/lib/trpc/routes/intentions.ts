@@ -2,7 +2,8 @@ import { logger } from '#lib/trpc/middleware/logger.js';
 import { procedure, t } from '#lib/trpc/t.js';
 import { TRPCError } from '@trpc/server';
 import { getDb } from '#lib/db/db.js';
-import { NoResultError, sql } from 'kysely';
+import { NoResultError, sql, type Kysely } from 'kysely';
+import type { DB } from '#lib/types/data.js';
 import { z } from 'zod';
 import { PaginationSchema } from '../pagination';
 import { configuredZoneNow, deleteOrphanedOutcomes, isUniqueViolation } from '#lib/db/queries.js';
@@ -20,6 +21,25 @@ export const IntentionsSchema = z.object({
 	// Match SQLite's canonical UTC timestamp format, including milliseconds.
 	date: z.iso.datetime({ precision: 3 })
 });
+
+// Move the entire day out of the unique index's destination slots before assigning
+// its final order. Callers own the transaction so status and order commit together.
+async function persistIntentionOrder(db: Kysely<DB>, ids: number[]) {
+	await db
+		.updateTable('intentions')
+		.set({
+			orderNumber: sql`orderNumber + (SELECT COALESCE(MAX(orderNumber), 0) + 1 FROM intentions)`
+		})
+		.where('id', 'in', ids)
+		.execute();
+	for (const [index, id] of ids.entries()) {
+		await db
+			.updateTable('intentions')
+			.set({ orderNumber: index + 1 })
+			.where('id', '=', id)
+			.execute();
+	}
+}
 
 export const intentions = t.router({
 	/**
@@ -250,6 +270,48 @@ export const intentions = t.router({
 			}
 			return result;
 		}),
+	/** Complete or reopen one item at the boundary between completed and remaining work. */
+	setCompletion: procedure
+		.use(logger)
+		.input(z.object({ id: z.number().int().positive(), completed: z.boolean() }))
+		.mutation(async ({ input }) =>
+			getDb()
+				.transaction()
+				.execute(async (trx) => {
+					const target = await trx
+						.selectFrom('intentions')
+						.selectAll()
+						.where('id', '=', input.id)
+						.executeTakeFirst();
+					if (!target) {
+						throw new TRPCError({ code: 'NOT_FOUND', message: 'Intention no longer exists.' });
+					}
+					const rows = await trx
+						.selectFrom('intentions')
+						.selectAll()
+						.where(sql`DATE(date)`, '=', target.date.slice(0, 10))
+						.orderBy('orderNumber')
+						.execute();
+					const status = input.completed ? 'done' : 'pending';
+					// Retrying an already-applied request must not move it again, including
+					// after a later manual reorder or another completion.
+					if (target.status === status) return rows;
+					await trx.updateTable('intentions').set({ status }).where('id', '=', target.id).execute();
+					const ordered: typeof rows = [
+						...rows.filter((row) => row.id !== target.id && row.status === 'done'),
+						{ ...target, status },
+						...rows.filter((row) => row.id !== target.id && row.status !== 'done')
+					];
+					if (ordered.some((row, index) => row.id !== rows[index].id)) {
+						await persistIntentionOrder(
+							trx,
+							ordered.map((row) => row.id!)
+						);
+						return ordered.map((row, index) => ({ ...row, orderNumber: index + 1 }));
+					}
+					return ordered;
+				})
+		),
 	/** Set the status of multiple intentions without changing their ordering. */
 	setStatus: procedure
 		.use(logger)
@@ -353,24 +415,10 @@ export const intentions = t.router({
 							message: 'The intention list changed. Refresh and try again.'
 						});
 					}
-					await trx
-						.updateTable('intentions')
-						.set({
-							orderNumber: sql`orderNumber + (SELECT COALESCE(MAX(orderNumber), 0) + 1 FROM intentions)`
-						})
-						.where(
-							'id',
-							'in',
-							input.map((row) => row.id)
-						)
-						.execute();
-					for (const row of input) {
-						await trx
-							.updateTable('intentions')
-							.set({ orderNumber: row.orderNumber })
-							.where('id', '=', row.id)
-							.execute();
-					}
+					await persistIntentionOrder(
+						trx,
+						[...input].sort((a, b) => a.orderNumber - b.orderNumber).map((row) => row.id)
+					);
 				});
 		}),
 

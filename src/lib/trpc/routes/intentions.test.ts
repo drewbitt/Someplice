@@ -3,7 +3,7 @@ import { runMigrations } from '#lib/db/migrate-to-latest.js';
 import { getConfiguredTimeZone } from '#lib/db/queries.js';
 import { wallClockInZone } from '#lib/utils/index.js';
 import type { DB } from '#lib/types/data.js';
-import { type Kysely, type UpdateResult } from 'kysely';
+import { sql, type Kysely, type UpdateResult } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Intention } from '../types';
 import { createCallerFactory, router } from '../router';
@@ -235,6 +235,91 @@ describe('intentions', () => {
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 		expect(result.find((i) => i.id === 2)?.orderNumber).toEqual(2);
 		expect(result.find((i) => i.id === 2)?.text).toEqual('edited');
+	});
+
+	describe('completion ordering', () => {
+		async function seed(
+			statuses: readonly Intention['status'][] = ['pending', 'pending', 'pending']
+		) {
+			const rows = statuses.map((status, index) => ({
+				...TEST_INTENTION,
+				id: index + 1,
+				orderNumber: index + 1,
+				status
+			}));
+			await caller.intentions.updateIntentions({ intentions: rows });
+			return rows;
+		}
+		const saved = () =>
+			db
+				.selectFrom('intentions')
+				.selectAll()
+				.where('date', '=', TEST_INTENTION.date)
+				.orderBy('orderNumber')
+				.execute();
+
+		it('appends newly completed work below earlier completions without disturbing unfinished work or another day', async () => {
+			await seed(['done', 'pending', 'pending', 'done', 'not_today', 'pending']);
+			const otherDay = { ...TEST_INTENTION, id: 7, date: '2023-07-02T00:01:00.000Z' };
+			await caller.intentions.updateIntentions({ intentions: [otherDay] });
+			const rows = await caller.intentions.setCompletion({ id: 6, completed: true });
+			expect(rows.map(({ id, status }) => [id, status])).toEqual([
+				[1, 'done'],
+				[4, 'done'],
+				[6, 'done'],
+				[2, 'pending'],
+				[3, 'pending'],
+				[5, 'not_today']
+			]);
+			expect(await saved()).toEqual(rows);
+			expect(
+				await db.selectFrom('intentions').selectAll().where('id', '=', 7).executeTakeFirst()
+			).toEqual(otherDay);
+		});
+
+		it('retries do not override a subsequent manual order', async () => {
+			await seed();
+			await caller.intentions.setCompletion({ id: 3, completed: true });
+			await caller.intentions.reorder([
+				{ id: 1, orderNumber: 1 },
+				{ id: 3, orderNumber: 2 },
+				{ id: 2, orderNumber: 3 }
+			]);
+			const before = await saved();
+			expect(await caller.intentions.setCompletion({ id: 3, completed: true })).toEqual(before);
+			expect(await saved()).toEqual(before);
+		});
+
+		it('a failed position write rolls back both status and ordering', async () => {
+			const before = await seed();
+			await sql`CREATE TRIGGER fail_completion_move BEFORE UPDATE OF orderNumber ON intentions
+				WHEN NEW.id = 3 AND NEW.orderNumber = 1 BEGIN SELECT RAISE(ABORT, 'Move failed'); END`.execute(db);
+			await expect(
+				caller.intentions.setCompletion({ id: 3, completed: true })
+			).rejects.toMatchObject({ code: 'BAD_REQUEST', cause: { message: 'Move failed' } });
+			expect(await saved()).toEqual(before);
+		});
+
+		it('concurrent requests retain both completions and a unique order', async () => {
+			await seed(['pending', 'pending', 'pending', 'pending']);
+			await Promise.all([
+				caller.intentions.setCompletion({ id: 2, completed: true }),
+				caller.intentions.setCompletion({ id: 3, completed: true })
+			]);
+			const rows = await saved();
+			expect(new Set(rows.slice(0, 2).map((row) => row.id))).toEqual(new Set([2, 3]));
+			expect(rows.slice(0, 2).every((row) => row.status === 'done')).toBe(true);
+			expect(rows.slice(2).map((row) => row.id)).toEqual([1, 4]);
+			expect(rows.map((row) => row.orderNumber)).toEqual([1, 2, 3, 4]);
+		});
+
+		it('a missing item returns not found without writes', async () => {
+			const before = await seed(['pending']);
+			await expect(
+				caller.intentions.setCompletion({ id: 999, completed: true })
+			).rejects.toMatchObject({ code: 'NOT_FOUND' });
+			expect(await saved()).toEqual(before);
+		});
 	});
 
 	it('setStatus changes only the requested intentions', async () => {

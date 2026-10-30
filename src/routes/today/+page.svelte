@@ -114,23 +114,6 @@
 		}
 	};
 
-	const handleUpdateSingleIntention = async (intention: Intentions) => {
-		if (intention.id === null) return;
-		try {
-			const updatedIntention = await trpc().intentions.setStatus.mutate({
-				ids: [intention.id],
-				status: intention.status
-			});
-			if (updatedIntention.numUpdatedRows !== undefined && updatedIntention.numUpdatedRows <= 0) {
-				showDBErrorNotification = true;
-			}
-			return updatedIntention;
-		} catch (error) {
-			appLogger.error('Error updating intention', error);
-			showDBErrorNotification = true;
-		}
-	};
-
 	const handleShowAdditionalIntentionsTextArea = () => {
 		showAdditionalIntentionsTextArea = true;
 	};
@@ -166,7 +149,6 @@
 		<ActionsDisplay
 			today={data.today}
 			bind:intentions
-			{handleUpdateSingleIntention}
 			goals={goalsForJourneyDay(data.goals, data.inactiveGoals, intentions)}
 		/>
 		{#if showAdditionalIntentionsTextArea}
