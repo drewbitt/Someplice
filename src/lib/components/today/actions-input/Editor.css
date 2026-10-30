@@ -2,9 +2,15 @@
 	position: relative;
 	min-height: 160px;
 	height: 170px;
-	width: 80%;
+	width: 100%;
 	/* the highlight overlay must not spill past the textarea's box */
 	overflow: hidden;
+}
+
+@media (min-width: 640px) {
+	.goal__editor {
+		width: 80%;
+	}
 }
 
 .goal__editor__pre,

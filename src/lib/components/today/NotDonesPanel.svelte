@@ -3,10 +3,9 @@
 	import { goalColorForIntention, goalOrderNumberForId } from '#lib/utils/index.js';
 	import { groupNotDones, intentionMatchKey, type NotDoneGroup } from '#lib/utils/notDones.js';
 	import { notDones } from '#lib/stores/notDones.svelte.js';
-	import { todayPageErrorStore } from '#lib/stores/errors.svelte.js';
-	import { trpc } from '#lib/trpc/client.js';
-	import { onMount } from 'svelte';
-	import Trash2 from 'virtual:icons/lucide/trash-2';
+	import { onMount, tick } from 'svelte';
+	import Plus from 'virtual:icons/lucide/plus';
+	import ChevronDown from 'virtual:icons/lucide/chevron-down';
 
 	let {
 		goals,
@@ -19,6 +18,10 @@
 		onImport: (line: string) => void;
 	} = $props();
 
+	const panelId = $props.id();
+	let toggle = $state<HTMLButtonElement>();
+	let feedback = $state('');
+	let lastSkipped = $state<Intention | null>(null);
 	let hidden = $state(false);
 	let confirmGroup = $state<NotDoneGroup | null>(null);
 	let strategy = $state('');
@@ -28,18 +31,34 @@
 		if (confirmGroup && dialog && !dialog.open) dialog.showModal();
 	});
 
-	onMount(() => {
-		notDones.refresh().catch((error) => {
-			if (error instanceof Error) todayPageErrorStore.setError(error.message);
-		});
-	});
+	const refresh = () => void notDones.refresh().catch(() => undefined);
+	onMount(refresh);
+
+	const focusToggle = () => void tick().then(() => toggle?.focus({ preventScroll: true }));
+	const skip = (group: NotDoneGroup) => {
+		notDones.skipToday(group.representative);
+		lastSkipped = group.representative;
+		feedback = `Skipped for today: ${group.representative.text}`;
+		focusToggle();
+	};
+	const undoSkip = () => {
+		if (!lastSkipped) return;
+		notDones.restoreToday(lastSkipped);
+		feedback = `Restored: ${lastSkipped.text}`;
+		lastSkipped = null;
+		focusToggle();
+	};
 
 	let groups = $derived.by(() => {
 		const planned = new Set(plannedIntentions.map((i) => intentionMatchKey(i.goalId, i.text)));
 		return groupNotDones(notDones.recentIntentions)
 			.filter(
 				(group) =>
-					goalOrderNumberForId(group.representative.goalId, goals) !== -1 &&
+					goals.some(
+						(goal) =>
+							goal.id === group.representative.goalId && goal.active === 1 && goal.orderNumber > 0
+					) &&
+					!notDones.isSkipped(group.representative) &&
 					!planned.has(intentionMatchKey(group.representative.goalId, group.representative.text))
 			)
 			.sort(
@@ -58,21 +77,6 @@
 			new Date(`${intention.date.slice(0, 10)}T00:00:00Z`)
 		);
 
-	const markGroupNotToday = async (group: NotDoneGroup) => {
-		try {
-			const ids = group.occurrences
-				.map((intention) => intention.id)
-				.filter((id): id is number => id !== null);
-			if (!ids.length) return;
-			await trpc().intentions.setStatus.mutate({ ids, status: 'not_today' });
-			await notDones.markStatuses(ids, 'not_today');
-		} catch (error) {
-			if (error instanceof Error) {
-				todayPageErrorStore.setError(error.message);
-			}
-		}
-	};
-
 	const importGroup = (group: NotDoneGroup, strategyText = '') => {
 		// Re-importing a propagated item must not stack another "⟶ strategy"
 		// suffix onto the previous one.
@@ -81,6 +85,9 @@
 		onImport(
 			`${goalOrderNumberForId(group.representative.goalId, goals)}${group.representative.subIntentionQualifier ?? ''}) ${text}`
 		);
+		feedback = `Added to your draft: ${base}`;
+		lastSkipped = null;
+		focusToggle();
 	};
 
 	const handleImport = (group: NotDoneGroup) => {
@@ -109,61 +116,105 @@
 	};
 </script>
 
-{#if groups.length > 0}
-	<div
-		class="rounded-field border border-amber-300/70 bg-amber-50 p-2 dark:border-amber-700/50 dark:bg-amber-950/40"
+{#if groups.length > 0 || notDones.loading || notDones.error || feedback}
+	<section
+		class="border-base-300 bg-base-200/40 rounded-field w-full border p-3 sm:w-4/5"
+		aria-label="NotDones"
 	>
 		<button
-			class="btn btn-ghost btn-sm text-amber-800 dark:text-amber-200"
+			bind:this={toggle}
+			class="focus-visible:outline-primary flex min-h-8 w-full items-center gap-2 rounded-sm text-start font-semibold focus-visible:outline-2 focus-visible:outline-offset-2"
+			aria-controls={panelId}
+			aria-expanded={!hidden}
 			onclick={() => (hidden = !hidden)}
 		>
-			{hidden ? '⌄ Show NotDones' : '⌃ Hide NotDones'}
+			<ChevronDown class="size-4 shrink-0 {hidden ? '-rotate-90' : ''}" />
+			<span>NotDones</span>
+			<span class="text-base-content/60 text-sm font-normal">{groups.length}</span>
+			<span class="text-base-content/60 ms-auto text-sm font-normal"
+				>{hidden ? 'Show' : 'Hide'}</span
+			>
 		</button>
-		{#if !hidden}
-			<ul class="mt-1 flex flex-col gap-1">
+		<div id={panelId} {hidden}>
+			<p class="text-base-content/70 mt-1 text-sm">
+				Unfinished or deferred from the last 3 days. Choose what to bring into today.
+			</p>
+			<ul class="divide-base-300 mt-2 max-h-64 divide-y overflow-y-auto overscroll-contain px-1">
 				{#each groups as group (group.representative.id)}
-					<li class="flex items-center gap-1">
-						<button
-							class="btn btn-ghost btn-xs"
-							aria-label="Import {group.representative.text} into today"
-							title="Import into today"
-							onclick={() => handleImport(group)}>⬇</button
-						>
-						<span
-							class="goal-text truncate text-lg font-bold"
-							style="--goal-color: {goalColorForIntention(group.representative, goals)}"
-							>{codeFor(group)} {group.representative.text}</span
-						>
-						<span class="text-base-content/50 ms-1 text-sm">{dayFor(group.representative)}</span>
-						<button
-							class="btn btn-ghost btn-xs ms-auto"
-							aria-label="Dismiss {group.representative.text}"
-							title="Not today"
-							onclick={() => markGroupNotToday(group)}><Trash2 /></button
-						>
+					<li class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
+						<div class="min-w-0 flex-1 basis-48">
+							<p
+								class="goal-text font-semibold wrap-anywhere"
+								style="--goal-color: {goalColorForIntention(group.representative, goals)}"
+							>
+								{codeFor(group)}
+								{group.representative.text}
+							</p>
+							<p class="text-base-content/60 mt-1 text-xs">
+								{dayFor(group.representative)} · {group.representative.status === 'not_today'
+									? 'Deferred'
+									: 'Unfinished'}
+								{#if group.missCount >= 2}
+									· {group.missCount} unfinished days{/if}
+							</p>
+						</div>
+						<div class="flex shrink-0 items-center gap-1">
+							<button
+								class="btn btn-sm"
+								aria-label="Add to today: {group.representative.text}"
+								onclick={() => handleImport(group)}><Plus class="size-4" />Add to today</button
+							>
+							<button
+								class="btn btn-ghost btn-sm"
+								aria-label="Skip today: {group.representative.text}"
+								title="Hide for today on this browser"
+								onclick={() => skip(group)}>Skip today</button
+							>
+						</div>
 					</li>
 				{/each}
 			</ul>
-		{/if}
-	</div>
+			{#if notDones.error}
+				<div class="mt-2 text-sm" role="alert">
+					<p>{notDones.error}</p>
+					<button class="btn btn-sm mt-2" onclick={refresh}>Retry NotDones</button>
+				</div>
+			{:else if notDones.loading}
+				<p class="text-base-content/70 mt-2 text-sm" role="status">Loading NotDones…</p>
+			{/if}
+		</div>
+		<div class="mt-1 text-sm wrap-anywhere" role="status">
+			<span>{feedback}</span>
+			{#if lastSkipped}<button class="btn btn-ghost btn-sm" onclick={undoSkip}>Undo skip</button
+				>{/if}
+		</div>
+	</section>
 {/if}
 
 {#if confirmGroup}
 	{@const group = confirmGroup}
-	<dialog bind:this={dialog} class="modal" oncancel={handleCancel} onclose={handleCancel}>
+	<dialog
+		bind:this={dialog}
+		class="modal"
+		aria-labelledby="{panelId}-title"
+		aria-describedby="{panelId}-item"
+		oncancel={handleCancel}
+		onclose={handleCancel}
+	>
 		<div class="modal-box">
 			{#if group.missCount === 2}
-				<h3 class="text-lg font-bold">
+				<h3 id="{panelId}-title" class="text-lg font-bold">
 					You've skipped this twice. Maybe cancel & break it into subtasks?
 				</h3>
 			{:else}
-				<h3 class="text-lg font-bold">
+				<h3 id="{panelId}-title" class="text-lg font-bold">
 					You sure? {group.missCount}× skipped… If this is important, how are you going to make it
 					happen today?
 				</h3>
 			{/if}
 			<p
-				class="goal-text my-3 text-lg font-bold"
+				id="{panelId}-item"
+				class="goal-text my-3 text-lg font-bold wrap-anywhere"
 				style="--goal-color: {goalColorForIntention(group.representative, goals)}"
 			>
 				{codeFor(group)}
@@ -189,3 +240,12 @@
 		<button class="modal-backdrop" onclick={handleCancel}>close</button>
 	</dialog>
 {/if}
+
+<style>
+	.goal-text {
+		color: oklch(from var(--goal-color) min(l, 0.48) c h);
+	}
+	:global([data-theme='dark']) .goal-text {
+		color: oklch(from var(--goal-color) max(l, 0.78) c h);
+	}
+</style>

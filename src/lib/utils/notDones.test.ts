@@ -36,7 +36,7 @@ describe('NotDones helpers', () => {
 			intention({ id: 2, date: '2026-09-21T12:00:00.000Z' }),
 			intention({ id: 3, date: '2026-09-22T09:00:00.000Z' }),
 			intention({ id: 4, date: '2026-09-23T09:00:00.000Z', status: 'not_today' }),
-			intention({ id: 5, date: '2026-09-23T00:00:00.000Z', status: 'done' }),
+			intention({ id: 5, date: '2026-09-23T00:00:00.000Z', status: 'done', text: 'Finished task' }),
 			intention({ id: 6, goalId: 2, text: 'other', date: '2026-09-23T09:00:00.000Z' })
 		];
 		expect(computeMissCount(recent, 1, 'do the thing')).toBe(2);
@@ -49,7 +49,7 @@ describe('NotDones helpers', () => {
 		const recent = [
 			intention({ id: 1, date: '2026-09-21T09:00:00.000Z', orderNumber: 3 }),
 			intention({ id: 2, date: '2026-09-22T09:00:00.000Z', orderNumber: 4 }),
-			intention({ id: 3, date: '2026-09-22T10:00:00.000Z', status: 'done' }),
+			intention({ id: 3, date: '2026-09-22T10:00:00.000Z', status: 'done', text: 'Finished task' }),
 			intention({ id: 4, goalId: 2, text: 'another', date: '2026-09-22T11:00:00.000Z' })
 		];
 		const groups = groupNotDones(recent);
@@ -66,5 +66,33 @@ describe('NotDones helpers', () => {
 		expect(statusFromReviewCheckbox(intention({ status: 'not_today' }), false)).toBe('not_today');
 		expect(statusFromReviewCheckbox(intention({ status: 'not_today' }), true)).toBe('done');
 		expect(statusFromReviewCheckbox(undefined, false)).toBe('pending');
+	});
+
+	it('offers deferred items without counting a deliberate deferral as a miss', () => {
+		const deferred = intention({ status: 'not_today', text: 'Watch an episode' });
+		expect(groupNotDones([deferred])).toEqual([
+			{ representative: deferred, occurrences: [deferred], missCount: 0 }
+		]);
+		expect(computeMissCount([deferred], deferred.goalId, deferred.text)).toBe(0);
+	});
+
+	it('groups pending and deferred copies together and excludes completed items', () => {
+		const pending = intention({ id: 1 });
+		const deferred = intention({ id: 2, date: '2026-09-22T10:00:00.000Z', status: 'not_today' });
+		const done = intention({ id: 3, status: 'done', text: 'Finished task' });
+		expect(groupNotDones([pending, deferred, done])).toEqual([
+			{ representative: deferred, occurrences: [pending, deferred], missCount: 1 }
+		]);
+	});
+	it('completion resolves older copies and resets misses even with unsorted input', () => {
+		const old = intention({ id: 1, date: '2026-09-21T12:00:00.000Z' });
+		const completed = intention({ id: 2, date: '2026-09-22T09:00:00.000Z', status: 'done' });
+		const sameDay = intention({ id: 3, date: '2026-09-22T12:00:00.000Z' });
+		expect(groupNotDones([completed, old, sameDay])).toEqual([]);
+		expect(computeMissCount([completed, old, sameDay], 1, old.text)).toBe(0);
+		const fresh = intention({ id: 4, date: '2026-09-23T12:00:00.000Z' });
+		expect(groupNotDones([fresh, old, completed, sameDay])).toEqual([
+			{ representative: fresh, occurrences: [fresh], missCount: 1 }
+		]);
 	});
 });

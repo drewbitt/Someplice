@@ -6,9 +6,27 @@ export const intentionMatchKey = (goalId: number, text: string) =>
 		.trim()
 		.toLowerCase()}`;
 
+// A completed copy resolves earlier attempts, but a new attempt on a later
+// day starts a fresh sequence. Compare day labels, not wall-clock save times.
+const unresolvedIntentions = (recent: Intention[]) => {
+	const completedDays = new Map<string, string>();
+	for (const intention of recent) {
+		if (intention.status !== 'done') continue;
+		const key = intentionMatchKey(intention.goalId, intention.text);
+		const day = intention.date.slice(0, 10);
+		if (day > (completedDays.get(key) ?? '')) completedDays.set(key, day);
+	}
+	return recent.filter(
+		(intention) =>
+			intention.status !== 'done' &&
+			intention.date.slice(0, 10) >
+				(completedDays.get(intentionMatchKey(intention.goalId, intention.text)) ?? '')
+	);
+};
+
 export const pendingMissDays = (recent: Intention[]) => {
 	const daysByKey = new Map<string, Set<string>>();
-	for (const intention of recent) {
+	for (const intention of unresolvedIntentions(recent)) {
 		if (intention.status !== 'pending') continue;
 		const key = intentionMatchKey(intention.goalId, intention.text);
 		const days = daysByKey.get(key) ?? new Set<string>();
@@ -32,8 +50,7 @@ export const groupNotDones = (recent: Intention[]): NotDoneGroup[] => {
 		string,
 		{ representative: Intention; occurrences: Intention[]; days: Set<string> }
 	>();
-	for (const intention of recent) {
-		if (intention.status !== 'pending') continue;
+	for (const intention of unresolvedIntentions(recent)) {
 		const key = intentionMatchKey(intention.goalId, intention.text);
 		const group = groups.get(key) ?? {
 			representative: intention,
@@ -41,7 +58,8 @@ export const groupNotDones = (recent: Intention[]): NotDoneGroup[] => {
 			days: new Set<string>()
 		};
 		group.occurrences.push(intention);
-		group.days.add(intention.date.slice(0, 10));
+		// A deliberate "not today" is recoverable, but isn't a missed commitment.
+		if (intention.status === 'pending') group.days.add(intention.date.slice(0, 10));
 		if (intention.date > group.representative.date) group.representative = intention;
 		groups.set(key, group);
 	}

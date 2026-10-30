@@ -11,7 +11,8 @@
 	import CircleX from 'virtual:icons/lucide/x-circle';
 	import type { PageServerData } from './$types';
 	import { todaysIntentions } from '#lib/stores/todaysIntentions.js';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { notDones } from '#lib/stores/notDones.svelte.js';
 	import { appLogger } from '#lib/utils/app-logger.js';
 	import { TRPCClientError } from '@trpc/client';
 
@@ -24,6 +25,7 @@
 	// svelte-ignore state_referenced_locally
 	let intentionsOnLatestDate = $state(data.intentionsOnLatestDate);
 	let additionalIntentions = $state<Intentions[]>([]);
+	let draftIntentions = $state<Intentions[]>([]);
 	let validIntentions = $state<boolean>(false);
 	let showValidIntentionsNotification = $state(false);
 	let showAdditionalIntentionsTextArea = $state(false);
@@ -34,6 +36,14 @@
 	let hasOutstandingOutcome = $state(false);
 	let saving = $state(false);
 	let draft = $state(todaysIntentions.current ?? '');
+
+	// SvelteKit preserves components when page data refreshes. Keep the shared
+	// recovery history in sync after reviews, conflicts, and day/zone changes.
+	$effect(() => {
+		void data;
+		void appTimeZone.current;
+		untrack(() => void notDones.refresh({ force: true }).catch(() => undefined));
+	});
 
 	$effect(() => {
 		intentions = data.intentions;
@@ -60,7 +70,10 @@
 			}
 		};
 		const onVisibilityChange = () => {
-			if (document.visibilityState === 'visible') checkDay();
+			if (document.visibilityState === 'visible') {
+				void checkDay();
+				void notDones.refresh().catch(() => undefined);
+			}
 		};
 		const timer = window.setInterval(checkDay, 60_000);
 		document.addEventListener('visibilitychange', onVisibilityChange);
@@ -89,7 +102,7 @@
 		showValidIntentionsNotification = !validIntentions;
 		if (!validIntentions || saving) return;
 		// Keep drafts separate until the write succeeds, so retries use the current editor.
-		const payload = noIntentions ? intentions : additionalIntentions;
+		const payload = noIntentions ? draftIntentions : additionalIntentions;
 		saving = true;
 		try {
 			if (payload.length > 0) {
@@ -195,7 +208,7 @@
 		<ActionsTextInput
 			goals={data.goals}
 			bind:intentionsString={draft}
-			bind:intentions
+			bind:intentions={draftIntentions}
 			bind:valid={validIntentions}
 		/>
 
