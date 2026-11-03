@@ -21,8 +21,8 @@
 		"prepare": "[ ! -d .git ] || lefthook install"
 	},
 	"dependencies": {
-		"@trpc/client": "^11.19.0",
-		"@trpc/server": "^11.19.0",
+		"@trpc/client": "^11.22.1",
+		"@trpc/server": "^11.22.1",
 		"croner": "^10.0.1",
 		"devalue": "^6.0.3",
 		"kysely": "^0.29.7",
@@ -36,10 +36,10 @@
 		"@commitlint/config-conventional": "^21.2.4",
 		"@eslint/js": "^10.0.1",
 		"@faker-js/faker": "^10.6.0",
-		"@iconify-json/lucide": "^1.2.147",
+		"@iconify-json/lucide": "^1.2.149",
 		"@playwright/test": "^1.64.1",
-		"@sveltejs/adapter-node": "^6.0.0",
-		"@sveltejs/kit": "^3.1.0",
+		"@sveltejs/adapter-node": "^6.0.1",
+		"@sveltejs/kit": "^3.1.1",
 		"@sveltejs/load-config": "^0.2.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
@@ -47,7 +47,7 @@
 		"@typescript/native": "npm:typescript@^7.0.2",
 		"@vitest/browser-playwright": "5.0.5",
 		"daisyui": "^5.7.50",
-		"eslint": "^10.13.0",
+		"eslint": "^10.14.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.1",
 		"globals": "^17.13.0",
@@ -69,16 +69,16 @@
 	},
 	"type": "module",
 	"engines": {
-		"node": ">=24.22.1"
+		"node": ">=24.22.2"
 	},
 	"devEngines": {
 		"runtime": {
 			"name": "node",
-			"version": "^24.22.1",
+			"version": "^24.22.2",
 			"onFail": "download"
 		}
 	},
-	"packageManager": "pnpm@12.15.0",
+	"packageManager": "pnpm@12.16.1",
 	"imports": {
 		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
