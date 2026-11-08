@@ -6,6 +6,8 @@
 	import { refreshAll } from '$app/navigation';
 	import { trpc } from '#lib/trpc/client.js';
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import FocusTimer from '#lib/components/FocusTimer.svelte';
 
 	let { children, data } = $props();
 
@@ -61,6 +63,7 @@
 		<HeaderContent {toggleTheme} />
 	</header>
 	<main id="main" class="mx-auto max-w-screen-2xl p-4">
+		<FocusTimer today={page.url.pathname === '/today'} refreshKey={page.data} />
 		{@render children()}
 	</main>
 </div>
