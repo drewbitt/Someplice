@@ -10,7 +10,13 @@ db.function('regexp', { deterministic: true }, (pattern, value) =>
 		: 0
 );
 assert.equal(db.prepare('PRAGMA integrity_check').get()?.integrity_check, 'ok');
-assert.equal(db.prepare('SELECT count(*) AS n FROM kysely_migration').get()?.n, 1);
+assert.deepEqual(
+	db
+		.prepare('SELECT name FROM kysely_migration ORDER BY name')
+		.all()
+		.map((row) => row.name),
+	['001_initial', '002_focus_sessions']
+);
 
 if (process.argv[2] === 'seed') {
 	const statement = db.prepare('SELECT 1 AS value');
