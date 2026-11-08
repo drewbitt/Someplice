@@ -16,7 +16,9 @@ export function openTestDb() {
 export function resetTestDb() {
 	const db = openTestDb();
 	try {
-		db.exec('DELETE FROM goals; DELETE FROM outcomes; DELETE FROM settings;');
+		db.exec(
+			'DELETE FROM focus_sessions; DELETE FROM goals; DELETE FROM outcomes; DELETE FROM settings;'
+		);
 	} finally {
 		db.close();
 	}

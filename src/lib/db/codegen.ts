@@ -5,6 +5,7 @@ import prettier from 'prettier';
 import { createDb } from './db.ts';
 import { runMigrations } from './migrate-to-latest.ts';
 import { INTENTION_STATUSES, VERDICTS } from '../trpc/enums.ts';
+import { FOCUS_KINDS, FOCUS_STATUSES } from '../focus.ts';
 
 const OUT_FILE = './src/lib/types/data.d.ts';
 
@@ -21,6 +22,8 @@ export async function generateDbTypes(verify: boolean): Promise<void> {
 		const dialect = new SqliteDialect();
 		const overrides = {
 			columns: {
+				'focus_sessions.kind': FOCUS_KINDS.map((kind) => `'${kind}'`).join(' | '),
+				'focus_sessions.status': FOCUS_STATUSES.map((status) => `'${status}'`).join(' | '),
 				'intentions.status': INTENTION_STATUSES.map((status) => `'${status}'`).join(' | '),
 				'outcome_verdicts.verdict': VERDICTS.map((verdict) => `'${verdict}'`).join(' | ')
 			}

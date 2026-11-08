@@ -5,8 +5,11 @@ import type { DB } from '../types/data';
 import { dbLogger } from '../utils/logger.ts';
 import { getDb } from './db.ts';
 import * as initial from './migrations/001_initial.ts';
+import * as focusSessions from './migrations/002_focus_sessions.ts';
 
-const provider = { getMigrations: async () => ({ '001_initial': initial }) };
+const provider = {
+	getMigrations: async () => ({ '001_initial': initial, '002_focus_sessions': focusSessions })
+};
 
 export async function runMigrations(db: Kysely<DB>): Promise<void> {
 	const { error, results } = await new Migrator({ db, provider }).migrateToLatest();

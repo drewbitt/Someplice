@@ -10,6 +10,21 @@ export type Generated<T> =
 		? ColumnType<S, I | undefined, U>
 		: ColumnType<T, T | undefined, T>;
 
+export interface FocusSessions {
+	day: string;
+	elapsedSeconds: Generated<number>;
+	endedAt: number | null;
+	id: string;
+	intentionId: number | null;
+	intentionText: string | null;
+	kind: 'pomodoro' | 'hourglass' | 'break';
+	lastStartedAt: number | null;
+	plannedSeconds: number;
+	revision: Generated<number>;
+	startedAt: number;
+	status: 'running' | 'paused' | 'completed' | 'cancelled';
+}
+
 export interface GoalLogs {
 	date: string;
 	goalId: number;
@@ -73,6 +88,7 @@ export interface Settings {
 }
 
 export interface DB {
+	focus_sessions: FocusSessions;
 	goal_logs: GoalLogs;
 	goals: Goals;
 	intentions: Intentions;
