@@ -65,6 +65,8 @@ jobs:
         with:
           ref: 48496f92de4a9027f0b7af7069efbd606960b287
           persist-credentials: false
+      - name: Trust the mounted checkout for Git hooks
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: ./.github/actions/setup
       - name: Record environment
         run: |
@@ -90,3 +92,37 @@ jobs:
           compression-level: 0
           if-no-files-found: ignore
           retention-days: 7
+  quality:
+    name: Quality ${{ matrix.mode }} repeat ${{ matrix.repeat }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [serial, parallel]
+        repeat: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 48496f92de4a9027f0b7af7069efbd606960b287
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Serial quality checks
+        if: matrix.mode == 'serial'
+        run: |
+          pnpm check
+          pnpm run check:tsgo
+          pnpm lint
+          pnpm test:unit --run
+      - parallel:
+          - name: Parallel types
+            if: matrix.mode == 'parallel'
+            run: |
+              pnpm check
+              pnpm run check:tsgo
+          - name: Parallel lint
+            if: matrix.mode == 'parallel'
+            run: pnpm lint
+          - name: Parallel unit tests
+            if: matrix.mode == 'parallel'
+            run: pnpm test:unit --run
