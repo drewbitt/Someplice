@@ -99,7 +99,8 @@ jobs:
         run: bash tests/docker-smoke.sh someplice:ci
 
   browsers:
-    runs-on: ubuntu-26.04
+    # WebKit runner comparison: actions/runs/43093593363 (24.04 was faster).
+    runs-on: ${{ matrix.browser == 'webkit' && 'ubuntu-24.04' || 'ubuntu-26.04' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
