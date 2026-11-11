@@ -1,0 +1,92 @@
+name: CI runner trials
+on:
+  push:
+    branches: [ci/trials-pr-271]
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  native:
+    name: WebKit ${{ matrix.runner }} repeat ${{ matrix.repeat }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-26.04, ubuntu-24.04, ubuntu-26.04-arm]
+        repeat: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 48496f92de4a9027f0b7af7069efbd606960b287
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Record environment
+        run: |
+          node --version
+          pnpm --version
+          uname -m
+          cat /etc/os-release
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps --only-shell webkit
+      - name: Run Vitest browser tests
+        run: pnpm exec vitest run --project browser-webkit
+      - name: Run Playwright tests
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_PERFETTO_OUTPUT_FILE: test-results/playwright/perfetto.json.gz
+        run: pnpm test:e2e --project webkit --add-reporter perfetto
+      - name: Upload browser traces and timings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: trial-${{ matrix.runner }}-${{ matrix.repeat }}
+          path: |
+            test-results/**/*.zip
+            test-results/**/perfetto.json.gz
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
+  container:
+    name: WebKit Playwright container repeat ${{ matrix.repeat }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-noble
+      options: --ipc=host
+    strategy:
+      fail-fast: false
+      matrix:
+        repeat: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 48496f92de4a9027f0b7af7069efbd606960b287
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Record environment
+        run: |
+          node --version
+          pnpm --version
+          uname -m
+          cat /etc/os-release
+      - name: Run Vitest browser tests
+        run: pnpm exec vitest run --project browser-webkit
+      - name: Run Playwright tests
+        if: ${{ !cancelled() }}
+        env:
+          PLAYWRIGHT_PERFETTO_OUTPUT_FILE: test-results/playwright/perfetto.json.gz
+        run: pnpm test:e2e --project webkit --add-reporter perfetto
+      - name: Upload browser traces and timings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: trial-container-${{ matrix.repeat }}
+          path: |
+            test-results/**/*.zip
+            test-results/**/perfetto.json.gz
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 7
