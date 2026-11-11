@@ -2,9 +2,10 @@
 # check=error=true
 
 FROM --platform=$BUILDPLATFORM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS base
-RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Node 26 no longer bundles Corepack; install the project's pinned pnpm version.
+RUN npm install --global "$(node -p "require('./package.json').packageManager")"
 
 # Production dependencies are pure JavaScript, so they're installed on the build platform
 FROM base AS prod-deps
@@ -19,7 +20,7 @@ COPY . .
 RUN node --run build
 
 FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
-RUN apk add --no-cache libstdc++ \
+RUN apk add --no-cache libatomic libstdc++ \
     && addgroup -g 1000 node \
     && adduser -D -u 1000 -G node node \
     && install -d -o node -g node /app/data
