@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # check=error=true
 
-FROM --platform=$BUILDPLATFORM node:26.12.1-slim@sha256:94816674c62774da0d099a947bf4613b9e1972a2733abd0d0cd80e795f8411d0 AS base
+FROM --platform=$BUILDPLATFORM node:26.13.0-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS base
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Node 26 no longer bundles Corepack; install the project's pinned pnpm version.
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/pnpm/store \
 COPY . .
 RUN node --run build
 
-FROM alpine:3.24.3@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 RUN apk add --no-cache libatomic libstdc++ \
     && addgroup -g 1000 node \
     && adduser -D -u 1000 -G node node \
@@ -28,7 +28,7 @@ WORKDIR /app
 ENV NODE_ENV=production \
     DATABASE_PATH=/app/data/db.sqlite
 
-COPY --from=node:26.12.1-alpine3.24@sha256:40cd011b55415bc894e45b02fdd5a5dfde056921b7d23a64c74f80497af48797 /usr/local/bin/node /usr/local/bin/
+COPY --from=node:26.13.0-alpine3.24@sha256:8996bb5821d62a8fd9bb27c1cb07462f3fdce6e47d640c6a881ead0b064ce216 /usr/local/bin/node /usr/local/bin/
 COPY --from=base /usr/local/LICENSE /usr/local/share/doc/node/LICENSE
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=build /app/build ./build
