@@ -1,4 +1,3 @@
-import { pathToFileURL } from 'node:url';
 import { Kysely } from 'kysely';
 import { Migrator } from 'kysely/migration';
 import type { DB } from '../types/data';
@@ -30,10 +29,7 @@ export async function runMigrations(db: Kysely<DB>): Promise<void> {
 	}
 }
 
-// Run as a CLI only when invoked directly (e.g. `node ./src/lib/db/migrate-to-latest.ts`).
-const isMainModule =
-	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isMainModule) {
+if (import.meta.main) {
 	runMigrations(getDb())
 		.catch((error: unknown) => {
 			console.error(error instanceof Error ? error.message : error);
