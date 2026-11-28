@@ -64,6 +64,8 @@ For a production server without Docker, run `pnpm build`, then `NODE_ENV=product
 
 See [package.json](package.json) for available scripts and [CI](.github/workflows/test.yml) for validation.
 
+The `CI passed` check covers types, lint, unit tests, database commands, browser tests, and both Docker architectures. The [publish workflow](.github/workflows/publish.yml) scans and smoke-tests each native build by digest before tagging the multi-platform image. Manually running the workflow from `master` publishes the `edge` and commit tags. Publishing a GitHub release adds version tags.
+
 ## License
 
 [MIT](LICENSE). [Report an issue](https://github.com/drewbitt/Someplice/issues).

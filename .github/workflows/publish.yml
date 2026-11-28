@@ -15,6 +15,11 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-26.04
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      labels: ${{ steps.metadata.outputs.labels }}
+      annotations: ${{ steps.metadata.outputs.annotations }}
+      tags: ${{ steps.metadata.outputs.tags }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -44,40 +49,44 @@ jobs:
           JS
           fi
 
-  test:
-    needs: validate
-    uses: ./.github/workflows/test.yml
-
-  publish:
-    needs: test
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
-        with:
-          platforms: arm64
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Set registry image name
+        id: image
+        run: printf 'name=ghcr.io/%s\n' "${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Image metadata
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ steps.image.outputs.name }}
           tags: |
             type=sha,format=long
             type=edge
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
+  test:
+    needs: validate
+    uses: ./.github/workflows/test.yml
+    with:
+      skip-container: true
+
+  docker:
+    needs: validate
+    uses: ./.github/workflows/container.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      image: ${{ needs.validate.outputs.image }}
+      labels: ${{ needs.validate.outputs.labels }}
+      annotations: ${{ needs.validate.outputs.annotations }}
+
+  publish:
+    needs: [validate, test, docker]
+    runs-on: ubuntu-26.04
+    permissions:
+      packages: write
+    steps:
       - name: Log in to GHCR
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
         with:
@@ -85,24 +94,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and publish
-        id: build
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+      - name: Download verified digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          annotations: ${{ steps.metadata.outputs.annotations }}
-          provenance: mode=max
-          sbom: true
-          cache-from: |
-            type=gha,scope=linux/amd64
-            type=gha,scope=linux/arm64
+          pattern: image-digest-*
+          path: digests
 
-      - name: Record published digest
+      - name: Tag verified images
+        shell: bash
         env:
-          DIGEST: ${{ steps.build.outputs.digest }}
-          TAGS: ${{ steps.metadata.outputs.tags }}
-        run: printf '`%s`\n\n```text\n%s\n```\n' "$DIGEST" "$TAGS" >> "$GITHUB_STEP_SUMMARY"
+          IMAGE: ${{ needs.validate.outputs.image }}
+          TAGS: ${{ needs.validate.outputs.tags }}
+        run: |
+          tag_args=()
+          while IFS= read -r tag; do
+            tag_args+=(--tag "$tag")
+          done <<< "$TAGS"
+          docker buildx imagetools create "${tag_args[@]}" \
+            "$IMAGE@$(< digests/image-digest-amd64/digest)" \
+            "$IMAGE@$(< digests/image-digest-arm64/digest)"
+          digest=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "${TAGS%%$'\n'*}" | jq -er .digest)
+          printf '`%s`\n\n```text\n%s\n```\n' "$digest" "$TAGS" >> "$GITHUB_STEP_SUMMARY"

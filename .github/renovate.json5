@@ -12,7 +12,7 @@
 	// Apply the same cooldown to versions pnpm actually resolves.
 	minimumReleaseAge: '7 days',
 	minimumReleaseAgePackageManagerSync: true,
-	// Let Renovate check CI before merging, since master has no required checks.
+	// Use Renovate-managed automerge with GitHub auto-merge disabled.
 	platformAutomerge: false,
 	timezone: 'America/New_York',
 	// Routine updates run on Monday. Vulnerability alerts use Renovate's immediate schedule.
