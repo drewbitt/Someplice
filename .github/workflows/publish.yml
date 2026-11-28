@@ -110,8 +110,8 @@ jobs:
           while IFS= read -r tag; do
             tag_args+=(--tag "$tag")
           done <<< "$TAGS"
-          docker buildx imagetools create "${tag_args[@]}" \
+          docker buildx imagetools create --metadata-file published.json "${tag_args[@]}" \
             "$IMAGE@$(< digests/image-digest-amd64/digest)" \
             "$IMAGE@$(< digests/image-digest-arm64/digest)"
-          digest=$(docker buildx imagetools inspect --format '{{json .Manifest}}' "${TAGS%%$'\n'*}" | jq -er .digest)
+          digest=$(jq -er '."containerimage.descriptor".digest' published.json)
           printf '`%s`\n\n```text\n%s\n```\n' "$digest" "$TAGS" >> "$GITHUB_STEP_SUMMARY"
