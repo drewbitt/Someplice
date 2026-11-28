@@ -8,9 +8,8 @@ import { z } from 'zod';
 import { PaginationSchema } from '../pagination';
 import { configuredZoneNow, deleteOrphanedOutcomes, isUniqueViolation } from '#lib/db/queries.js';
 import { adjustToUTCStartAndEndOfDay } from '#lib/utils/index.js';
-import { INTENTION_STATUSES as intentionStatuses } from '../enums';
+import { INTENTION_STATUSES } from '../enums';
 
-export const INTENTION_STATUSES = intentionStatuses;
 export const IntentionsSchema = z.object({
 	id: z.number().nullable(),
 	goalId: z.number(),
@@ -21,6 +20,13 @@ export const IntentionsSchema = z.object({
 	// Match SQLite's canonical UTC timestamp format, including milliseconds.
 	date: z.iso.datetime({ precision: 3 })
 });
+
+function intentionListConflict() {
+	return new TRPCError({
+		code: 'CONFLICT',
+		message: 'The intention list changed. Refresh and try again.'
+	});
+}
 
 // Move the entire day out of the unique index's destination slots before assigning
 // its final order. Callers own the transaction so status and order commit together.
@@ -455,11 +461,13 @@ export const intentions = t.router({
 							.select(['id', sql<string>`DATE("date")`.as('day')])
 							.where('id', 'in', updateIds)
 							.execute();
+						// A supplied ID identifies an existing row. A stale save must
+						// not recreate an intention deleted since the client loaded it.
+						if (existingDays.length !== updateIds.length) throw intentionListConflict();
 						const dayById = new Map(existingDays.map((row) => [row.id, row.day]));
 						for (const intention of input.intentions) {
 							if (
 								intention.id !== null &&
-								dayById.has(intention.id) &&
 								dayById.get(intention.id) !== intention.date.slice(0, 10)
 							) {
 								throw new TRPCError({
@@ -574,12 +582,7 @@ export const intentions = t.router({
 					return results;
 				})
 				.catch((error: unknown) => {
-					throw isUniqueViolation(error)
-						? new TRPCError({
-								code: 'CONFLICT',
-								message: 'The intention list changed. Refresh and try again.'
-							})
-						: error;
+					throw isUniqueViolation(error) ? intentionListConflict() : error;
 				});
 		}),
 	/**

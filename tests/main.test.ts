@@ -409,9 +409,10 @@ test('Journey refreshes server and paginated days without duplicating milestones
 					.click();
 			}
 			await review.getByRole('button', { name: verdict, exact: true }).click();
-			const reconciled = page.waitForResponse((response) =>
-				response.url().includes('/api/trpc/goals.listGoalsOnDate')
-			);
+			const reconciled = page.waitForResponse((response) => {
+				const procedures = new URL(response.url()).pathname.split('/').at(-1);
+				return response.ok() && procedures?.split(',').includes('journey.day') === true;
+			});
 			await box.getByRole('button', { name: 'Save', exact: true }).click();
 			await reconciled;
 			await expect(box.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);

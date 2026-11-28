@@ -4,7 +4,8 @@ import '../../app.css';
 
 export const api = {
 	goalLogs: vi.fn(),
-	uniqueDates: vi.fn(),
+	journeyPage: vi.fn(),
+	journeyDay: vi.fn(),
 	deleteGoal: vi.fn(),
 	updateGoals: vi.fn(),
 	addGoal: vi.fn(),
@@ -23,6 +24,7 @@ export const api = {
 export const navigation = { refreshAll: api.refresh, beforeNavigate: vi.fn() };
 export const client = {
 	goal_logs: { getAllForGoal: { query: api.goalLogs } },
+	journey: { page: { query: api.journeyPage }, day: { query: api.journeyDay } },
 	goals: {
 		add: { mutate: api.addGoal },
 		list: { query: api.listGoals },
@@ -32,7 +34,6 @@ export const client = {
 	},
 	intentions: {
 		list: { query: api.list },
-		listUniqueDates: { query: api.uniqueDates },
 		setStatus: { mutate: api.setStatus },
 		setCompletion: { mutate: api.setCompletion },
 		reorder: { mutate: api.reorder },
@@ -63,7 +64,14 @@ export const intention: Intention = {
 beforeEach(() => {
 	vi.resetAllMocks();
 	api.goalLogs.mockResolvedValue([]);
-	api.uniqueDates.mockResolvedValue([]);
+	api.journeyPage.mockResolvedValue({ hasMore: false });
+	api.journeyDay.mockResolvedValue({
+		intentionsByDate: {},
+		goalsByDate: {},
+		outcomes: [],
+		verdicts: [],
+		completedPriorities: []
+	});
 	api.deleteGoal.mockRejectedValue(new Error('Offline'));
 	api.addGoal.mockResolvedValue({ id: 2 });
 	api.listGoals.mockResolvedValue([goal]);

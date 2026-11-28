@@ -1,6 +1,5 @@
 import { generate, SqliteDialect } from 'kysely-codegen';
 import fs from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import prettier from 'prettier';
 import { createDb } from './db.ts';
 import { runMigrations } from './migrate-to-latest.ts';
@@ -48,10 +47,7 @@ export async function generateDbTypes(verify: boolean): Promise<void> {
 	}
 }
 
-// Run as a CLI only when invoked directly (e.g. `node ./src/lib/db/codegen.ts --verify`).
-const isMainModule =
-	process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isMainModule) {
+if (import.meta.main) {
 	generateDbTypes(process.argv.includes('--verify')).catch((error: unknown) => {
 		console.error(error instanceof Error ? error.message : error);
 		process.exitCode = 1;

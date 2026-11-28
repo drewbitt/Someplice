@@ -7,7 +7,6 @@
 	import { trpc } from '#lib/trpc/client.js';
 	import {
 		journeyDates,
-		loadJourneyGoals,
 		mergeWindows,
 		omitWindowDays,
 		windowDates,
@@ -15,7 +14,6 @@
 	} from '#lib/components/journey/windows.js';
 	import { journeyPageErrorStore } from '#lib/stores/errors.svelte.js';
 	import { onMount, untrack } from 'svelte';
-	import { SvelteDate } from 'svelte/reactivity';
 
 	let { data }: { data: PageServerData } = $props();
 	let activePriorities = $derived(data.priorities);
@@ -70,38 +68,6 @@
 		return () => observer.disconnect();
 	});
 
-	async function fetchWindow(windowStart: Date, windowEnd: Date): Promise<JourneyWindow> {
-		const [windowIntentionsByDate, windowOutcomes, windowCompletedPriorities] = await Promise.all([
-			trpc().intentions.listByDate.query({ startDate: windowStart, endDate: windowEnd }),
-			trpc().outcomes.list.query({
-				startDate: windowStart,
-				endDate: windowEnd,
-				order: 'desc',
-				orderBy: 'date'
-			}),
-			trpc().priorities.listCompleted.query({ startDate: windowStart, endDate: windowEnd })
-		]);
-
-		const windowVerdicts = await trpc().outcomes.verdictsByOutcomeIds.query({
-			outcomeIds: windowOutcomes.map((o) => o.id).filter((id): id is number => id !== null)
-		});
-
-		const rows = {
-			intentionsByDate: windowIntentionsByDate,
-			outcomes: windowOutcomes,
-			verdicts: windowVerdicts,
-			completedPriorities: windowCompletedPriorities
-		};
-		const goalsByDate = await loadJourneyGoals(rows, (date) =>
-			Promise.all([
-				trpc().goals.listGoalsOnDate.query({ date }),
-				trpc().goals.listGoalsOnDate.query({ active: 0, date })
-			])
-		);
-
-		return { ...rows, goalsByDate };
-	}
-
 	function mergeWindow(window: JourneyWindow) {
 		extraWindow = mergeWindows(extraWindow, window);
 	}
@@ -113,62 +79,12 @@
 		if (isLoadingMore || !hasMore || !oldestLoadedDate) return;
 		isLoadingMore = true;
 		try {
-			const limit = 15;
-			const endDate = new SvelteDate(`${oldestLoadedDate}T00:00:00.000Z`);
-			endDate.setUTCDate(endDate.getUTCDate() - 1);
-			const uniqueDates = (
-				await trpc().intentions.listUniqueDates.query({
-					startDate: new Date(0),
-					endDate,
-					limit
-				})
-			).map((d) => d.date);
-
-			if (uniqueDates.length > 0) {
-				// The window runs from the oldest anchor all the way up to the cursor,
-				// so outcome/priority-only days between two pages aren't skipped.
-				const windowStart = new Date(
-					`${uniqueDates[uniqueDates.length - 1].slice(0, 10)}T00:00:00.000Z`
-				);
-				mergeWindow(await fetchWindow(windowStart, endDate));
-				oldestLoadedDate = uniqueDates[uniqueDates.length - 1].slice(0, 10);
-				return;
+			const page = await trpc().journey.page.query({ before: oldestLoadedDate });
+			hasMore = page.hasMore;
+			if (hasMore) {
+				mergeWindow(page.window);
+				oldestLoadedDate = page.oldestLoadedDate;
 			}
-
-			// No intention days remain below the cursor, but days that only have an
-			// outcome or a completed priority may still exist further back.
-			const [tailOutcomes, tailPriorities] = await Promise.all([
-				trpc().outcomes.list.query({
-					startDate: new Date(0),
-					endDate,
-					order: 'desc',
-					orderBy: 'date',
-					limit
-				}),
-				trpc().priorities.listCompleted.query({
-					startDate: new Date(0),
-					endDate,
-					limit
-				})
-			]);
-			const tailDays = [
-				...new Set([
-					...tailOutcomes.map((outcome) => outcome.date),
-					...tailPriorities
-						.map((priority) => priority.completedAt?.slice(0, 10))
-						.filter((date): date is string => Boolean(date))
-				])
-			]
-				.sort((a, b) => b.localeCompare(a))
-				.slice(0, limit);
-
-			if (tailDays.length === 0) {
-				hasMore = false;
-				return;
-			}
-			const windowStart = new Date(`${tailDays[tailDays.length - 1]}T00:00:00.000Z`);
-			mergeWindow(await fetchWindow(windowStart, endDate));
-			oldestLoadedDate = tailDays[tailDays.length - 1];
 		} catch (error) {
 			journeyPageErrorStore.setError(
 				error instanceof Error ? error.message : 'Failed to load more days'
@@ -180,10 +96,7 @@
 
 	async function refreshDay(dateKey: string) {
 		try {
-			const window = await fetchWindow(
-				new Date(`${dateKey}T00:00:00.000Z`),
-				new Date(`${dateKey}T23:59:59.999Z`)
-			);
+			const window = await trpc().journey.day.query(dateKey);
 
 			window.intentionsByDate[dateKey] ??= [];
 			mergeWindow(window);

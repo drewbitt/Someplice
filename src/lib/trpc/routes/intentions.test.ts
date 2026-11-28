@@ -22,6 +22,8 @@ describe('intentions', () => {
 	let db: Kysely<DB>;
 	const createCaller = createCallerFactory(router);
 	const caller = createCaller({});
+	const seedIntentions = (...rows: Intention[]) =>
+		db.insertInto('intentions').values(rows).execute();
 
 	beforeEach(async () => {
 		setDb(createDb(':memory:'));
@@ -45,7 +47,7 @@ describe('intentions', () => {
 	});
 
 	it('rejects duplicate update IDs without writes but permits multiple new intentions', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await seedIntentions(TEST_INTENTION);
 		const before = await db.selectFrom('intentions').selectAll().execute();
 		await expect(
 			caller.intentions.updateIntentions({
@@ -61,9 +63,7 @@ describe('intentions', () => {
 	});
 
 	it('reorders without rewriting independently changed text and status', async () => {
-		await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION, { ...TEST_INTENTION, id: 2, orderNumber: 2 }]
-		});
+		await seedIntentions(TEST_INTENTION, { ...TEST_INTENTION, id: 2, orderNumber: 2 });
 		await caller.intentions.edit({
 			...TEST_INTENTION,
 			id: 1,
@@ -83,13 +83,11 @@ describe('intentions', () => {
 	});
 
 	it('rejects duplicate, incomplete, cross-day and invalid reorder requests atomically', async () => {
-		await caller.intentions.updateIntentions({
-			intentions: [
-				TEST_INTENTION,
-				{ ...TEST_INTENTION, id: 2, orderNumber: 2 },
-				{ ...TEST_INTENTION, id: 3, date: '2023-07-02T00:00:00.000Z' }
-			]
-		});
+		await seedIntentions(
+			TEST_INTENTION,
+			{ ...TEST_INTENTION, id: 2, orderNumber: 2 },
+			{ ...TEST_INTENTION, id: 3, date: '2023-07-02T00:00:00.000Z' }
+		);
 		const before = await db.selectFrom('intentions').selectAll().orderBy('id').execute();
 		for (const request of [
 			[
@@ -115,8 +113,7 @@ describe('intentions', () => {
 	});
 
 	it('list', async () => {
-		const added = await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
-		expect(added).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		const result = (await caller.intentions.list(undefined)) as Intention[];
 
@@ -126,7 +123,7 @@ describe('intentions', () => {
 	});
 
 	it('listByDate', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await seedIntentions(TEST_INTENTION);
 
 		const result = (await caller.intentions.listByDate({
 			startDate: new Date('2023-07-01'),
@@ -140,7 +137,7 @@ describe('intentions', () => {
 	});
 
 	it('listUniqueDates', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await seedIntentions(TEST_INTENTION);
 
 		const result = (await caller.intentions.listUniqueDates({
 			startDate: new Date('2023-07-01'),
@@ -157,8 +154,7 @@ describe('intentions', () => {
 	});
 
 	it('latestIntentions', async () => {
-		const added1 = await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
-		expect(added1).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		// Create new test intentions on a later date
 		const TEST_INTENTION_2 = {
@@ -175,10 +171,7 @@ describe('intentions', () => {
 		};
 
 		// Add second intention
-		const added2 = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION_2]
-		});
-		expect(added2).toBeDefined();
+		await seedIntentions(TEST_INTENTION_2);
 
 		// Check that the second intention is returned
 		const result = (await caller.intentions.intentionsOnLatestDate(undefined)) as Intention[];
@@ -188,10 +181,7 @@ describe('intentions', () => {
 		expect(result[0]).toEqual(expect.objectContaining(TEST_INTENTION_2));
 
 		// Add another intention with the same latest date, but later id
-		const added3 = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION_3]
-		});
-		expect(added3).toBeDefined();
+		await seedIntentions(TEST_INTENTION_3);
 
 		const result2 = (await caller.intentions.intentionsOnLatestDate(undefined)) as Intention[];
 
@@ -203,10 +193,7 @@ describe('intentions', () => {
 
 	it('edit', async () => {
 		// Add a new intention
-		const added = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION]
-		});
-		expect(added).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		// Edit the intention based on the id
 		const editedIntention = { ...TEST_INTENTION, text: 'Edited Text' };
@@ -229,7 +216,7 @@ describe('intentions', () => {
 			id: orderNumber,
 			orderNumber
 		}));
-		await caller.intentions.updateIntentions({ intentions });
+		await seedIntentions(...intentions);
 
 		// the client sends the whole row; a stale orderNumber must be ignored
 		const row2 = intentions[1];
@@ -250,7 +237,7 @@ describe('intentions', () => {
 				orderNumber: index + 1,
 				status
 			}));
-			await caller.intentions.updateIntentions({ intentions: rows });
+			await seedIntentions(...rows);
 			return rows;
 		}
 		const saved = () =>
@@ -264,7 +251,7 @@ describe('intentions', () => {
 		it('appends newly completed work below earlier completions without disturbing unfinished work or another day', async () => {
 			await seed(['done', 'pending', 'pending', 'done', 'not_today', 'pending']);
 			const otherDay = { ...TEST_INTENTION, id: 7, date: '2023-07-02T00:01:00.000Z' };
-			await caller.intentions.updateIntentions({ intentions: [otherDay] });
+			await seedIntentions(otherDay);
 			const rows = await caller.intentions.setCompletion({ id: 6, completed: true });
 			expect(rows.map(({ id, status }) => [id, status])).toEqual([
 				[1, 'done'],
@@ -331,7 +318,7 @@ describe('intentions', () => {
 			id: orderNumber,
 			orderNumber
 		}));
-		await caller.intentions.updateIntentions({ intentions });
+		await seedIntentions(...intentions);
 
 		await caller.intentions.setStatus({ ids: [2], status: 'not_today' });
 
@@ -347,10 +334,7 @@ describe('intentions', () => {
 	});
 
 	it('edit with invalid id', async () => {
-		const added = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION]
-		});
-		expect(added).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		const editedIntention = { ...TEST_INTENTION, id: 9999 }; // Invalid id
 		let error;
@@ -364,10 +348,7 @@ describe('intentions', () => {
 
 	it('appendText', async () => {
 		// Add a new intention
-		const added = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION]
-		});
-		expect(added).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		// Append text to the intention
 		const appendText = 'by noon';
@@ -392,10 +373,7 @@ describe('intentions', () => {
 	});
 
 	it('appendText with invalid id', async () => {
-		const added = await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION]
-		});
-		expect(added).toBeDefined();
+		await seedIntentions(TEST_INTENTION);
 
 		const appendText = '';
 		let error;
@@ -407,19 +385,30 @@ describe('intentions', () => {
 		expect(error).toBeDefined();
 	});
 
-	it('updateIntentions', async () => {
-		const result = (await caller.intentions.updateIntentions({
-			intentions: [TEST_INTENTION]
-		})) as unknown as Intention[];
-		expect(result).toBeDefined();
-		expect(result[0]).toBeDefined();
-		// TODO: result[0].rows checks
+	it('creates an intention when its ID is null', async () => {
+		const [saved] = await caller.intentions.updateIntentions({
+			intentions: [{ ...TEST_INTENTION, id: null }]
+		});
+		expect(saved).toMatchObject({ id: expect.any(Number), text: TEST_INTENTION.text });
+		expect(await caller.intentions.list()).toEqual([saved]);
+	});
 
-		// Check that the intention was added using list
-		const listResult = (await caller.intentions.list(undefined)) as Intention[];
-		expect(listResult).toBeInstanceOf(Array);
-		expect(listResult).toHaveLength(1);
-		expect(listResult[0]).toEqual(expect.objectContaining(TEST_INTENTION));
+	it('rejects a stale save after deletion without changing the rest of the batch', async () => {
+		const survivor = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
+		await seedIntentions(TEST_INTENTION, survivor);
+		await caller.intentions.delete(1);
+		const before = await caller.intentions.list();
+
+		await expect(
+			caller.intentions.updateIntentions({
+				intentions: [
+					{ ...survivor, text: 'Edited' },
+					TEST_INTENTION,
+					{ ...TEST_INTENTION, id: null, orderNumber: 3 }
+				]
+			})
+		).rejects.toMatchObject({ code: 'CONFLICT' });
+		expect(await caller.intentions.list()).toEqual(before);
 	});
 
 	it('stamps new rows with the configured-zone day, not the submitted date', async () => {
@@ -441,7 +430,7 @@ describe('intentions', () => {
 
 	it('updateIntentions swaps orderNumbers without tripping the unique index', async () => {
 		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });
+		await seedIntentions(TEST_INTENTION, intention2);
 
 		// Swap their positions: a permutation that only succeeds via the two-phase update
 		const swapped = [
@@ -460,7 +449,7 @@ describe('intentions', () => {
 		// A row already in the old scratch range (orderNumber + 100000) must not
 		// collide with the submitted row's slot, so it keeps its position verbatim.
 		const largeOrder = { ...TEST_INTENTION, id: 2, orderNumber: 100001 };
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, largeOrder] });
+		await seedIntentions(TEST_INTENTION, largeOrder);
 
 		await caller.intentions.updateIntentions({
 			intentions: [{ ...TEST_INTENTION, orderNumber: 2 }]
@@ -479,7 +468,7 @@ describe('intentions', () => {
 			id: orderNumber,
 			orderNumber
 		}));
-		await caller.intentions.updateIntentions({ intentions });
+		await seedIntentions(...intentions);
 
 		await caller.intentions.updateIntentions({
 			intentions: [{ ...intentions[1], text: 'edited' }]
@@ -500,7 +489,7 @@ describe('intentions', () => {
 			id: orderNumber,
 			orderNumber
 		}));
-		await caller.intentions.updateIntentions({ intentions });
+		await seedIntentions(...intentions);
 
 		// Move row 3 to position 1 without sending the other rows: their slots
 		// collide, so the whole date reorders with leftovers trailing the input.
@@ -512,8 +501,8 @@ describe('intentions', () => {
 		expect(result.map((i) => i.id)).toEqual([3, 1, 2]);
 	});
 
-	it('updateIntentions is an upsert, not a duplicate insert', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+	it('updateIntentions updates an existing row in place', async () => {
+		await seedIntentions(TEST_INTENTION);
 		await caller.intentions.updateIntentions({
 			intentions: [{ ...TEST_INTENTION, text: 'updated text' }]
 		});
@@ -524,7 +513,7 @@ describe('intentions', () => {
 	});
 
 	it('delete removes the intention, its outcome links, and an orphaned outcome', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await seedIntentions(TEST_INTENTION);
 		const outcome = await db
 			.insertInto('outcomes')
 			.values({ reviewed: 1, date: '2023-07-01' })
@@ -547,7 +536,7 @@ describe('intentions', () => {
 
 	it('delete keeps an outcome that still has other intentions', async () => {
 		const intention2 = { ...TEST_INTENTION, id: 2, orderNumber: 2 };
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION, intention2] });
+		await seedIntentions(TEST_INTENTION, intention2);
 		const outcome = await db
 			.insertInto('outcomes')
 			.values({ reviewed: 1, date: '2023-07-01' })
@@ -578,7 +567,7 @@ describe('intentions', () => {
 			id: orderNumber,
 			orderNumber
 		}));
-		await caller.intentions.updateIntentions({ intentions });
+		await seedIntentions(...intentions);
 
 		// the client may send only the visible subset: reorder id3 to 1, id1 to 2
 		await caller.intentions.updateIntentions({
@@ -621,7 +610,7 @@ describe('intentions', () => {
 	});
 
 	it('updateIntentions rejects moving an intention to a different date', async () => {
-		await caller.intentions.updateIntentions({ intentions: [TEST_INTENTION] });
+		await seedIntentions(TEST_INTENTION);
 
 		let error: { code?: string } | undefined;
 		try {

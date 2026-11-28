@@ -80,8 +80,8 @@ export const GoalSchema = z.object({
 // Length limits live outside GoalSchema because updateGoals re-submits every
 // active goal: stored rows that predate the limits must not wedge saves. They
 // are enforced on create and on values that actually changed.
-export const GOAL_TITLE_MAX = 120;
-export const GOAL_DESCRIPTION_MAX = 500;
+const GOAL_TITLE_MAX = 120;
+const GOAL_DESCRIPTION_MAX = 500;
 const assertGoalLength = (value: string | null | undefined, max: number, label: string) => {
 	if ((value?.length ?? 0) > max) {
 		throw new TRPCError({
@@ -90,6 +90,33 @@ const assertGoalLength = (value: string | null | undefined, max: number, label: 
 		});
 	}
 };
+
+export async function getGoalsOnDate(date: Date): Promise<[Goal[], Goal[]]> {
+	const { endDate } = adjustToUTCStartAndEndOfDay(date, date);
+	const cutoff = endDate.toISOString();
+	const { rows } = await sql<Goal & { historyType: 'start' | 'end' }>`
+		SELECT goals.id, goals.active, goals.title, goals.description, goals.color,
+			COALESCE((
+				SELECT orderNumber FROM goal_logs
+				WHERE goalId = goals.id AND date <= ${cutoff}
+				AND orderNumber IS NOT NULL ORDER BY id DESC LIMIT 1
+			), goals.orderNumber) AS orderNumber,
+			goal_logs.date, goal_logs.type AS historyType
+		FROM goals
+		INNER JOIN goal_logs ON goal_logs.id = (
+			SELECT id FROM goal_logs
+			WHERE goalId = goals.id AND date <= ${cutoff}
+			AND type IN ('start', 'end') ORDER BY id DESC LIMIT 1
+		)
+		ORDER BY orderNumber ASC
+	`.execute(getDb());
+	const active: Goal[] = [];
+	const archived: Goal[] = [];
+	for (const { historyType, ...goal } of rows) {
+		(historyType === 'start' ? active : archived).push(goal);
+	}
+	return [active, archived];
+}
 
 export const goals = t.router({
 	/**
@@ -163,26 +190,8 @@ export const goals = t.router({
 			})
 		)
 		.query(async ({ input }) => {
-			const { endDate } = adjustToUTCStartAndEndOfDay(input.date, input.date);
-
-			const result = await sql<Goal>`
-				SELECT goals.id, goals.active, goals.title, goals.description, goals.color,
-					COALESCE((
-						SELECT orderNumber FROM goal_logs
-						WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
-						AND orderNumber IS NOT NULL ORDER BY id DESC LIMIT 1
-					), goals.orderNumber) AS orderNumber,
-					goal_logs.date
-				FROM goals
-				INNER JOIN goal_logs ON goal_logs.id = (
-					SELECT id FROM goal_logs
-					WHERE goalId = goals.id AND date <= ${endDate.toISOString()}
-					AND type IN ('start', 'end') ORDER BY id DESC LIMIT 1
-				)
-				WHERE goal_logs.type = ${input.active === 1 ? 'start' : 'end'}
-				ORDER BY orderNumber ASC
-			`.execute(getDb());
-			return result.rows;
+			const [active, archived] = await getGoalsOnDate(input.date);
+			return input.active === 1 ? active : archived;
 		}),
 	/**
 	 * Add a new goal to the database.
