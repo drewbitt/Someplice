@@ -40,6 +40,7 @@ start() {
 }
 
 check() {
+  test "$(curl --fail --silent --show-error --output /dev/null --write-out '%{http_code}' "$url/healthz")" = 204
   docker exec -i "$name" node --input-type=module - "$1" < "${BASH_SOURCE[0]%.sh}.mjs"
   for page in today goals journey; do
     curl --fail --silent --show-error "$url/$page" >/dev/null

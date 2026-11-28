@@ -37,7 +37,7 @@ COPY --chmod=644 package.json LICENSE ./
 USER node
 EXPOSE 3000
 HEALTHCHECK --timeout=5s --start-period=10s \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/today',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/healthz',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.status===204?0:1),()=>process.exit(1))"
 
 # The first dynamic request initializes the database and cron
 CMD ["node", "build/index.js"]
