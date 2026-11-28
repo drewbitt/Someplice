@@ -45,8 +45,10 @@
 					aria-current={page.url.pathname === '/today' ? 'page' : undefined}
 					class="focus-visible:outline-primary rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid"
 					class:bg-primary={page.url.pathname === '/today'}
-					class:text-primary-content={page.url.pathname === '/today'}>Today</a
+					class:text-primary-content={page.url.pathname === '/today'}
 				>
+					Today
+				</a>
 			</li>
 			<li>
 				<a
@@ -54,8 +56,10 @@
 					aria-current={page.url.pathname === '/goals' ? 'page' : undefined}
 					class="focus-visible:outline-primary rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid"
 					class:bg-primary={page.url.pathname === '/goals'}
-					class:text-primary-content={page.url.pathname === '/goals'}>Goals</a
+					class:text-primary-content={page.url.pathname === '/goals'}
 				>
+					Goals
+				</a>
 			</li>
 			<li>
 				<a
@@ -63,8 +67,10 @@
 					aria-current={page.url.pathname === '/journey' ? 'page' : undefined}
 					class="focus-visible:outline-primary rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid"
 					class:bg-primary={page.url.pathname === '/journey'}
-					class:text-primary-content={page.url.pathname === '/journey'}>Journey</a
+					class:text-primary-content={page.url.pathname === '/journey'}
 				>
+					Journey
+				</a>
 			</li>
 		</ul>
 	</div>
