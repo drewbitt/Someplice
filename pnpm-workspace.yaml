@@ -1,12 +1,13 @@
-allowBuilds:
-  better-sqlite3: true
-  esbuild: true
-  lefthook: true
+permissions:
+  lefthook:
+    build: true
+  '@trpc/client':
+    skills: false
+  '@trpc/server':
+    skills: false
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 525600
 shellEmulator: true
 autoDedupe: true
-# Upstream hasn't declared SvelteKit 3 support yet; verified working (build + e2e).
-peerDependencyRules:
-  allowedVersions:
-    'runed>@sveltejs/kit': '3'
+lockfile:
+  includeResolutionSettings: true

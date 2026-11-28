@@ -26,6 +26,9 @@ jobs:
 
       - uses: ./.github/actions/setup
 
+      - name: Check peer dependencies
+        run: pnpm peers check
+
       - name: Check types and Svelte components
         run: pnpm check
 

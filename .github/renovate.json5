@@ -3,39 +3,64 @@
 	extends: [
 		'config:best-practices',
 		':semanticCommits',
-		// Raise each PR the moment its branch is pushed (weekly window), not
-		// whenever CI happens to settle.
-		':prImmediately',
-		// No off-schedule rebases or updates on existing PRs.
 		':noUnscheduledUpdates',
-		// pnpm autoDedupe dedupes the lockfile on every update.
-		':maintainLockFilesDisabled',
-		// Majors wait for Dependency Dashboard approval.
 		':approveMajorUpdates'
 	],
+	// Keep manifest ranges and let regular updates refresh the lockfile.
+	ignorePresets: [':pinDevDependencies', ':maintainLockFilesWeekly'],
 	rangeStrategy: 'bump',
-	// Bad or yanked releases self-filter before they can be proposed.
+	// Apply the same cooldown to versions pnpm actually resolves.
 	minimumReleaseAge: '7 days',
+	minimumReleaseAgePackageManagerSync: true,
+	// Let Renovate check CI before merging, since master has no required checks.
+	platformAutomerge: false,
 	timezone: 'America/New_York',
-	// All update work happens inside the weekly Monday window.
+	// Routine updates run on Monday. Vulnerability alerts use Renovate's immediate schedule.
 	schedule: ['* * * * 1'],
-	// Vulnerability fix PRs skip the schedule by default — hold them to it too.
-	vulnerabilityAlerts: { schedule: ['* * * * 1'] },
+	vulnerabilityAlerts: { automerge: false },
 	packageRules: [
 		{
-			// Keep SemVer ranges in package.json — undoes :pinDevDependencies
-			// from config:best-practices for manifest entries only.
-			matchDepTypes: ['devDependencies', 'dev-dependencies', 'dev'],
-			rangeStrategy: 'bump'
+			// The inherited npm preset sets three days for version updates.
+			matchDatasources: ['npm'],
+			matchUpdateTypes: ['major', 'minor', 'patch'],
+			minimumReleaseAge: '7 days'
 		},
 		{
-			// All non-major updates in a single weekly PR instead of
-			// separate PRs per dependency.
+			// Batch routine bumps. Toolchain changes below get dedicated reviews.
 			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
 			groupName: 'non-major updates',
 			groupSlug: 'non-major',
 			automerge: true,
 			schedule: ['* 17-23 * * 1']
+		},
+		{
+			// Keep the runtime, Docker images and CI package manager in sync.
+			matchPackageNames: ['node', 'pnpm', 'pnpm/setup'],
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			groupName: 'Node and pnpm',
+			groupSlug: 'node-pnpm',
+			automerge: false
+		},
+		{
+			// Formatter updates can require changes to the files they format.
+			matchPackageNames: ['prettier', 'prettier-plugin-*'],
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			groupName: 'Prettier',
+			groupSlug: 'prettier',
+			automerge: false
+		},
+		{
+			// Review the compiler and lint parser together when their peers change.
+			matchPackageNames: [
+				'typescript',
+				'@typescript/typescript6',
+				'typescript-eslint',
+				'svelte-check'
+			],
+			matchUpdateTypes: ['minor', 'patch', 'pin', 'digest'],
+			groupName: 'TypeScript tooling',
+			groupSlug: 'typescript-tooling',
+			automerge: false
 		},
 		{
 			// 2.2.2 lost the trusted publishing/provenance present in 2.2.1.
