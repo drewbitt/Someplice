@@ -195,20 +195,21 @@
 							showIntentionModal = true;
 						}}
 					>
-						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16"
-							><g
+						<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 16 16">
+							<g
 								fill="none"
 								stroke="currentColor"
 								stroke-linecap="round"
 								stroke-linejoin="round"
 								stroke-width="1.5"
-								><circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
+							>
+								<circle cx="8" cy="2.5" r=".75" /><circle cx="8" cy="8" r=".75" /><circle
 									cx="8"
 									cy="13.5"
 									r=".75"
-								/></g
-							></svg
-						>
+								/>
+							</g>
+						</svg>
 					</button>
 					<Menu class="hidden w-4 shrink-0 opacity-40 sm:block" aria-hidden="true" />
 					<input
@@ -258,8 +259,9 @@
 						style="--goal-color: {intention.status === 'done'
 							? lighterGoalColorForIntention(goalColorForIntention(intention, goals))
 							: goalColorForIntention(intention, goals)}"
-						>{intentionCode(intention)} {intention.text}</button
 					>
+						{`${intentionCode(intention)} ${intention.text}`}
+					</button>
 				</span>
 			{/each}
 		</div>

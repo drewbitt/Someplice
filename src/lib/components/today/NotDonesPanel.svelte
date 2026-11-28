@@ -133,9 +133,9 @@
 			<ChevronDown class="size-4 shrink-0 {hidden ? '-rotate-90' : ''}" />
 			<span>NotDones</span>
 			<span class="text-base-content/60 text-sm font-normal">{groups.length}</span>
-			<span class="text-base-content/60 ms-auto text-sm font-normal"
-				>{hidden ? 'Show' : 'Hide'}</span
-			>
+			<span class="text-base-content/60 ms-auto text-sm font-normal">
+				{hidden ? 'Show' : 'Hide'}
+			</span>
 		</button>
 		<div id={panelId} {hidden}>
 			<p class="text-base-content/70 mt-1 text-sm">
@@ -164,14 +164,18 @@
 							<button
 								class="btn btn-sm"
 								aria-label="Add to today: {group.representative.text}"
-								onclick={() => handleImport(group)}><Plus class="size-4" />Add to today</button
+								onclick={() => handleImport(group)}
 							>
+								<Plus class="size-4" />Add to today
+							</button>
 							<button
 								class="btn btn-ghost btn-sm"
 								aria-label="Skip today: {group.representative.text}"
 								title="Hide for today on this browser"
-								onclick={() => skip(group)}>Skip today</button
+								onclick={() => skip(group)}
 							>
+								Skip today
+							</button>
 						</div>
 					</li>
 				{/each}
@@ -179,8 +183,9 @@
 		</div>
 		<div class="mt-1 text-sm wrap-anywhere" role="status">
 			<span>{feedback}</span>
-			{#if lastSkipped}<button class="btn btn-ghost btn-sm" onclick={undoSkip}>Undo skip</button
-				>{/if}
+			{#if lastSkipped}<button class="btn btn-ghost btn-sm" onclick={undoSkip}>
+					Undo skip
+				</button>{/if}
 		</div>
 	</section>
 {/if}
@@ -227,8 +232,10 @@
 				<button
 					class="btn btn-primary"
 					disabled={group.missCount >= 3 && !strategy.trim()}
-					onclick={handleKeep}>Keep</button
+					onclick={handleKeep}
 				>
+					Keep
+				</button>
 			</div>
 		</div>
 		<button class="modal-backdrop" onclick={handleCancel}>close</button>

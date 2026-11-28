@@ -83,8 +83,10 @@
 						if (e.key === 'Enter') {
 							closeAppendModal();
 						}
-					}}>Cancel</button
+					}}
 				>
+					Cancel
+				</button>
 				<button class="btn btn-primary" onclick={appendInputValue}>Append</button>
 			</span>
 		</div>

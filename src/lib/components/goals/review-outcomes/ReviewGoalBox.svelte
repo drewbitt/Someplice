@@ -161,10 +161,11 @@
 									? 'italic opacity-60'
 									: ''}"
 								style="--goal-color: {goal.color}"
-								>{#if intention.status === 'not_today'}-{goal.orderNumber}{intention.subIntentionQualifier ??
-										''})
-								{/if}{intention.text}</label
 							>
+								{#if intention.status === 'not_today'}-{goal.orderNumber}{intention.subIntentionQualifier ??
+										''})
+								{/if}{intention.text}
+							</label>
 							{#if onNotTodayToggled}
 								<button
 									class="md:tooltip md:tooltip-right ml-1 flex opacity-40 transition-opacity hover:opacity-100"

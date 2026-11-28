@@ -155,9 +155,9 @@
 			{#if showValidIntentionsNotification}
 				<div role="alert" class="alert alert-error border-error">
 					<CircleX class="size-6 shrink-0 stroke-current" />
-					<span
-						>Please check that your intentions are formatted correctly and have valid goal numbers.</span
-					>
+					<span>
+						Please check that your intentions are formatted correctly and have valid goal numbers.
+					</span>
 				</div>
 			{/if}
 			<ActionsTextInput
@@ -185,9 +185,9 @@
 		{#if showValidIntentionsNotification}
 			<div role="alert" class="alert alert-error border-error">
 				<CircleX class="size-6 shrink-0 stroke-current" />
-				<span
-					>Please check that your intentions are formatted correctly and have valid goal numbers.</span
-				>
+				<span>
+					Please check that your intentions are formatted correctly and have valid goal numbers.
+				</span>
 			</div>
 		{/if}
 		<ActionsTextInput
