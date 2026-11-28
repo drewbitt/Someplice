@@ -70,37 +70,47 @@ jobs:
     uses: ./.github/workflows/container.yml
 
   browsers:
-    # WebKit runner comparison: actions/runs/43093593363 (24.04 was faster).
-    runs-on: ${{ matrix.browser == 'webkit' && 'ubuntu-24.04' || 'ubuntu-26.04' }}
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        browser: [chromium, firefox]
+    env:
+      BROWSER: ${{ matrix.browser }}
 
-    steps:
+    steps: &browser-steps
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Trust the checkout in the container
+        if: ${{ job.container.id }}
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - uses: ./.github/actions/setup
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps --only-shell ${{ matrix.browser }}
+        run: |
+          # Install again if a Playwright update needs a browser the image doesn't include.
+          if [ "$BROWSER" = webkit ] && [ -x "$(node -p 'require("@playwright/test").webkit.executablePath()')" ]; then
+            exit 0
+          fi
+          pnpm exec playwright install --with-deps --only-shell "$BROWSER"
 
       - name: Run Vitest browser tests
-        run: pnpm exec vitest run --project browser-${{ matrix.browser }}
+        run: pnpm exec vitest run --project "browser-$BROWSER"
 
       - name: Run Playwright tests
         if: ${{ !cancelled() }}
         env:
           PLAYWRIGHT_PERFETTO_OUTPUT_FILE: test-results/playwright/perfetto.json.gz
-        run: pnpm test:e2e --project ${{ matrix.browser }} --add-reporter perfetto
+        run: pnpm test:e2e --project "$BROWSER" --add-reporter perfetto
 
       - name: Upload browser traces and timings
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: browser-results-${{ matrix.browser }}
+          name: browser-results-${{ env.BROWSER }}
           path: |
             test-results/**/*.zip
             test-results/**/perfetto.json.gz
@@ -108,13 +118,23 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  webkit:
+    # Container comparison: actions/runs/46129272770.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579
+    env:
+      BROWSER: webkit
+    steps: *browser-steps
+
   required:
     name: CI passed
-    needs: [test-workflow, db, docker, browsers]
+    needs: [test-workflow, db, docker, browsers, webkit]
     if: ${{ always() && !inputs.skip-container }}
     runs-on: ubuntu-26.04
     steps:
       - name: Require every CI job to pass
         env:
-          PASSED: ${{ needs.test-workflow.result == 'success' && needs.db.result == 'success' && needs.docker.result == 'success' && needs.browsers.result == 'success' }}
+          PASSED: ${{ needs.test-workflow.result == 'success' && needs.db.result == 'success' && needs.docker.result == 'success' && needs.browsers.result == 'success' && needs.webkit.result == 'success' }}
         run: test "$PASSED" = true
