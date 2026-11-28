@@ -234,9 +234,9 @@
 				</div>
 			</div>
 			{#if active}
-				<span role="timer" aria-label="Time remaining" class="text-3xl font-semibold tabular-nums"
-					>{formatClock(remaining)}</span
-				>
+				<span role="timer" aria-label="Time remaining" class="text-3xl font-semibold tabular-nums">
+					{formatClock(remaining)}
+				</span>
 				<div class="flex flex-wrap gap-2">
 					{#if active.kind === 'hourglass'}
 						<button
@@ -244,28 +244,35 @@
 							class="btn btn-sm"
 							disabled={pending}
 							onclick={() => control(active?.status === 'paused' ? 'resume' : 'pause')}
-							>{active.status === 'paused' ? 'Resume' : 'Pause'}</button
 						>
+							{active.status === 'paused' ? 'Resume' : 'Pause'}
+						</button>
 						<button
 							type="button"
 							class="btn btn-sm"
 							disabled={pending}
-							onclick={() => control('stop')}>Save & stop</button
+							onclick={() => control('stop')}
 						>
+							Save & stop
+						</button>
 					{:else if active.kind === 'pomodoro'}
 						<button
 							type="button"
 							class="btn btn-sm btn-ghost"
 							disabled={pending}
-							onclick={askToCancel}>Cancel Pomodoro</button
+							onclick={askToCancel}
 						>
+							Cancel Pomodoro
+						</button>
 					{:else}
 						<button
 							type="button"
 							class="btn btn-sm btn-ghost"
 							disabled={pending}
-							onclick={() => control('cancel')}>Skip break</button
+							onclick={() => control('cancel')}
 						>
+							Skip break
+						</button>
 					{/if}
 					{#if !today}<a href="/today" class="btn btn-sm">Today</a>{/if}
 				</div>
@@ -293,8 +300,8 @@
 					);
 				}}
 			>
-				<label class="flex flex-col gap-1 text-sm"
-					>Mode
+				<label class="flex flex-col gap-1 text-sm">
+					Mode
 					<select
 						class="border-base-300 bg-base-100 min-h-10 rounded-lg border px-2"
 						bind:value={mode}
@@ -303,8 +310,8 @@
 						<option value="pomodoro">Pomodoro</option><option value="hourglass">Hourglass</option>
 					</select>
 				</label>
-				<label class="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm sm:basis-64"
-					>Work on
+				<label class="flex min-w-0 flex-1 basis-40 flex-col gap-1 text-sm sm:basis-64">
+					Work on
 					<select
 						class="border-base-300 bg-base-100 min-h-10 w-full min-w-0 rounded-lg border px-2"
 						value={selectedId}
@@ -315,15 +322,17 @@
 					>
 						<option value="">Unassigned</option>
 						{#each timerState.intentions as intention (intention.id)}<option
-								value={String(intention.id)}>{intention.text} · {intention.goalTitle}</option
-							>{/each}
+								value={String(intention.id)}
+							>
+								{intention.text} · {intention.goalTitle}
+							</option>{/each}
 					</select>
 				</label>
-				<button type="submit" class="btn btn-primary min-h-10" disabled={pending}
-					>Start {mode === 'pomodoro' ? 'Pomodoro' : 'hourglass'} · {mode === 'pomodoro'
+				<button type="submit" class="btn btn-primary min-h-10" disabled={pending}>
+					Start {mode === 'pomodoro' ? 'Pomodoro' : 'hourglass'} · {mode === 'pomodoro'
 						? preferences.workMinutes
-						: preferences.hourglassMinutes}m</button
-				>
+						: preferences.hourglassMinutes}m
+				</button>
 				<button
 					type="button"
 					class="btn btn-ghost min-h-10"
@@ -333,10 +342,11 @@
 							'break',
 							longBreakDue ? preferences.longBreakMinutes : preferences.shortBreakMinutes
 						)}
-					>Take {longBreakDue ? 'long ' : ''}break · {longBreakDue
-						? preferences.longBreakMinutes
-						: preferences.shortBreakMinutes}m</button
 				>
+					Take {longBreakDue ? 'long ' : ''}break · {longBreakDue
+						? preferences.longBreakMinutes
+						: preferences.shortBreakMinutes}m
+				</button>
 			</form>
 			<p class="text-base-content/75 mt-2 text-sm">
 				{mode === 'pomodoro'
@@ -347,8 +357,8 @@
 				<summary class="w-fit rounded-sm py-1">Timer settings</summary>
 				<fieldset class="mt-2 flex flex-wrap gap-3" disabled={pending}>
 					{#each [['workMinutes', 'Pomodoro'], ['hourglassMinutes', 'Hourglass'], ['shortBreakMinutes', 'Short break'], ['longBreakMinutes', 'Long break']] as [key, label] (key)}
-						<label class="flex flex-col gap-1"
-							>{label} minutes<input
+						<label class="flex flex-col gap-1">
+							{label} minutes<input
 								class="input input-sm w-24"
 								type="number"
 								min="1"
@@ -356,8 +366,8 @@
 								step="1"
 								bind:value={preferences[key as keyof typeof preferences]}
 								required
-							/></label
-						>
+							/>
+						</label>
 					{/each}
 				</fieldset>
 				<p class="text-base-content/75 mt-2">
@@ -369,8 +379,9 @@
 					class="btn btn-sm btn-ghost mt-2"
 					disabled={pending}
 					onclick={() => start('break', preferences.longBreakMinutes)}
-					>Start long break · {preferences.longBreakMinutes}m</button
 				>
+					Start long break · {preferences.longBreakMinutes}m
+				</button>
 			</details>
 		{/if}
 		{#if today && timerState && timerState.recent.length > 0}
@@ -379,22 +390,22 @@
 				<ul class="mt-2 space-y-2">
 					{#each timerState.recent as session (session.id)}
 						<li class="flex flex-wrap justify-between gap-x-3">
-							<span class="min-w-0 break-words"
-								>{session.kind === 'break' ? 'Break' : (session.intentionText ?? 'Unassigned')}
-								<span class="text-base-content/75"
-									>· {session.kind === 'pomodoro'
+							<span class="min-w-0 break-words">
+								{session.kind === 'break' ? 'Break' : (session.intentionText ?? 'Unassigned')}
+								<span class="text-base-content/75">
+									· {session.kind === 'pomodoro'
 										? 'Pomodoro'
 										: session.kind === 'hourglass'
 											? 'Hourglass'
-											: 'Rest'}</span
-								></span
-							><span class="shrink-0 tabular-nums"
-								>{session.status === 'cancelled'
+											: 'Rest'}
+								</span>
+							</span><span class="shrink-0 tabular-nums">
+								{session.status === 'cancelled'
 									? session.kind === 'break'
 										? 'Skipped'
 										: 'Interrupted · no credit'
-									: formatClock(session.elapsedSeconds)}</span
-							>
+									: formatClock(session.elapsedSeconds)}
+							</span>
 						</li>
 					{/each}
 				</ul>
@@ -406,9 +417,9 @@
 		{#if error}<p role="alert" class="text-error mt-2 text-sm">{error}</p>{/if}
 		{#if loadError}<p role="alert" class="mt-2 text-sm">
 				{loadError}
-				<button type="button" class="underline" disabled={pending} onclick={refresh}
-					>Retry timer sync</button
-				>
+				<button type="button" class="underline" disabled={pending} onclick={refresh}>
+					Retry timer sync
+				</button>
 			</p>{/if}
 	</section>
 {/if}
