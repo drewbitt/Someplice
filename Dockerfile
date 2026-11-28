@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --prod --frozen-lockfile --ignore-scripts --no-runtime --store-dir=/pnpm/store
 
 FROM base AS build
-# esbuild ships binaries via optionalDeps; skipping scripts avoids compiling dev-only native deps
+# Build tools ship platform binaries as optional dependencies; hooks are only needed locally.
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --ignore-scripts --no-runtime --store-dir=/pnpm/store
 COPY . .

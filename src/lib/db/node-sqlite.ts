@@ -1,4 +1,4 @@
-import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
+import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { SqliteAdapter } from 'kysely';
 import { GenericSqliteDialect } from 'kysely-generic-sqlite';
 
@@ -16,11 +16,11 @@ class NodeSqliteDialect extends GenericSqliteDialect {
 	}
 }
 
-function disposeStatement(statement: StatementSync): void {
-	// @types/node 24.19.2 omits statement disposal (added in Node 24.22.0).
-	const dispose = Symbol.dispose in statement ? statement[Symbol.dispose] : undefined;
-	if (typeof dispose === 'function') {
-		dispose.call(statement);
+// The supported Node runtime has statement disposal since v26.8.0.
+// The current @types/node declarations still lack it.
+declare module 'node:sqlite' {
+	interface StatementSync {
+		[Symbol.dispose](): void;
 	}
 }
 
@@ -33,32 +33,24 @@ export function createNodeSqliteDialect(database: DatabaseSync) {
 	return new NodeSqliteDialect(() => ({
 		db: database,
 		query: (_isSelect, sql, parameters) => {
-			const stmt = database.prepare(sql);
-			try {
-				const params = parameters as SQLInputValue[];
-				if (stmt.columns().length > 0) {
-					return { rows: stmt.all(...params).map((row) => ({ ...row })) };
-				}
-				const { changes, lastInsertRowid } = stmt.run(...params);
-				return {
-					rows: [],
-					insertId: BigInt(lastInsertRowid),
-					numAffectedRows: BigInt(changes)
-				};
-			} finally {
-				disposeStatement(stmt);
+			using stmt = database.prepare(sql);
+			const params = parameters as SQLInputValue[];
+			if (stmt.columns().length > 0) {
+				return { rows: stmt.all(...params).map((row) => ({ ...row })) };
 			}
+			const { changes, lastInsertRowid } = stmt.run(...params);
+			return {
+				rows: [],
+				insertId: BigInt(lastInsertRowid),
+				numAffectedRows: BigInt(changes)
+			};
 		},
 		iterator: (_isSelect, sql, parameters) => {
 			const params = parameters as SQLInputValue[];
 			return (function* () {
-				const stmt = database.prepare(sql);
-				try {
-					for (const row of stmt.iterate(...params)) {
-						yield { ...row };
-					}
-				} finally {
-					disposeStatement(stmt);
+				using stmt = database.prepare(sql);
+				for (const row of stmt.iterate(...params)) {
+					yield { ...row };
 				}
 			})();
 		},
