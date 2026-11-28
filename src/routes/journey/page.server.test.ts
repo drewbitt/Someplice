@@ -1,5 +1,6 @@
 import { createDb, getDb, setDb } from '#lib/db/db.js';
 import { runMigrations } from '#lib/db/migrate-to-latest.js';
+import { createCallerFactory, router } from '#lib/trpc/router.js';
 import type { DB } from '#lib/types/data.js';
 import type { Kysely } from 'kysely';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -107,6 +108,20 @@ describe('Journey server load', () => {
 		expect(data.outcomes[0].date).toBe('2026-10-20');
 		expect(data.outcomes.at(-1)?.date).toBe('2026-10-06');
 		expect(data.oldestLoadedDate).toBe('2026-10-06');
+
+		const caller = createCallerFactory(router)({});
+		const older = await caller.journey.page({ before: data.oldestLoadedDate });
+		expect(older.window.outcomes.map((outcome) => outcome.date)).toEqual([
+			'2026-10-05',
+			'2026-10-04',
+			'2026-10-03',
+			'2026-10-02',
+			'2026-10-01'
+		]);
+		expect(older.oldestLoadedDate).toBe('2026-10-01');
+		const exhausted = await caller.journey.page({ before: older.oldestLoadedDate });
+		expect(exhausted.hasMore).toBe(false);
+		expect(exhausted.window.outcomes).toEqual([]);
 	});
 
 	it('includes archived goals referenced only by verdicts or completed priorities', async () => {

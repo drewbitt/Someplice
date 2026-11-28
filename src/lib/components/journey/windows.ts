@@ -1,18 +1,21 @@
-import type { RouterOutputs } from '#lib/trpc/router.js';
+import type { inferRouterOutputs } from '@trpc/server';
+import type { intentions } from '#lib/trpc/routes/intentions.js';
+import type { outcomes } from '#lib/trpc/routes/outcomes.js';
+import type { priorities } from '#lib/trpc/routes/priorities.js';
 import type { Goal } from '#lib/trpc/types.js';
 import { goalsForJourneyDay } from '#lib/utils/index.js';
 
 export interface JourneyWindow {
-	intentionsByDate: RouterOutputs['intentions']['listByDate'];
+	intentionsByDate: inferRouterOutputs<typeof intentions>['listByDate'];
 	goalsByDate: Record<string, Goal[]>;
-	outcomes: RouterOutputs['outcomes']['list'];
-	verdicts: RouterOutputs['outcomes']['verdictsByOutcomeIds'];
-	completedPriorities: RouterOutputs['priorities']['listCompleted'];
+	outcomes: inferRouterOutputs<typeof outcomes>['list'];
+	verdicts: inferRouterOutputs<typeof outcomes>['verdictsByOutcomeIds'];
+	completedPriorities: inferRouterOutputs<typeof priorities>['listCompleted'];
 }
 
 type JourneyRows = Omit<JourneyWindow, 'goalsByDate'>;
 
-export function journeyDates(window: JourneyRows): string[] {
+export function journeyDates(window: Omit<JourneyRows, 'verdicts'>): string[] {
 	return [
 		...new Set([
 			...Object.entries(window.intentionsByDate)
