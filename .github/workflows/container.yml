@@ -1,0 +1,90 @@
+name: Verify container images
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: Registry image name for release builds. Omit for local builds.
+        type: string
+      labels:
+        type: string
+      annotations:
+        type: string
+
+jobs:
+  verify:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-26.04
+          - arch: arm64
+            runner: ubuntu-26.04-arm
+    env:
+      DOCKER_PLATFORM: linux/${{ matrix.arch }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR
+        if: ${{ inputs.image != '' }}
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: ${{ env.DOCKER_PLATFORM }}
+          load: ${{ inputs.image == '' }}
+          tags: ${{ inputs.image == '' && 'someplice:ci' || '' }}
+          # Push by digest so no public tag can point at an unverified build.
+          outputs: ${{ inputs.image != '' && format('type=image,name={0},push-by-digest=true,name-canonical=true,push=true', inputs.image) || '' }}
+          labels: ${{ inputs.labels }}
+          annotations: ${{ inputs.annotations }}
+          provenance: ${{ inputs.image != '' && 'mode=max' || 'false' }}
+          sbom: ${{ inputs.image != '' }}
+          cache-from: type=gha,scope=${{ env.DOCKER_PLATFORM }}
+          # Only master pushes warm the shared build cache.
+          cache-to: ${{ github.event_name == 'push' && format('type=gha,scope={0},mode=max', env.DOCKER_PLATFORM) || '' }}
+
+      - name: Pull release image by digest
+        if: ${{ inputs.image != '' }}
+        env:
+          IMAGE: ${{ inputs.image }}@${{ steps.build.outputs.digest }}
+        run: docker pull --platform "$DOCKER_PLATFORM" "$IMAGE"
+
+      - name: Scan and smoke-test the image
+        env:
+          IMAGE: ${{ inputs.image != '' && format('{0}@{1}', inputs.image, steps.build.outputs.digest) || 'someplice:ci' }}
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa image \
+            --image-src docker --scanners vuln --severity HIGH,CRITICAL --exit-code 1 "$IMAGE"
+          bash tests/docker-smoke.sh "$IMAGE"
+
+      - name: Record verified digest
+        if: ${{ inputs.image != '' }}
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: printf '%s\n' "$DIGEST" > digest
+
+      - name: Upload verified digest
+        if: ${{ inputs.image != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: image-digest-${{ matrix.arch }}
+          path: digest
+          if-no-files-found: error
